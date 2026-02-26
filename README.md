@@ -25,6 +25,33 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+## 📖 Docs
+
+### Git
+
+- Create your branch from **develop**, for example, **feat/123-your-task-in-a-nutshell** (please refer [this page for more details](https://medium.com/@abhay.pixolo/naming-conventions-for-git-branches-a-cheatsheet-8549feca2534))
+- Commit format: **feat(123): your task in a nutshell and a bit more words**
+- Pull request (PR). Be sure it has: informative description, reviewers, assignees, labels, development sections (fields) filled up.
+- Reviewers: vlad-khrychov, UA-5399-React/developers, if it's really important - UA-5399-React/experts
+- Let the team know about your opened PR in official channels.
+- All comments, proposals etc. and code conflicts should be resolved before merging PR.
+
+### Tickets
+
+- Create ticket in "Todo" column after team discussion.
+- Be sure it has: informative description, assignees, labels, development sections (fields) filled up.
+- Move ticket one column by one to the right in interrelation with code status (PR).
+
+### Tests
+
+- If it's possible, always create unit-tests for your code.
+- Keep in mind coverage treshold is **80%**, so keep your tests above it.
+
+### Other
+
+- English should be used in code comments, PR reviews and other similar places.
+
+
 ## Project setup
 
 ```bash
