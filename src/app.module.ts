@@ -15,13 +15,19 @@ import { AppService } from './app.service';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {
         const uri = configService.get<string>('DB_CONNECTION_LINK');
+        const dbName = configService.get<string>('DB_NAME');
 
         if (!uri) {
           throw new Error('DB_CONNECTION_LINK is not defined in the environment variables');
         }
 
+        if (!dbName) {
+          throw new Error('DB_NAME is not defined');
+        }
+
         return {
           uri,
+          dbName,
         };
       },
       inject: [ConfigService],
