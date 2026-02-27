@@ -4,6 +4,9 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
 import { ProductsModule } from './products/products.module';
+import { LoggerModule } from './logger/logger.module';
+import { RequestLoggingInterceptor } from './common/request-logging.interceptor';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -11,10 +14,17 @@ import { ProductsModule } from './products/products.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    LoggerModule,
     DatabaseModule,
     ProductsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: RequestLoggingInterceptor,
+    },
+  ],
 })
 export class AppModule {}
