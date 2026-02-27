@@ -7,6 +7,13 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   const appLogger = app.get(AppLogger);
   app.useLogger(appLogger);
+  const app = await NestFactory.create(AppModule);
+
+  app.enableCors({
+    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    credentials: true,
+  });
+
   const config = new DocumentBuilder()
     .setTitle('Server API')
     .setDescription('API documentation')

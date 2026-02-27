@@ -7,6 +7,7 @@ import { ProductsModule } from './products/products.module';
 import { LoggerModule } from './logger/logger.module';
 import { RequestLoggingInterceptor } from './common/request-logging.interceptor';
 import { APP_INTERCEPTOR } from '@nestjs/core';
+import { ProductsController } from './products/products.controller';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
     DatabaseModule,
     ProductsModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, ProductsController],
   providers: [
     AppService,
     {
