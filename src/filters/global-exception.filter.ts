@@ -8,11 +8,11 @@ import {
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 
+
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
     // NestJS logger for structured logging
     private readonly logger = new Logger(GlobalExceptionFilter.name);
-
     catch(exception: unknown, host: ArgumentsHost) {
         // Switch execution context to HTTP
         const ctx = host.switchToHttp();
@@ -28,35 +28,17 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
         // Handle known HTTP exceptions
         if (exception instanceof HttpException) {
-            status = exception.getStatus();
-            const body = exception.getResponse();
-
-            // If the response body is a simple string
-            if (typeof body === 'string') {
-                message = body;
-
-                // If the response body is an object
-            } else if (body && typeof body === 'object') {
-                const b = body as any;
-
-                // Extract message and error if present
-                message = b.message ?? exception.message;
-                error = b.error ?? exception.name;
-
-                // Fallback handling
-            } else {
-                message = exception.message;
-                error = exception.name;
-            }
+            const extracted = this.extractHttpException(exception);
+            status = extracted.status;
+            message = extracted.message;
+            error = extracted.error;
         } else {
-
             // Handle unexpected errors (non-HTTP exceptions)
             this.logger.error(
                 `Unhandled exception on ${req.method} ${req.url}`,
-                (exception as any)?.stack ?? String(exception),
+                exception instanceof Error ? exception.stack : String(exception),
             );
         }
-
 
         // Send unified error response to the client
         return res.status(status).json({
@@ -68,4 +50,40 @@ export class GlobalExceptionFilter implements ExceptionFilter {
             timestamp: new Date().toISOString(),
         });
     }
+
+    private extractHttpException(exception: HttpException): {
+        status: number;
+        message: string | string[];
+        error: string;
+    } {
+        const status = exception.getStatus();
+        const body = exception.getResponse();
+
+        // Case 1: response body is a string
+        if (typeof body === 'string') {
+            return {
+                status,
+                message: body,
+                error: exception.name
+            };
+        }
+
+        // Case 2: response body is an object
+        if (body !== null && typeof body === 'object') {
+            const b = body as { message?: string | string[]; error?: string };
+            return {
+                status,
+                message: b.message ?? exception.message,
+                error: b.error ?? exception.name,
+            };
+        }
+
+        // Default case
+        return {
+            status,
+            message: exception.message,
+            error: exception.name
+        };
+    }
+
 }
