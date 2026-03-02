@@ -28,15 +28,12 @@ export class RequestLoggingInterceptor implements NestInterceptor {
       tap({
         next: () => {
           const ms = Date.now() - start;
-          this.logger.http(
-            // `${method} ${path} ${res.statusCode} – ${ms}ms`
-            {
-              method,
-              path,
-              statusCode: res.statusCode,
-              durationMs: ms,
-            },
-          );
+          this.logger.http({
+            method,
+            path,
+            statusCode: res.statusCode,
+            durationMs: ms,
+          });
         },
         error: (err: unknown) => {
           const ms = Date.now() - start;
