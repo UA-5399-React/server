@@ -28,13 +28,13 @@ jobs:
                 cache: pnpm
 
             - name: Install dependencies
-              run: pnpm install
+              run: pnpm install --frozen-lockfile
             
             - name: Run eslint
               run: pnpm run lint
             
             - name: Run unit tests
-              run: pnpm run test:conv
+              run: pnpm run test:cov
 
             - name: Run e2e tests
               run: pnpm run test:e2e
@@ -57,7 +57,7 @@ jobs:
                 cache: pnpm            
 
             - name: Install dependencies
-              run: pnpm install 
+              run: pnpm install --frozen-lockfile
 
             - name: Run format
               run: pnpm run format
