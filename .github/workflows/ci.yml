@@ -3,11 +3,11 @@ name: server CI pipeline
 on:
     push:
         branches: 
-            -develop
+            - develop
             - feat/58-server-ci-pipeline
     pull_request:
         branches: 
-            -develop
+            - develop
 
 jobs:
     test: 
