@@ -30,7 +30,7 @@ jobs:
             - name: Install dependencies
               run: pnpm install
             
-            - name: Run lint
+            - name: Run eslint
               run: pnpm run lint
             
             - name: Run unit tests
