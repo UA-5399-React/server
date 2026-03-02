@@ -4,7 +4,6 @@ on:
     push:
         branches: 
             - develop
-            - feat/58-server-ci-pipeline
     pull_request:
         branches: 
             - develop

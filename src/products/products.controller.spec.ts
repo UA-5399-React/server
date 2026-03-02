@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProductsController } from './products.controller';
 import { ProductsService } from './products.service';
-//import { ProductDocument } from './entities/product.schema';
 import { ProductStatus } from './enums/product-status.enum';
 
 //moking product for test
