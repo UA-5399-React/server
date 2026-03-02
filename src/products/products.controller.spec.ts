@@ -1,7 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
+
+import { ProductStatus } from './enums/product-status.enum';
 import { ProductsController } from './products.controller';
 import { ProductsService } from './products.service';
-import { ProductStatus } from './enums/product-status.enum';
 
 //moking product for test
 const mockProduct = {
