@@ -75,9 +75,15 @@ importers:
       eslint-plugin-prettier:
         specifier: ^5.2.2
         version: 5.5.5(@types/eslint@9.6.1)(eslint-config-prettier@10.1.8(eslint@9.39.3))(eslint@9.39.3)(prettier@3.8.1)
+      eslint-plugin-simple-import-sort:
+        specifier: ^12.1.1
+        version: 12.1.1(eslint@9.39.3)
       globals:
         specifier: ^16.0.0
         version: 16.5.0
+      husky:
+        specifier: ^9.1.7
+        version: 9.1.7
       jest:
         specifier: ^30.0.0
         version: 30.2.0(@types/node@22.19.12)(ts-node@10.9.2(@types/node@22.19.12)(typescript@5.9.3))
@@ -1643,6 +1649,11 @@ packages:
       eslint-config-prettier:
         optional: true
 
+  eslint-plugin-simple-import-sort@12.1.1:
+    resolution: {integrity: sha512-6nuzu4xwQtE3332Uz0to+TxDQYRLTKRESSc2hefVT48Zc8JthmN23Gx9lnYhu0FtkRSL1oxny3kJ2aveVhmOVA==}
+    peerDependencies:
+      eslint: '>=5.0.0'
+
   eslint-scope@5.1.1:
     resolution: {integrity: sha512-2NxwbF/hZ0KpepYN0cNbo+FN6XoK7GaHlQhgx/hIZl6Va0bF45RQOOwhLIy8lQDbuCiadSLCBnH2CFYquit5bw==}
     engines: {node: '>=8.0.0'}
@@ -1922,6 +1933,11 @@ packages:
   human-signals@2.1.0:
     resolution: {integrity: sha512-B4FFZ6q/T2jhhksgkbEW3HBvWIfDW85snkQgawt07S7J5QXTk6BkNV+0yAeZrM5QpMAdYlocGoljn0sJ/WQkFw==}
     engines: {node: '>=10.17.0'}
+
+  husky@9.1.7:
+    resolution: {integrity: sha512-5gs5ytaNjBrh5Ow3zrvdUUY+0VxIuWVL4i9irt6friV+BqdCfmV11CQTWMiBYWHbXhco+J1kHfTOUkePhCDvMA==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   iconv-lite@0.7.2:
     resolution: {integrity: sha512-im9DjEDQ55s9fL4EYzOAv0yMqmMBSZp6G0VvFyTMPKWxiSBHUj9NW/qqLmXUwXrrM7AvqSlTCfvqRb0cM8yYqw==}
@@ -4821,6 +4837,10 @@ snapshots:
       '@types/eslint': 9.6.1
       eslint-config-prettier: 10.1.8(eslint@9.39.3)
 
+  eslint-plugin-simple-import-sort@12.1.1(eslint@9.39.3):
+    dependencies:
+      eslint: 9.39.3
+
   eslint-scope@5.1.1:
     dependencies:
       esrecurse: 4.3.0
@@ -5174,6 +5194,8 @@ snapshots:
       toidentifier: 1.0.1
 
   human-signals@2.1.0: {}
+
+  husky@9.1.7: {}
 
   iconv-lite@0.7.2:
     dependencies:
