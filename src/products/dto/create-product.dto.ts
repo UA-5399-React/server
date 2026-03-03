@@ -1,12 +1,5 @@
-import {
-  IsString,
-  IsNumber,
-  IsEnum,
-  IsArray,
-  IsOptional,
-  IsNotEmpty,
-  Min,
-} from 'class-validator';
+import { IsArray, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+
 import { ProductStatus } from '../enums/product-status.enum';
 
 export class CreateProductDto {
