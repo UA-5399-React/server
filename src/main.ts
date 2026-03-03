@@ -1,11 +1,16 @@
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
+import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { AppLogger } from './logger/app-logger.service';
 import { GlobalExceptionFilter } from './filters/global-exception.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const appLogger = app.get(AppLogger);
+  app.useLogger(appLogger);
 
   app.enableCors({
     origin: process.env.CLIENT_URL || 'http://localhost:5173',
@@ -18,14 +23,14 @@ async function bootstrap() {
     .setVersion('1.0')
     .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'JWT-auth')
     .build();
-
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
+  const port = process.env.PORT ?? 3000;
+  await app.listen(port);
 
-  // Apply global exception filter to catch all HTTP and unexpected errors
+  appLogger.log(`Server started on port ${port}`, 'Bootstrap');
+  appLogger.log(`Swagger: http://localhost:${port}/api`, 'Bootstrap');
   app.useGlobalFilters(new GlobalExceptionFilter());
-
-  await app.listen(process.env.PORT ?? 3000);
 }
 
 bootstrap().catch((err) => {
