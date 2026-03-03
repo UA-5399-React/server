@@ -1,7 +1,10 @@
 import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppLogger } from './logger/app-logger.service';
+import { GlobalExceptionFilter } from './filters/global-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -27,6 +30,9 @@ async function bootstrap() {
 
   appLogger.log(`Server started on port ${port}`, 'Bootstrap');
   appLogger.log(`Swagger: http://localhost:${port}/api`, 'Bootstrap');
+  app.useGlobalFilters(new GlobalExceptionFilter());
 }
 
-bootstrap();
+bootstrap().catch((err) => {
+  console.error('Server startup error:', err);
+});
