@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class GetProductsQueryDto {
   // Optional keyword for searching products by title, description, or tags
@@ -25,4 +25,16 @@ export class GetProductsQueryDto {
   @Min(1)
   @Max(30)
   limit?: number = 10;
+
+  //Sorting field, could be sorted by title or price
+  @ApiPropertyOptional({description: 'By what field result be sorted: title or price', example: 'title', enum: ['price', 'title']})
+  @IsOptional()
+  @IsIn(['price', 'title'])
+  sort?: 'price' | 'title';
+
+  //Ascended ot descended order of sorting, by default it's from lower to higher
+  @ApiPropertyOptional({description: 'Sorting order: ascended or descended', example: 'asc', enum: ['asc', 'desc']})
+  @IsOptional()
+  @IsIn(['asc', 'desc'])
+  order?: 'asc' | 'desc' = 'asc';
 }
