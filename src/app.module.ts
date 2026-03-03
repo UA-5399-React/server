@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
 import { ProductsModule } from './products/products.module';
 import { ProductsController } from './products/products.controller';
+import { ProductSeeder } from './database/seeders/product.seeder';
 
 @Module({
   imports: [
@@ -16,6 +17,6 @@ import { ProductsController } from './products/products.controller';
     ProductsModule,
   ],
   controllers: [AppController, ProductsController],
-  providers: [AppService],
+  providers: [AppService, ProductSeeder],
 })
 export class AppModule {}
