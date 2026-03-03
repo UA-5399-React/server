@@ -1,7 +1,8 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
-import { ProductsService } from './products.service';
+
 import { Product } from './entities/product.schema';
+import { ProductsService } from './products.service';
 
 @ApiTags('Products')
 @Controller('products')
