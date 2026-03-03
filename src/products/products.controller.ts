@@ -3,6 +3,8 @@ import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 
 import { Product } from './entities/product.schema';
 import { ProductsService } from './products.service';
+import { CreateProductDto } from './dto/create-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
 
 @ApiTags('Products')
 @Controller('products')
@@ -29,8 +31,8 @@ export class ProductsController {
   @ApiOperation({ summary: 'Create a new product' })
   @ApiResponse({ status: 201, description: 'Product created', type: Product })
   @ApiResponse({ status: 400, description: 'Invalid input' })
-  create(@Body() body: Omit<Product, 'id'>): Promise<Product> {
-    return this.productsService.create(body);
+  create(@Body() createProductDto: CreateProductDto): Promise<Product> {
+    return this.productsService.create(createProductDto);
   }
 
   @Patch(':id')
@@ -38,8 +40,8 @@ export class ProductsController {
   @ApiParam({ name: 'id', description: 'Product MongoDB ObjectId' })
   @ApiResponse({ status: 200, description: 'Product updated', type: Product })
   @ApiResponse({ status: 404, description: 'Product not found' })
-  update(@Param('id') id: string, @Body() body: Partial<Omit<Product, 'id'>>): Promise<Product> {
-    return this.productsService.update(id, body);
+  update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto): Promise<Product> {
+    return this.productsService.update(id, updateProductDto);
   }
 
   @Delete(':id')
