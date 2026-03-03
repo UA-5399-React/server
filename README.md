@@ -47,6 +47,20 @@
 - If it's possible, always create unit-tests for your code.
 - Keep in mind coverage treshold is **80%**, so keep your tests above it.
 
+### Database Seeding
+
+To easily populate your local MongoDB with mock data (Products, Images, etc.) for development and testing, use the built-in seeder.
+
+**Run the seeder (adds 50 new products):**
+```bash
+pnpm run seed
+```
+
+If you want to start with a clean slate and avoid duplicates, pass the --clear flag.
+```bash
+pnpm run seed --clear
+```
+
 ### Other
 
 - English should be used in code comments, PR reviews and other similar places.
