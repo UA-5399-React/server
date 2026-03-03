@@ -1,10 +1,12 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
+import { CreateProductDto } from './dto/create-product.dto';
+import { GetProductsQueryDto } from './dto/get-products.query.dto';
+import { PaginatedProductsDto } from './dto/paginated-products.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
 import { Product } from './entities/product.schema';
 import { ProductsService } from './products.service';
-import { CreateProductDto } from './dto/create-product.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
 
 @ApiTags('Products')
 @Controller('products')
@@ -12,10 +14,11 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get all products' })
-  @ApiResponse({ status: 200, description: 'List of all products', type: [Product] })
-  findAll(): Promise<Product[]> {
-    return this.productsService.findAll();
+  @ApiOperation({ summary: 'Get products with search and pagination' })
+  @ApiResponse({ status: 200, description: 'Paginated products list', type: PaginatedProductsDto })
+  findAll(@Query() query: GetProductsQueryDto): Promise<PaginatedProductsDto> {
+    // Delegates search and pagination logic to the service layer
+    return this.productsService.findAll(query);
   }
 
   @Get(':id')

@@ -3,7 +3,6 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppLogger } from './logger/app-logger.service';
 import { GlobalExceptionFilter } from './filters/global-exception.filter';
 
@@ -30,6 +29,7 @@ async function bootstrap() {
 
   appLogger.log(`Server started on port ${port}`, 'Bootstrap');
   appLogger.log(`Swagger: http://localhost:${port}/api`, 'Bootstrap');
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.useGlobalFilters(new GlobalExceptionFilter());
 }
 

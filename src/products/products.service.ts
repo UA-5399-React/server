@@ -2,16 +2,54 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
-import { Product, ProductDocument } from './entities/product.schema';
 import { CreateProductDto } from './dto/create-product.dto';
+import { GetProductsQueryDto } from './dto/get-products.query.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { Product, ProductDocument } from './entities/product.schema';
 
 @Injectable()
 export class ProductsService {
   constructor(@InjectModel(Product.name) private productModel: Model<ProductDocument>) {}
 
-  async findAll(): Promise<Product[]> {
-    return this.productModel.find().exec();
+  async findAll(query: GetProductsQueryDto) {
+    // Extract pagination parameters with fallback defaults
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+
+    // Calculate how many documents should be skipped
+    const skip = (page - 1) * limit;
+
+    // Initialize MongoDB filter object
+    const filter: Record<string, any> = {};
+
+    // Trim search keyword to avoid unnecessary spaces
+    const search = query.search?.trim();
+
+    if (search) {
+      // Searches in title, description and tags fields
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { tags: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    // Execute both queries in parallel:
+    // 1) Get paginated items
+    // 2) Count total matching documents
+    const [items, total] = await Promise.all([
+      this.productModel.find(filter).skip(skip).limit(limit).exec(),
+      this.productModel.countDocuments(filter).exec(),
+    ]);
+
+    // Return structured paginated response
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async findOne(id: string): Promise<Product> {
