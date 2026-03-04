@@ -2,12 +2,12 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
-import { ProductStatus } from '@/products/enums/product-status.enum';
 import { UpdateProductInput } from '@/products/graphql/update-product.input';
 
 import { CreateProductDto } from './dto/create-product.dto';
 import { GetProductsQueryDto } from './dto/get-products.query.dto';
 import { Product, ProductDocument } from './entities/product.schema';
+import { ProductStatus } from './enums/product-status.enum';
 
 @Injectable()
 export class ProductsService {
