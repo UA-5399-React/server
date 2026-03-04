@@ -38,6 +38,15 @@ export class ProductsController {
     return this.productsService.create(createProductDto);
   }
 
+  @Post(':id/duplicate')
+  @ApiOperation({ summary: 'Duplicate an existing product' })
+  @ApiParam({ name: 'id', description: 'Product MongoDB ObjectId' })
+  @ApiResponse({ status: 201, description: 'Product duplicated', type: Product })
+  @ApiResponse({ status: 404, description: 'Product not found' })
+  duplicate(@Param('id') id: string): Promise<Product> {
+    return this.productsService.duplicate(id);
+  }
+
   @Patch(':id')
   @ApiOperation({ summary: 'Update an existing product' })
   @ApiParam({ name: 'id', description: 'Product MongoDB ObjectId' })
