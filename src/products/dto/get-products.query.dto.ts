@@ -1,16 +1,20 @@
+import { ArgsType, Field, Int } from '@nestjs/graphql';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
+@ArgsType()
 export class GetProductsQueryDto {
   // Optional keyword for searching products by title, description, or tags
   @ApiPropertyOptional({ description: 'Search Keyword', example: 'iphone' })
+  @Field({ nullable: true })
   @IsOptional()
   @IsString()
   search?: string;
 
   // Page number for pagination (minimum 1, default is 1)
   @ApiPropertyOptional({ description: 'Page number (1..N)', example: 1, default: 1 })
+  @Field(() => Int, { defaultValue: 1 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -19,6 +23,7 @@ export class GetProductsQueryDto {
 
   // Number of items per page (limited to prevent large queries)
   @ApiPropertyOptional({ description: 'Items per page', example: 10, default: 10, maximum: 30 })
+  @Field(() => Int, { defaultValue: 10 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()

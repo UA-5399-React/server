@@ -1,10 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
+
+import { ProductStatus } from '@/products/enums/product-status.enum';
+import { UpdateProductInput } from '@/products/graphql/update-product.input';
 
 import { CreateProductDto } from './dto/create-product.dto';
 import { GetProductsQueryDto } from './dto/get-products.query.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
 import { Product, ProductDocument } from './entities/product.schema';
 
 @Injectable()
@@ -53,7 +55,11 @@ export class ProductsService {
   }
 
   async findOne(id: string): Promise<Product> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException(`Invalid product id: "${id}"`);
+    }
     const product = await this.productModel.findById(id).exec();
+
     if (!product) {
       throw new NotFoundException(`Product with id "${id}" not found`);
     }
@@ -65,7 +71,14 @@ export class ProductsService {
     return createdProduct.save();
   }
 
-  async update(id: string, updateProductDto: UpdateProductDto): Promise<Product> {
+  async update(id: string, updateProductDto: UpdateProductInput): Promise<Product> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException(`Invalid product id "${id}"`);
+    }
+    const product = await this.findOne(id);
+
+    this.assertStatusTransitionAllowed(product.status, updateProductDto.status);
+
     const existingProduct = await this.productModel
       .findByIdAndUpdate(id, updateProductDto, { new: true })
       .exec();
@@ -80,6 +93,14 @@ export class ProductsService {
     const deletedProduct = await this.productModel.findByIdAndDelete(id).exec();
     if (!deletedProduct) {
       throw new NotFoundException(`Product with id "${id}" not found`);
+    }
+  }
+
+  private assertStatusTransitionAllowed(current: ProductStatus, next?: ProductStatus) {
+    if (next === undefined) return;
+
+    if (next === ProductStatus.DRAFT && current !== ProductStatus.DRAFT) {
+      throw new BadRequestException('Cannot revert product to draft');
     }
   }
 }
