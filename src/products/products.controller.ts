@@ -51,6 +51,7 @@ export class ProductsController {
   @ApiOperation({ summary: 'Delete a product' })
   @ApiParam({ name: 'id', description: 'Product MongoDB ObjectId' })
   @ApiResponse({ status: 200, description: 'Product deleted' })
+  @ApiResponse({ status: 400, description: 'Cannot delete active or inactive product' })
   @ApiResponse({ status: 404, description: 'Product not found' })
   async remove(@Param('id') id: string): Promise<{ message: string }> {
     await this.productsService.remove(id);
