@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
@@ -6,6 +6,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { GetProductsQueryDto } from './dto/get-products.query.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Product, ProductDocument } from './entities/product.schema';
+import { ProductStatus } from './enums/product-status.enum';
 
 @Injectable()
 export class ProductsService {
@@ -77,9 +78,18 @@ export class ProductsService {
   }
 
   async remove(id: string): Promise<void> {
-    const deletedProduct = await this.productModel.findByIdAndDelete(id).exec();
-    if (!deletedProduct) {
+    const product = await this.productModel.findById(id).exec();
+
+    if (!product) {
       throw new NotFoundException(`Product with id "${id}" not found`);
     }
+
+    if (product.status !== ProductStatus.DRAFT) {
+      throw new BadRequestException(
+        `Cannot delete product with status "${product.status}". Only draft products can be deleted.`,
+      );
+    }
+
+    await this.productModel.findByIdAndDelete(id).exec();
   }
 }
