@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsIn, IsInt, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class GetProductsQueryDto {
   // Optional keyword for searching products by title, description, or tags
@@ -27,14 +27,44 @@ export class GetProductsQueryDto {
   limit?: number = 10;
 
   //Sorting field, could be sorted by title or price
-  @ApiPropertyOptional({description: 'By what field result be sorted: title or price', example: 'title', enum: ['price', 'title']})
+  @ApiPropertyOptional({
+    description: 'By what field result be sorted: title or price',
+    example: 'title',
+    enum: ['price', 'title'],
+  })
   @IsOptional()
   @IsIn(['price', 'title'])
   sort?: 'price' | 'title';
 
   //Ascended ot descended order of sorting, by default it's from lower to higher
-  @ApiPropertyOptional({description: 'Sorting order: ascended or descended', example: 'asc', enum: ['asc', 'desc']})
+  @ApiPropertyOptional({
+    description: 'Sorting order: ascended or descended',
+    example: 'asc',
+    enum: ['asc', 'desc'],
+  })
   @IsOptional()
   @IsIn(['asc', 'desc'])
   order?: 'asc' | 'desc' = 'asc';
+
+  // Category filter (stored in the product tags array)
+  @ApiPropertyOptional({ example: 'electronics', description: 'Category (stored in tags[])' })
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  // Minimum price filter for products
+  @ApiPropertyOptional({ example: 100, description: 'Minimum product price' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  minPrice?: number;
+
+  // Maximum price filter for products
+  @ApiPropertyOptional({ example: 1000, description: 'Maximum product price' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  maxPrice?: number;
 }
