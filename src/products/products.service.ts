@@ -35,11 +35,19 @@ export class ProductsService {
       ];
     }
 
+    const sortOption: Record<string, 1 | -1> = {};
+    if(query.sort) sortOption[query.sort] = query.order === 'desc' ? -1 : 1;
+
     // Execute both queries in parallel:
     // 1) Get paginated items
     // 2) Count total matching documents
     const [items, total] = await Promise.all([
-      this.productModel.find(filter).skip(skip).limit(limit).exec(),
+      this.productModel
+        .find(filter)
+        .sort(sortOption) // Sort docs if necessary
+        .skip(skip)
+        .limit(limit)
+        .exec(),
       this.productModel.countDocuments(filter).exec(),
     ]);
 
