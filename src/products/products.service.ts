@@ -24,7 +24,7 @@ export class ProductsService {
     // Initialize MongoDB filter object
     const filter: Record<string, any> = {};
 
-    // Trim search keyword to avoid unnecessary spaces
+    // Product search
     const search = query.search?.trim();
 
     if (search) {
@@ -36,10 +36,33 @@ export class ProductsService {
       ];
     }
 
+    // Category filter
+    const category = query.category?.trim();
+    if (category) {
+      // exact match in tags array
+      filter.tags = category;
+    }
+
+    // Price range
+    const { minPrice, maxPrice } = query;
+
+    // Validate min <= max only when both are provided
+    if (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice) {
+      throw new BadRequestException('Invalid price range: minPrice must be <= maxPrice');
+    }
+
+    // Add price filter if at least one bound exists
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      filter.price = {
+        ...(minPrice !== undefined ? { $gte: minPrice } : {}),
+        ...(maxPrice !== undefined ? { $lte: maxPrice } : {}),
+      };
+    }
+
+    // -------------------- sorting --------------------
     const sortOption: Record<string, 1 | -1> = {};
     if (query.sort) sortOption[query.sort] = query.order === 'desc' ? -1 : 1;
 
-    // Execute both queries in parallel:
     // 1) Get paginated items
     // 2) Count total matching documents
     const [items, total] = await Promise.all([
@@ -95,6 +118,24 @@ export class ProductsService {
       throw new NotFoundException(`Product with id "${id}" not found`);
     }
     return existingProduct;
+  }
+
+  async duplicate(id: string): Promise<Product> {
+    const source = await this.productModel.findById(id).exec();
+    if (!source) {
+      throw new NotFoundException(`Product with id "${id}" not found`);
+    }
+
+    const duplicated = new this.productModel({
+      imageUrl: source.imageUrl,
+      title: `${source.title} (Copy)`,
+      tags: [...source.tags],
+      description: source.description,
+      price: source.price,
+      status: ProductStatus.DRAFT,
+    });
+
+    return duplicated.save();
   }
 
   async remove(id: string): Promise<void> {

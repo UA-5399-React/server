@@ -1,7 +1,7 @@
 import { ArgsType, Field, Int } from '@nestjs/graphql';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsIn, IsInt, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 
 @ArgsType()
 export class GetProductsQueryDto {
@@ -50,4 +50,26 @@ export class GetProductsQueryDto {
   @IsOptional()
   @IsIn(['asc', 'desc'])
   order?: 'asc' | 'desc' = 'asc';
+
+  // Category filter (stored in the product tags array)
+  @ApiPropertyOptional({ example: 'electronics', description: 'Category (stored in tags[])' })
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  // Minimum price filter for products
+  @ApiPropertyOptional({ example: 100, description: 'Minimum product price' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  minPrice?: number;
+
+  // Maximum price filter for products
+  @ApiPropertyOptional({ example: 1000, description: 'Maximum product price' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  maxPrice?: number;
 }
