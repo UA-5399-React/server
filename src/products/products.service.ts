@@ -138,6 +138,18 @@ export class ProductsService {
     return duplicated.save();
   }
 
+  async changeStatus(id: string, status: ProductStatus): Promise<Product> {
+    const product = await this.productModel
+      .findByIdAndUpdate(id, { status }, { new: true })
+      .exec();
+
+    if (!product) {
+      throw new NotFoundException(`Product with id "${id}" not found`);
+    }
+
+    return product;
+  }
+
   async remove(id: string): Promise<void> {
     const product = await this.productModel.findById(id).exec();
 
