@@ -1,9 +1,8 @@
-import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
-import { GraphQLModule } from '@nestjs/graphql';
-import { join } from 'path';
+
+import { AppGraphQLModule } from '@/graphql/graphql.module';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -20,16 +19,10 @@ import { ProductsModule } from './products/products.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    GraphQLModule.forRoot<ApolloDriverConfig>({
-      driver: ApolloDriver,
-      path: 'graphql',
-      autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
-      sortSchema: true,
-      playground: true,
-    }),
     LoggerModule,
     DatabaseModule,
     ProductsModule,
+    AppGraphQLModule,
   ],
   controllers: [AppController, ProductsController],
   providers: [
