@@ -33,19 +33,20 @@ export class ProductsService {
     const search = q.search?.trim();
 
     if (search) {
-      // Searches in title, description and tags fields
+      // Searches in title, description, categories, productCode fields
       filter.$or = [
         { title: { $regex: search, $options: 'i' } },
         { description: { $regex: search, $options: 'i' } },
-        { tags: { $regex: search, $options: 'i' } },
+        { categories: { $regex: search, $options: 'i' } },
+        { productCode: search },
       ];
     }
 
     // Category filter
     const category = filterInput.category?.trim();
     if (category) {
-      // exact match in tags array
-      filter.tags = category;
+      // exact match in categories array
+      filter.categories = category;
     }
 
     // Price range
@@ -118,8 +119,12 @@ export class ProductsService {
   }
 
   async create(createProductDto: CreateProductDto): Promise<Product> {
-    const createdProduct = new this.productModel(createProductDto);
-    return createdProduct.save();
+    const productCode = await this.generateCode();
+
+    return this.productModel.create({
+      ...createProductDto,
+      productCode,
+    });
   }
 
   async update(id: string, updateProductDto: UpdateProductInput): Promise<Product> {
@@ -145,23 +150,23 @@ export class ProductsService {
     if (!source) {
       throw new NotFoundException(`Product with id "${id}" not found`);
     }
+    const productCode = await this.generateCode();
 
     const duplicated = new this.productModel({
       imageUrl: source.imageUrl,
       title: `${source.title} (Copy)`,
-      tags: [...source.tags],
+      categories: [...source.categories],
       description: source.description,
       price: source.price,
       status: ProductStatus.DRAFT,
+      productCode,
     });
 
     return duplicated.save();
   }
 
   async changeStatus(id: string, status: ProductStatus): Promise<Product> {
-    const product = await this.productModel
-      .findByIdAndUpdate(id, { status }, { new: true })
-      .exec();
+    const product = await this.productModel.findByIdAndUpdate(id, { status }, { new: true }).exec();
 
     if (!product) {
       throw new NotFoundException(`Product with id "${id}" not found`);
@@ -214,5 +219,26 @@ export class ProductsService {
     }
 
     return { from, to };
+  }
+
+  async getCategories(): Promise<string[]> {
+    const raw = await this.productModel.distinct('categories');
+    return raw
+      .map((c) => (typeof c === 'string' ? c.trim() : ''))
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b));
+  }
+
+  private async generateCode(): Promise<string> {
+    const lastProduct = await this.productModel
+      .findOne()
+      .sort({ productCode: -1 })
+      .select('productCode');
+
+    const startNumber = 1;
+
+    const nextCode = lastProduct ? Number(lastProduct.productCode) + 1 : startNumber;
+
+    return nextCode.toString().padStart(7, '0');
   }
 }

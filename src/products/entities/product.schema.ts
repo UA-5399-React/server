@@ -22,7 +22,7 @@ export class Product {
 
   @ApiProperty({ example: ['electronics', 'smartphone'], required: false })
   @Prop({ type: [String], default: [] })
-  tags: string[];
+  categories: string[];
 
   @ApiProperty({ example: 'Latest Apple smartphone', required: false })
   @Prop()
@@ -31,6 +31,9 @@ export class Product {
   @ApiProperty({ example: 999.99 })
   @Prop({ required: true, default: 0 })
   price: number;
+
+  @Prop({ required: true, unique: true, index: true })
+  productCode: string;
 }
 
 export const ProductSchema = SchemaFactory.createForClass(Product);

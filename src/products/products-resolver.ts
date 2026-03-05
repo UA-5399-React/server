@@ -40,4 +40,14 @@ export class ProductsResolver {
     await this.productsService.remove(id);
     return true;
   }
+
+  @Mutation(() => ProductType)
+  duplicateProduct(@Args('id', { type: () => ID }) id: string) {
+    return this.productsService.duplicate(id);
+  }
+
+  @Query(() => [String])
+  categories() {
+    return this.productsService.getCategories();
+  }
 }

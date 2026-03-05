@@ -11,7 +11,7 @@ import {
 } from 'class-validator';
 
 import { Trim } from '@/common/decorators/trim.decorator';
-import { TrimArray } from '@/common/decorators/trim-array.decorator';
+import { NormalizeStringArray } from '@/common/decorators/trim-array.decorator';
 
 @InputType()
 export class CreateProductInput {
@@ -41,10 +41,10 @@ export class CreateProductInput {
   imageUrl?: string;
 
   @Field(() => [String], { nullable: true })
-  @TrimArray()
+  @NormalizeStringArray()
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
   @ArrayUnique()
-  tags?: string[];
+  categories?: string[];
 }
