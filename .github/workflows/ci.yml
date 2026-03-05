@@ -4,7 +4,7 @@ on:
     push:
         branches: 
             - develop
-            - feat/06-refactor-ci-pipeline-server
+            - feat/106-refactor-ci-pipeline-server
     pull_request:
         branches: 
             - develop
