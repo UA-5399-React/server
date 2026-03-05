@@ -23,6 +23,9 @@ export class AppLogger extends ConsoleLogger {
   http(message: unknown, meta?: LogMeta) {
     super.log(meta ? { message, ...meta } : message, 'HTTP');
   }
+  graphql(message: unknown, meta?: LogMeta) {
+    super.log(meta ? { message, ...meta } : message, 'GRAPHQL');
+  }
   security(message: string, meta?: LogMeta) {
     const formatted = meta ? `${message} – ${JSON.stringify(meta)}` : message;
     super.warn(formatted, 'SECURITY');

@@ -14,6 +14,23 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(GlobalExceptionFilter.name);
   catch(exception: unknown, host: ArgumentsHost) {
     // Switch execution context to HTTP
+    const type = host.getType<'http' | 'graphql' | 'ws'>();
+
+    if (type === 'graphql') {
+      if (exception instanceof HttpException) {
+
+        const extracted = this.extractHttpException(exception);
+        this.logger.warn(
+          `GraphQL HttpException ${extracted.status} – ${JSON.stringify(extracted.message)}`,
+        );
+        throw exception;
+      }
+      this.logger.error(
+        `GraphQL Unhandled exception`,
+        exception instanceof Error ? exception.stack : String(exception),
+      );
+      throw exception;
+    }
     const ctx = host.switchToHttp();
 
     // Extract response and request objects

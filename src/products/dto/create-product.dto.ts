@@ -1,30 +1,50 @@
-import { IsArray, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { Field, Float, InputType } from '@nestjs/graphql';
+import {
+  ArrayUnique,
+  IsArray,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUrl,
+  Min,
+} from 'class-validator';
 
-import { ProductStatus } from '../enums/product-status.enum';
+import { Trim } from '@/common/decorators/trim.decorator';
+import { TrimArray } from '@/common/decorators/trim-array.decorator';
 
+@InputType()
 export class CreateProductDto {
-  @IsString()
-  @IsOptional()
-  imageUrl?: string;
-
-  @IsEnum(ProductStatus)
-  @IsOptional()
-  status?: ProductStatus;
-
+  @Field()
+  @Trim()
   @IsString()
   @IsNotEmpty()
   title: string;
 
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  tags?: string[];
-
+  @Field({ nullable: true })
+  @Trim()
   @IsString()
   @IsOptional()
   description?: string;
 
+  @Field(() => Float, { nullable: true })
+  @IsOptional()
   @IsNumber()
   @Min(0)
-  price: number;
+  price?: number;
+
+  @Field({ nullable: true })
+  @Trim()
+  @IsString()
+  @IsOptional()
+  @IsUrl({}, { message: 'imageUrl must be a valid URL' })
+  imageUrl?: string;
+
+  @Field(() => [String], { nullable: true })
+  @TrimArray()
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  @ArrayUnique()
+  tags?: string[];
 }
