@@ -2,6 +2,8 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
+import { ProductsQueryArgs } from '@/products/graphql/product-query.args';
+import { GqlFilters } from '@/products/graphql/products-filter.type';
 import { UpdateProductInput } from '@/products/graphql/update-product.input';
 
 import { CreateProductDto } from './dto/create-product.dto';
@@ -13,19 +15,22 @@ import { ProductStatus } from './enums/product-status.enum';
 export class ProductsService {
   constructor(@InjectModel(Product.name) private productModel: Model<ProductDocument>) {}
 
-  async findAll(query: GetProductsQueryDto) {
-    // Extract pagination parameters with fallback defaults
+  async findAll(query: GetProductsQueryDto | ProductsQueryArgs) {
+    // Extract pagination parameters with fallback defults
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
 
     // Calculate how many documents should be skipped
     const skip = (page - 1) * limit;
 
+    const q = query as GetProductsQueryDto & Partial<ProductsQueryArgs>;
+    const filterInput = (q.filter ?? q) as GqlFilters;
+
     // Initialize MongoDB filter object
     const filter: Record<string, any> = {};
 
     // Product search
-    const search = query.search?.trim();
+    const search = q.search?.trim();
 
     if (search) {
       // Searches in title, description and tags fields
@@ -37,14 +42,14 @@ export class ProductsService {
     }
 
     // Category filter
-    const category = query.category?.trim();
+    const category = filterInput.category?.trim();
     if (category) {
       // exact match in tags array
       filter.tags = category;
     }
 
     // Price range
-    const { minPrice, maxPrice } = query;
+    const { minPrice, maxPrice } = filterInput;
 
     // Validate min <= max only when both are provided
     if (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice) {
@@ -56,6 +61,21 @@ export class ProductsService {
       filter.price = {
         ...(minPrice !== undefined ? { $gte: minPrice } : {}),
         ...(maxPrice !== undefined ? { $lte: maxPrice } : {}),
+      };
+    }
+
+    // Status filter
+    if (filterInput.status) {
+      filter.status = filterInput.status;
+    }
+
+    // Date filter
+    const { from, to } = this.parseDateRange(filterInput.updatedFrom, filterInput.updatedTo);
+
+    if (from || to) {
+      filter.updatedAt = {
+        ...(from !== undefined ? { $gte: from } : {}),
+        ...(to !== undefined ? { $lte: to } : {}),
       };
     }
 
@@ -160,5 +180,27 @@ export class ProductsService {
     if (next === ProductStatus.DRAFT && current !== ProductStatus.DRAFT) {
       throw new BadRequestException('Cannot revert product to draft');
     }
+  }
+
+  private parseDate(value?: unknown) {
+    const date =
+      value instanceof Date ? value : typeof value === 'string' ? new Date(value) : undefined;
+
+    if (date && Number.isNaN(date.getTime())) {
+      throw new BadRequestException('Invalid date');
+    }
+
+    return date;
+  }
+
+  private parseDateRange(dateFrom?: unknown, dateTo?: unknown) {
+    const from = this.parseDate(dateFrom);
+    const to = this.parseDate(dateTo);
+
+    if (from && to && from > to) {
+      throw new BadRequestException('Invalid date range: updatedFrom must be <= updatedTo');
+    }
+
+    return { from, to };
   }
 }
