@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
+import { ChangeStatusDto } from './dto/change-status.dto';
 import { CreateProductDto } from './dto/create-product.dto';
 import { GetProductsQueryDto } from './dto/get-products.query.dto';
 import { PaginatedProductsDto } from './dto/paginated-products.dto';
@@ -45,6 +46,16 @@ export class ProductsController {
   @ApiResponse({ status: 404, description: 'Product not found' })
   duplicate(@Param('id') id: string): Promise<Product> {
     return this.productsService.duplicate(id);
+  }
+
+  @Patch(':id/status')
+  @ApiOperation({ summary: 'Change product status' })
+  @ApiParam({ name: 'id', description: 'Product MongoDB ObjectId' })
+  @ApiResponse({ status: 200, description: 'Product status updated', type: Product })
+  @ApiResponse({ status: 400, description: 'Invalid status value' })
+  @ApiResponse({ status: 404, description: 'Product not found' })
+  changeStatus(@Param('id') id: string, @Body() changeStatusDto: ChangeStatusDto): Promise<Product> {
+    return this.productsService.changeStatus(id, changeStatusDto.status);
   }
 
   @Patch(':id')

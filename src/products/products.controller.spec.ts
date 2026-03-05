@@ -22,6 +22,7 @@ const mockProductsService = {
   create: jest.fn(),
   update: jest.fn(),
   duplicate: jest.fn(),
+  changeStatus: jest.fn(),
   remove: jest.fn(),
 };
 
@@ -95,6 +96,20 @@ describe('ProductsControler', () => {
       mockProductsService.duplicate.mockReturnValue(duplicatedProduct);
       expect(await controller.duplicate('1')).toEqual(duplicatedProduct);
       expect(mockProductsService.duplicate).toHaveBeenCalledWith('1');
+    });
+  });
+
+  describe('changeStatus', () => {
+    it('should update product status and return updated product', async () => {
+      const updatedProduct = { ...mockProduct, status: ProductStatus.ACTIVE };
+      mockProductsService.changeStatus.mockReturnValue(updatedProduct);
+      expect(
+        await controller.changeStatus('1', { status: ProductStatus.ACTIVE }),
+      ).toEqual(updatedProduct);
+      expect(mockProductsService.changeStatus).toHaveBeenCalledWith(
+        '1',
+        ProductStatus.ACTIVE,
+      );
     });
   });
 
