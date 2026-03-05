@@ -85,6 +85,24 @@ export class ProductsService {
     return existingProduct;
   }
 
+  async duplicate(id: string): Promise<Product> {
+    const source = await this.productModel.findById(id).exec();
+    if (!source) {
+      throw new NotFoundException(`Product with id "${id}" not found`);
+    }
+
+    const duplicated = new this.productModel({
+      imageUrl: source.imageUrl,
+      title: `${source.title} (Copy)`,
+      tags: [...source.tags],
+      description: source.description,
+      price: source.price,
+      status: ProductStatus.DRAFT,
+    });
+
+    return duplicated.save();
+  }
+
   async remove(id: string): Promise<void> {
     const product = await this.productModel.findById(id).exec();
 
