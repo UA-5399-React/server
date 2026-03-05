@@ -18,7 +18,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     if (type === 'graphql') {
       if (exception instanceof HttpException) {
-
         const extracted = this.extractHttpException(exception);
         this.logger.warn(
           `GraphQL HttpException ${extracted.status} – ${JSON.stringify(extracted.message)}`,

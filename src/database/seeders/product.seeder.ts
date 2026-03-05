@@ -1,9 +1,10 @@
+import { faker } from '@faker-js/faker';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { faker } from '@faker-js/faker';
-import { Product, ProductDocument } from '../../products/entities/product.schema';
-import { ProductStatus } from '../../products/enums/product-status.enum';
+
+import { Product, ProductDocument } from '@/products/entities/product.schema';
+import { ProductStatus } from '@/products/enums/product-status.enum';
 
 @Injectable()
 export class ProductSeeder {
