@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+
+echo "🚀 Checking changed files in server before push..."
+
+# Run Jest only for files changed relative to the develop branch
+pnpm exec jest --changedSince=develop --passWithNoTests

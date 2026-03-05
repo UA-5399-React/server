@@ -2,12 +2,12 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
-import { ProductStatus } from '@/products/enums/product-status.enum';
 import { UpdateProductInput } from '@/products/graphql/update-product.input';
 
 import { CreateProductDto } from './dto/create-product.dto';
 import { GetProductsQueryDto } from './dto/get-products.query.dto';
 import { Product, ProductDocument } from './entities/product.schema';
+import { ProductStatus } from './enums/product-status.enum';
 
 @Injectable()
 export class ProductsService {
@@ -36,11 +36,19 @@ export class ProductsService {
       ];
     }
 
+    const sortOption: Record<string, 1 | -1> = {};
+    if (query.sort) sortOption[query.sort] = query.order === 'desc' ? -1 : 1;
+
     // Execute both queries in parallel:
     // 1) Get paginated items
     // 2) Count total matching documents
     const [items, total] = await Promise.all([
-      this.productModel.find(filter).skip(skip).limit(limit).exec(),
+      this.productModel
+        .find(filter)
+        .sort(sortOption) // Sort docs if necessary
+        .skip(skip)
+        .limit(limit)
+        .exec(),
       this.productModel.countDocuments(filter).exec(),
     ]);
 
@@ -90,10 +98,19 @@ export class ProductsService {
   }
 
   async remove(id: string): Promise<void> {
-    const deletedProduct = await this.productModel.findByIdAndDelete(id).exec();
-    if (!deletedProduct) {
+    const product = await this.productModel.findById(id).exec();
+
+    if (!product) {
       throw new NotFoundException(`Product with id "${id}" not found`);
     }
+
+    if (product.status !== ProductStatus.DRAFT) {
+      throw new BadRequestException(
+        `Cannot delete product with status "${product.status}". Only draft products can be deleted.`,
+      );
+    }
+
+    await this.productModel.findByIdAndDelete(id).exec();
   }
 
   private assertStatusTransitionAllowed(current: ProductStatus, next?: ProductStatus) {
