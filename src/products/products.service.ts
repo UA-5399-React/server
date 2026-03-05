@@ -23,7 +23,7 @@ export class ProductsService {
     // Initialize MongoDB filter object
     const filter: Record<string, any> = {};
 
-    // Trim search keyword to avoid unnecessary spaces
+    // Product search
     const search = query.search?.trim();
 
     if (search) {
@@ -35,10 +35,33 @@ export class ProductsService {
       ];
     }
 
-    const sortOption: Record<string, 1 | -1> = {};
-    if(query.sort) sortOption[query.sort] = query.order === 'desc' ? -1 : 1;
+    // Category filter
+    const category = query.category?.trim();
+    if (category) {
+      // exact match in tags array
+      filter.tags = category;
+    }
 
-    // Execute both queries in parallel:
+    // Price range
+    const { minPrice, maxPrice } = query;
+
+    // Validate min <= max only when both are provided
+    if (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice) {
+      throw new BadRequestException('Invalid price range: minPrice must be <= maxPrice');
+    }
+
+    // Add price filter if at least one bound exists
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      filter.price = {
+        ...(minPrice !== undefined ? { $gte: minPrice } : {}),
+        ...(maxPrice !== undefined ? { $lte: maxPrice } : {}),
+      };
+    }
+
+    // -------------------- sorting --------------------
+    const sortOption: Record<string, 1 | -1> = {};
+    if (query.sort) sortOption[query.sort] = query.order === 'desc' ? -1 : 1;
+
     // 1) Get paginated items
     // 2) Count total matching documents
     const [items, total] = await Promise.all([

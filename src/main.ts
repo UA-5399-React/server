@@ -1,11 +1,10 @@
+import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { ValidationPipe } from '@nestjs/common';
 
 import { AppModule } from './app.module';
-import { AppLogger } from './logger/app-logger.service';
 import { GlobalExceptionFilter } from './filters/global-exception.filter';
-
+import { AppLogger } from './logger/app-logger.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -16,6 +15,9 @@ async function bootstrap() {
     origin: process.env.CLIENT_URL || 'http://localhost:5173',
     credentials: true,
   });
+
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  app.useGlobalFilters(new GlobalExceptionFilter());
 
   const config = new DocumentBuilder()
     .setTitle('Server API')
@@ -30,8 +32,6 @@ async function bootstrap() {
 
   appLogger.log(`Server started on port ${port}`, 'Bootstrap');
   appLogger.log(`Swagger: http://localhost:${port}/api`, 'Bootstrap');
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-  app.useGlobalFilters(new GlobalExceptionFilter());
 }
 
 bootstrap().catch((err) => {
