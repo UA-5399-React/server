@@ -7,6 +7,9 @@ export class ProductType {
   @Field(() => ID)
   id: string;
 
+  @Field(() => String)
+  productCode: string;
+
   @Field()
   title: string;
 
@@ -17,7 +20,7 @@ export class ProductType {
   imageUrl?: string;
 
   @Field(() => [String])
-  tags: string[];
+  categories: string[];
 
   @Field(() => Float)
   price: number;

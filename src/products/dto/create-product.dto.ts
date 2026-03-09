@@ -22,5 +22,5 @@ export class CreateProductDto {
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
-  tags?: string[];
+  categories?: string[];
 }

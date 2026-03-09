@@ -41,9 +41,16 @@ export class ProductSeeder {
 
     const productsToCreate = 50;
     const products: Partial<Product>[] = [];
+    const last = await this.productModel.findOne().sort({ productCode: -1 }).select('productCode');
+
+    let nextNumber = last?.productCode ? Number(last.productCode) + 1 : 1;
 
     for (let i = 0; i < productsToCreate; i++) {
+      const productCode = String(nextNumber).padStart(7, '0'); // 0000001, 0000002...
+      nextNumber++;
+
       const product = {
+        productCode,
         title: faker.commerce.productName(),
         description: faker.commerce.productDescription(),
         price: parseFloat(faker.commerce.price({ min: 100, max: 2000 })),
@@ -53,7 +60,7 @@ export class ProductSeeder {
           ProductStatus.DRAFT,
         ]),
         imageUrl: faker.helpers.arrayElement(techImages),
-        tags: faker.helpers.arrayElements(
+        categories: faker.helpers.arrayElements(
           ['Laptop', 'Smartphone', 'Audio', 'Accessories', 'Gaming', 'Apple', 'Samsung'],
           faker.number.int({ min: 1, max: 3 }),
         ),
