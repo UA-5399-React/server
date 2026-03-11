@@ -11,6 +11,7 @@ import { DatabaseModule } from './database/database.module';
 import { ProductSeeder } from './database/seeders/product.seeder';
 import { LoggerModule } from './logger/logger.module';
 import { ProductsModule } from './products/products.module';
+import { UploadsModule } from './uploads/uploads.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ProductsModule } from './products/products.module';
     LoggerModule,
     DatabaseModule,
     ProductsModule,
+    UploadsModule,
     AppGraphQLModule,
   ],
   controllers: [AppController],

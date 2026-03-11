@@ -16,6 +16,7 @@ const mockProduct = {
   _id: VALID_ID,
   id: VALID_ID,
   imageUrl: 'example.com/image.jpg',
+  imagePublicId: 'products/example-image',
   status: ProductStatus.DRAFT,
   title: 'Laptop',
   categories: ['laptop', 'electronics'],
@@ -319,8 +320,14 @@ describe('ProductsService', () => {
       mockProductModel.findById.mockReturnValue({
         exec: jest.fn().mockResolvedValue(mockProduct),
       });
+      mockProductModel.findOne.mockReturnValue({
+        sort: jest.fn().mockReturnValue({
+          select: jest.fn().mockResolvedValue({ productCode: '0000009' }),
+        }),
+      });
       const duplicatedProduct = {
         imageUrl: mockProduct.imageUrl,
+        imagePublicId: mockProduct.imagePublicId,
         title: `${mockProduct.title} (Copy)`,
         categories: [...mockProduct.categories],
         description: mockProduct.description,
@@ -335,6 +342,7 @@ describe('ProductsService', () => {
 
       expect(mockProductModel).toHaveBeenCalledWith({
         imageUrl: mockProduct.imageUrl,
+        imagePublicId: mockProduct.imagePublicId,
         title: 'Laptop (Copy)',
         categories: ['laptop', 'electronics'],
         description: mockProduct.description,

@@ -154,6 +154,7 @@ export class ProductsService {
 
     const duplicated = new this.productModel({
       imageUrl: source.imageUrl,
+      imagePublicId: source.imagePublicId,
       title: `${source.title} (Copy)`,
       categories: [...source.categories],
       description: source.description,
@@ -236,7 +237,6 @@ export class ProductsService {
       .select('productCode');
 
     const startNumber = 1;
-
     const nextCode = lastProduct ? Number(lastProduct.productCode) + 1 : startNumber;
 
     return nextCode.toString().padStart(7, '0');
