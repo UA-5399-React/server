@@ -43,10 +43,10 @@ export class ProductsService {
     }
 
     // Category filter
-    const category = filterInput.category?.trim();
-    if (category) {
+    const categories = filterInput.category?.map((c) => c.trim()).filter(Boolean);
+    if (categories?.length) {
       // exact match in categories array
-      filter.categories = category;
+      filter.categories = { $in: categories };
     }
 
     // Price range

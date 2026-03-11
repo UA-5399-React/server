@@ -5,10 +5,10 @@ import { IsDate, IsEnum, IsNumber, IsOptional, IsString, Min } from 'class-valid
 import { ProductStatus } from '@/products/enums/product-status.enum';
 @InputType()
 export class ProductsFilterInput {
-  @Field({ nullable: true, description: 'Exact match in tags[]' })
+  @Field(() => [String], { nullable: true, description: 'Exact match in tags[]' })
   @IsOptional()
-  @IsString()
-  category?: string;
+  @IsString({ each: true })
+  category?: string[];
 
   @Field(() => Float, { nullable: true })
   @IsOptional()
