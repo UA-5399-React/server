@@ -2,6 +2,12 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 
+import { Category, CategorySchema } from '@/categories/entities/categories.schema';
+import { Product, ProductSchema } from '@/products/entities/product.schema';
+
+import { CategorySeeder } from './seeders/categories.seeder';
+import { ProductSeeder } from './seeders/product.seeder';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -30,6 +36,11 @@ import { MongooseModule } from '@nestjs/mongoose';
       },
       inject: [ConfigService],
     }),
+    MongooseModule.forFeature([
+      { name: Product.name, schema: ProductSchema },
+      { name: Category.name, schema: CategorySchema },
+    ]),
   ],
+  providers: [ProductSeeder, CategorySeeder],
 })
 export class DatabaseModule {}

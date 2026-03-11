@@ -6,9 +6,9 @@ import { AppGraphQLModule } from '@/graphql/graphql.module';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { CategoryModule } from './categories/category.module';
 import { RequestLoggingInterceptor } from './common/request-logging.interceptor';
 import { DatabaseModule } from './database/database.module';
-import { ProductSeeder } from './database/seeders/product.seeder';
 import { LoggerModule } from './logger/logger.module';
 import { ProductsModule } from './products/products.module';
 
@@ -21,12 +21,12 @@ import { ProductsModule } from './products/products.module';
     LoggerModule,
     DatabaseModule,
     ProductsModule,
+    CategoryModule,
     AppGraphQLModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
-    ProductSeeder,
     {
       provide: APP_INTERCEPTOR,
       useClass: RequestLoggingInterceptor,
