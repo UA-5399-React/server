@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 
+import { AuthModule } from '@/auth/auth.module';
 import { AppGraphQLModule } from '@/graphql/graphql.module';
 
 import { AppController } from './app.controller';
@@ -22,6 +23,7 @@ import { ProductsModule } from './products/products.module';
     DatabaseModule,
     ProductsModule,
     AppGraphQLModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [
