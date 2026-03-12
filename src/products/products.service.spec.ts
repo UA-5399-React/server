@@ -142,7 +142,7 @@ describe('ProductsService', () => {
         sort: ProductSortField.price,
         order: SortOrder.desc,
         filter: {
-          category: 'electronics',
+          category: ['laptop', 'electronics'],
           minPrice: 100,
           maxPrice: 500,
           status: ProductStatus.ACTIVE,
@@ -154,7 +154,7 @@ describe('ProductsService', () => {
       await service.findAll(query);
 
       expect(mockProductModel.find).toHaveBeenCalledWith({
-        categories: 'electronics',
+        categories: { $in: ['laptop', 'electronics'] },
         price: { $gte: 100, $lte: 500 },
         status: ProductStatus.ACTIVE,
         updatedAt: {
