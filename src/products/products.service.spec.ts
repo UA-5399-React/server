@@ -16,11 +16,13 @@ const mockProduct = {
   _id: VALID_ID,
   id: VALID_ID,
   imageUrl: 'example.com/image.jpg',
+  imagePublicId: 'products/example-image',
   status: ProductStatus.DRAFT,
   title: 'Laptop',
   categories: ['laptop', 'electronics'],
   description: 'Example of description',
   price: 20000,
+  productCode: '0000009',
   createdAt: new Date('2026-03-01T10:00:00.000Z'),
   updatedAt: new Date('2026-03-01T10:00:00.000Z'),
 };
@@ -140,7 +142,7 @@ describe('ProductsService', () => {
         sort: ProductSortField.price,
         order: SortOrder.desc,
         filter: {
-          category: 'electronics',
+          category: ['laptop', 'electronics'],
           minPrice: 100,
           maxPrice: 500,
           status: ProductStatus.ACTIVE,
@@ -152,7 +154,7 @@ describe('ProductsService', () => {
       await service.findAll(query);
 
       expect(mockProductModel.find).toHaveBeenCalledWith({
-        categories: 'electronics',
+        categories: { $in: ['laptop', 'electronics'] },
         price: { $gte: 100, $lte: 500 },
         status: ProductStatus.ACTIVE,
         updatedAt: {
@@ -251,6 +253,31 @@ describe('ProductsService', () => {
         productCode: '0000010',
       });
     });
+
+    it('should start product code sequence when no valid code exists', async () => {
+      mockProductModel.findOne.mockReturnValue({
+        sort: jest.fn().mockReturnValue({
+          select: jest.fn().mockResolvedValue(null),
+        }),
+      });
+      mockProductModel.create.mockResolvedValue({
+        ...mockProduct,
+        productCode: '0000001',
+      });
+
+      const input = {
+        title: 'Phone',
+        price: 1200,
+      };
+
+      await service.create(input);
+
+      expect(mockProductModel.findOne).toHaveBeenCalledWith({ productCode: /^\d+$/ });
+      expect(mockProductModel.create).toHaveBeenCalledWith({
+        ...input,
+        productCode: '0000001',
+      });
+    });
   });
 
   describe('update', () => {
@@ -319,8 +346,14 @@ describe('ProductsService', () => {
       mockProductModel.findById.mockReturnValue({
         exec: jest.fn().mockResolvedValue(mockProduct),
       });
+      mockProductModel.findOne.mockReturnValue({
+        sort: jest.fn().mockReturnValue({
+          select: jest.fn().mockResolvedValue({ productCode: '0000009' }),
+        }),
+      });
       const duplicatedProduct = {
         imageUrl: mockProduct.imageUrl,
+        imagePublicId: mockProduct.imagePublicId,
         title: `${mockProduct.title} (Copy)`,
         categories: [...mockProduct.categories],
         description: mockProduct.description,
@@ -335,6 +368,7 @@ describe('ProductsService', () => {
 
       expect(mockProductModel).toHaveBeenCalledWith({
         imageUrl: mockProduct.imageUrl,
+        imagePublicId: mockProduct.imagePublicId,
         title: 'Laptop (Copy)',
         categories: ['laptop', 'electronics'],
         description: mockProduct.description,

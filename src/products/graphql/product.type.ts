@@ -19,6 +19,9 @@ export class ProductType {
   @Field({ nullable: true })
   imageUrl?: string;
 
+  @Field({ nullable: true })
+  imagePublicId?: string;
+
   @Field(() => [String])
   categories: string[];
 

@@ -7,7 +7,7 @@ import { IsIn, IsInt, IsNumber, IsOptional, IsString, Max, Min } from 'class-val
 export class GetProductsQueryDto {
   // Optional keyword for searching products by title, description, or tags
   @ApiPropertyOptional({ description: 'Search Keyword', example: 'iphone' })
-  @Field({ nullable: true })
+  @Field(() => [String], { nullable: true })
   @IsOptional()
   @IsString()
   search?: string;
@@ -52,10 +52,15 @@ export class GetProductsQueryDto {
   order?: 'asc' | 'desc' = 'asc';
 
   // Category filter (stored in the product tags array)
-  @ApiPropertyOptional({ example: 'electronics', description: 'Category (stored in tags[])' })
+  @ApiPropertyOptional({
+    type: [String],
+    example: ['Laptop', 'Audio'],
+    description: 'Category (stored in tags[])',
+  })
+  @Field(() => [String], { nullable: true })
   @IsOptional()
-  @IsString()
-  category?: string;
+  @IsString({ each: true })
+  category?: string[];
 
   // Minimum price filter for products
   @ApiPropertyOptional({ example: 100, description: 'Minimum product price' })

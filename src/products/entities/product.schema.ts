@@ -12,6 +12,10 @@ export class Product {
   @Prop()
   imageUrl?: string;
 
+  @ApiProperty({ example: 'products/sample-image', required: false })
+  @Prop()
+  imagePublicId?: string;
+
   @ApiProperty({ enum: ProductStatus, default: ProductStatus.DRAFT })
   @Prop({ type: String, enum: ProductStatus, default: ProductStatus.DRAFT })
   status: ProductStatus;

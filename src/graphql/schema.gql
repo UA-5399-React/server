@@ -1,0 +1,92 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+input CreateProductInput {
+  categories: [String!]
+  description: String
+  imageUrl: String
+  price: Float
+  title: String!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type Mutation {
+  createProduct(input: CreateProductInput!): ProductType!
+  deleteProduct(id: ID!): Boolean!
+  duplicateProduct(id: ID!): ProductType!
+  updateProduct(id: ID!, input: UpdateProductInput!): ProductType!
+}
+
+enum ProductSortField {
+  createdAt
+  price
+  title
+  updatedAt
+}
+
+enum ProductStatus {
+  ACTIVE
+  DRAFT
+  INACTIVE
+}
+
+"""product"""
+type ProductType {
+  categories: [String!]!
+  createdAt: DateTime!
+  description: String
+  id: ID!
+  imageUrl: String
+  price: Float!
+  productCode: String!
+  status: ProductStatus!
+  title: String!
+  updatedAt: DateTime!
+}
+
+input ProductsFilterInput {
+  """Exact match in tags[]"""
+  category: [String!]
+  maxPrice: Float
+  minPrice: Float
+  status: ProductStatus
+
+  """updatedAt >= updatedFrom"""
+  updatedFrom: DateTime
+
+  """updatedAt <= updatedTo"""
+  updatedTo: DateTime
+}
+
+type ProductsPageType {
+  items: [ProductType!]!
+  limit: Int!
+  page: Int!
+  total: Int!
+  totalPages: Int!
+}
+
+type Query {
+  categories: [String!]!
+  product(id: ID!): ProductType!
+  productsPage(filter: ProductsFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: ProductSortField! = updatedAt): ProductsPageType!
+}
+
+enum SortOrder {
+  asc
+  desc
+}
+
+input UpdateProductInput {
+  categories: [String!]
+  description: String
+  imageUrl: String
+  price: Float
+  status: ProductStatus
+  title: String
+}
