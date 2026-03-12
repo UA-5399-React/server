@@ -54,7 +54,10 @@ export class ProductsController {
   @ApiResponse({ status: 200, description: 'Product status updated', type: Product })
   @ApiResponse({ status: 400, description: 'Invalid status value' })
   @ApiResponse({ status: 404, description: 'Product not found' })
-  changeStatus(@Param('id') id: string, @Body() changeStatusDto: ChangeStatusDto): Promise<Product> {
+  changeStatus(
+    @Param('id') id: string,
+    @Body() changeStatusDto: ChangeStatusDto,
+  ): Promise<Product> {
     return this.productsService.changeStatus(id, changeStatusDto.status);
   }
 

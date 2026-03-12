@@ -103,13 +103,10 @@ describe('ProductsControler', () => {
     it('should update product status and return updated product', async () => {
       const updatedProduct = { ...mockProduct, status: ProductStatus.ACTIVE };
       mockProductsService.changeStatus.mockReturnValue(updatedProduct);
-      expect(
-        await controller.changeStatus('1', { status: ProductStatus.ACTIVE }),
-      ).toEqual(updatedProduct);
-      expect(mockProductsService.changeStatus).toHaveBeenCalledWith(
-        '1',
-        ProductStatus.ACTIVE,
+      expect(await controller.changeStatus('1', { status: ProductStatus.ACTIVE })).toEqual(
+        updatedProduct,
       );
+      expect(mockProductsService.changeStatus).toHaveBeenCalledWith('1', ProductStatus.ACTIVE);
     });
   });
 
