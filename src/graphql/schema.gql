@@ -5,6 +5,7 @@
 input CreateProductInput {
   categories: [String!]
   description: String
+  imagePublicId: String
   imageUrl: String
   price: Float
   title: String!
@@ -41,6 +42,7 @@ type ProductType {
   createdAt: DateTime!
   description: String
   id: ID!
+  imagePublicId: String
   imageUrl: String
   price: Float!
   productCode: String!
@@ -85,6 +87,7 @@ enum SortOrder {
 input UpdateProductInput {
   categories: [String!]
   description: String
+  imagePublicId: String
   imageUrl: String
   price: Float
   status: ProductStatus

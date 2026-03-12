@@ -43,7 +43,15 @@ export class ProductsService {
     }
 
     // Category filter
-    const categories = filterInput.category?.map((c) => c.trim()).filter(Boolean);
+    const categories = (
+      Array.isArray(filterInput.category)
+        ? filterInput.category
+        : filterInput.category
+          ? [filterInput.category]
+          : []
+    )
+      .map((c) => c.trim())
+      .filter(Boolean);
     if (categories?.length) {
       // exact match in categories array
       filter.categories = { $in: categories };
