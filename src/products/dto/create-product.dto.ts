@@ -19,6 +19,10 @@ export class CreateProductDto {
   @IsUrl({}, { message: 'imageUrl must be a valid URL' })
   imageUrl?: string;
 
+  @IsString()
+  @IsOptional()
+  imagePublicId?: string;
+
   @IsArray()
   @IsString({ each: true })
   @IsOptional()

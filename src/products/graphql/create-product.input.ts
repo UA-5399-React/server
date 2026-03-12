@@ -40,6 +40,12 @@ export class CreateProductInput {
   @IsUrl({}, { message: 'imageUrl must be a valid URL' })
   imageUrl?: string;
 
+  @Field({ nullable: true })
+  @Trim()
+  @IsString()
+  @IsOptional()
+  imagePublicId?: string;
+
   @Field(() => [String], { nullable: true })
   @NormalizeStringArray()
   @IsArray()

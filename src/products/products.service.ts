@@ -154,6 +154,7 @@ export class ProductsService {
 
     const duplicated = new this.productModel({
       imageUrl: source.imageUrl,
+      imagePublicId: source.imagePublicId,
       title: `${source.title} (Copy)`,
       categories: [...source.categories],
       description: source.description,
@@ -231,13 +232,13 @@ export class ProductsService {
 
   private async generateCode(): Promise<string> {
     const lastProduct = await this.productModel
-      .findOne()
+      .findOne({ productCode: /^\d+$/ })
       .sort({ productCode: -1 })
       .select('productCode');
 
     const startNumber = 1;
-
-    const nextCode = lastProduct ? Number(lastProduct.productCode) + 1 : startNumber;
+    const lastNumericCode = Number.parseInt(lastProduct?.productCode ?? '', 10);
+    const nextCode = Number.isNaN(lastNumericCode) ? startNumber : lastNumericCode + 1;
 
     return nextCode.toString().padStart(7, '0');
   }
