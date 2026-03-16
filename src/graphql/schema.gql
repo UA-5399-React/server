@@ -97,6 +97,7 @@ type ProductsPageType {
 
 type Query {
   categories: [String!]!
+  categoriesList: [CategoryType!]!
   category(id: ID!): CategoryType!
   product(id: ID!): ProductType!
   productsPage(filter: ProductsFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: ProductSortField! = updatedAt): ProductsPageType!
