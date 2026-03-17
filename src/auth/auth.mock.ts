@@ -1,4 +1,4 @@
-import { Role } from '@/auth/enums/Role';
+import { Role } from '@/users/enums/Role';
 
 export const MOCK_USER = {
   id: 'admin-001',

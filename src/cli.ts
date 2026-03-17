@@ -1,5 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 
+import { UserSeeder } from '@/database/seeders/user.seeder';
+
 import { AppModule } from './app.module';
 import { CategorySeeder } from './database/seeders/categories.seeder';
 import { ProductSeeder } from './database/seeders/product.seeder';
@@ -14,8 +16,13 @@ async function bootstrap() {
     const shouldClear = args.includes('--clear');
     const only = args.find((a) => a.startsWith('--only='))?.split('=')[1]; // --only=categories | --only=products
 
+    const userSeeder = app.get(UserSeeder);
     const productSeeder = app.get(ProductSeeder);
     const categorySeeder = app.get(CategorySeeder);
+
+    if (!only || only === 'users') {
+      await userSeeder.seed(shouldClear);
+    }
 
     if (!only || only === 'categories') {
       await categorySeeder.seed(shouldClear);

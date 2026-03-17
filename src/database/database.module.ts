@@ -3,7 +3,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 
 import { Category, CategorySchema } from '@/categories/entities/categories.schema';
+import { UserSeeder } from '@/database/seeders/user.seeder';
 import { Product, ProductSchema } from '@/products/entities/product.schema';
+import { User, UserSchema } from '@/users/entities/user.schema';
 
 import { CategorySeeder } from './seeders/categories.seeder';
 import { ProductSeeder } from './seeders/product.seeder';
@@ -39,8 +41,9 @@ import { ProductSeeder } from './seeders/product.seeder';
     MongooseModule.forFeature([
       { name: Product.name, schema: ProductSchema },
       { name: Category.name, schema: CategorySchema },
+      { name: User.name, schema: UserSchema },
     ]),
   ],
-  providers: [ProductSeeder, CategorySeeder],
+  providers: [ProductSeeder, CategorySeeder, UserSeeder],
 })
 export class DatabaseModule {}
