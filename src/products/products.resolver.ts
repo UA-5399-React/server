@@ -1,5 +1,7 @@
+import { UseGuards } from '@nestjs/common';
 import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
 
+import { GqlAuthGuard } from '@/auth/guards/gql-auth.guard';
 import { CreateProductInput } from '@/products/graphql/create-product.input';
 import { ProductType } from '@/products/graphql/product.type';
 import { ProductsQueryArgs } from '@/products/graphql/product-query.args';
@@ -8,6 +10,7 @@ import { ProductsPageType } from '@/products/graphql/products-page.type';
 import { UpdateProductInput } from './graphql/update-product.input';
 import { ProductsService } from './products.service';
 
+@UseGuards(GqlAuthGuard)
 @Resolver(() => ProductType)
 export class ProductsResolver {
   constructor(private readonly productsService: ProductsService) {}
