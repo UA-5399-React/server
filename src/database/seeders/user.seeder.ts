@@ -50,7 +50,7 @@ export class UserSeeder {
         isEmailConfirmed: true,
         phone: '+380671234567',
         avatarUrl:
-          'https://images.unsplash.com/photo-1561154464-82e9adf32764?w=800&h=1200&fit=crop',
+          'https://images.unsplash.com/photo-1740252117044-2af197eea287?w=1180&auto=format&fit=crop',
       },
     ];
 
@@ -74,6 +74,8 @@ export class UserSeeder {
         lastName: userData.lastName,
         isActive: userData.isActive,
         isEmailConfirmed: userData.isEmailConfirmed,
+        phone: userData.phone,
+        avatarUrl: userData.avatarUrl,
       });
 
       createdCount++;
