@@ -9,6 +9,11 @@ import { UpdateCategoryInput } from './graphql/update-category.input';
 export class CategoryResolver {
   constructor(private readonly categoryService: CategoryService) {}
 
+  @Query(() => [CategoryType], { name: 'categoriesList' })
+  findAllCategories() {
+    return this.categoryService.findAll();
+  }
+
   @Query(() => CategoryType, { name: 'category' })
   findOneCategory(@Args('id', { type: () => ID }) id: string) {
     return this.categoryService.findOne(id);
