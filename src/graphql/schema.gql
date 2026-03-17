@@ -76,6 +76,9 @@ type ProductType {
 input ProductsFilterInput {
   """Exact match in tags[]"""
   category: [String!]
+
+  """by what field to sort"""
+  dateType: String
   maxPrice: Float
   minPrice: Float
   status: ProductStatus

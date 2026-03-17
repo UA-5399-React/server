@@ -1,7 +1,7 @@
 import { ArgsType, Field, Int } from '@nestjs/graphql';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsDate, IsIn, IsInt, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 
 @ArgsType()
 export class GetProductsQueryDto {
@@ -77,4 +77,27 @@ export class GetProductsQueryDto {
   @IsNumber()
   @Min(0)
   maxPrice?: number;
+
+  //date filtering
+  @ApiPropertyOptional({ example: '2026-03-17T00:00:00.000Z', description: 'Start date' })
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  updatedFrom?: Date;
+
+  @ApiPropertyOptional({ example: '2026-03-17T00:00:00.000Z', description: 'End date' })
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  updatedTo?: Date;
+
+  @ApiPropertyOptional({
+    example: 'createdAt',
+    description: 'Date type',
+    enum: ['createdAt', 'updatedAt'],
+  })
+  @IsOptional()
+  @Type(() => String)
+  @IsString()
+  dateType?: string;
 }

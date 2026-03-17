@@ -7,4 +7,5 @@ export type GqlFilters = {
   status?: ProductStatus;
   updatedFrom?: Date;
   updatedTo?: Date;
+  dateType?: string;
 };

@@ -79,12 +79,15 @@ export class ProductsService {
     }
 
     // Date filter
-    const { from, to } = this.parseDateRange(filterInput.updatedFrom, filterInput.updatedTo);
+    const { updatedFrom, updatedTo, dateType } = filterInput;
+    const { from, to } = this.parseDateRange(updatedFrom, updatedTo);
 
     if (from || to) {
-      filter.updatedAt = {
-        ...(from !== undefined ? { $gte: from } : {}),
-        ...(to !== undefined ? { $lte: to } : {}),
+      const field = dateType || 'updatedAt';
+
+      filter[field] = {
+        ...(from ? { $gte: from } : {}),
+        ...(to ? { $lte: to } : {}),
       };
     }
 
