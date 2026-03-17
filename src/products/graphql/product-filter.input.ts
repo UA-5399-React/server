@@ -40,4 +40,9 @@ export class ProductsFilterInput {
   @Type(() => Date)
   @IsDate()
   updatedTo?: Date;
+
+  @Field(() => String, { nullable: true, description: 'by what field to sort' })
+  @IsOptional()
+  @Type(() => String)
+  dateType?: 'createdAt' | 'updatedAt';
 }
