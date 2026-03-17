@@ -1,7 +1,19 @@
 import { ArgsType, Field, Int } from '@nestjs/graphql';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsDate, IsIn, IsInt, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+  IsDate,
+  IsEnum,
+  IsIn,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
+
+import { ProductSortField } from '@/products/enums/product-sort-field.enum';
 
 @ArgsType()
 export class GetProductsQueryDto {
@@ -33,13 +45,13 @@ export class GetProductsQueryDto {
 
   //Sorting field, could be sorted by title or price
   @ApiPropertyOptional({
-    description: 'By what field result be sorted: title or price',
-    example: 'title',
-    enum: ['price', 'title'],
+    description: 'By what field result be sorted: title, price, or createdAt',
+    example: ProductSortField.title,
+    enum: ProductSortField,
   })
   @IsOptional()
-  @IsIn(['price', 'title'])
-  sort?: 'price' | 'title';
+  @IsEnum(ProductSortField)
+  sort?: ProductSortField;
 
   //Ascended ot descended order of sorting, by default it's from lower to higher
   @ApiPropertyOptional({
