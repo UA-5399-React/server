@@ -11,9 +11,8 @@ const Product = mongoose.model('Product', ProductSchema, 'products');
 
 // ── Config ───────────────────────────────────────────────────────────────────
 
-const DB_URI =
-  'mongodb+srv://group_user:HDVdGlkJHSqbZQhx@softserve-academy.pxscgjs.mongodb.net/?appName=SoftServe-Academy';
-const DB_NAME = 'kate_db';
+const DB_URI;
+const DB_NAME;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
