@@ -13,6 +13,7 @@ import { DatabaseModule } from './database/database.module';
 import { LoggerModule } from './logger/logger.module';
 import { ProductsModule } from './products/products.module';
 import { UploadsModule } from './uploads/uploads.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { UploadsModule } from './uploads/uploads.module';
     UploadsModule,
     AppGraphQLModule,
     AuthModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [

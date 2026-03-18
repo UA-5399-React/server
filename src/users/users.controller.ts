@@ -1,0 +1,25 @@
+import { Body, Controller, Patch, Req, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+
+import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
+import type { AuthRequest } from '@/auth/types/auth-request.type';
+
+import { UpdateMeDto } from './dto/update-me.dto';
+import { UserResponseDto } from './dto/user-response.dto';
+import { toUserResponseDto } from './users.mapper';
+import { UsersService } from './users.service';
+
+@ApiTags('Users')
+@Controller('users')
+export class UsersController {
+  constructor(private readonly usersService: UsersService) {}
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOkResponse({ type: UserResponseDto })
+  @Patch('me')
+  async updateMe(@Req() req: AuthRequest, @Body() dto: UpdateMeDto): Promise<UserResponseDto> {
+    const user = await this.usersService.updateMe(req.user.id, dto);
+    return toUserResponseDto(user);
+  }
+}
