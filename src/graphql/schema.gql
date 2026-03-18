@@ -2,6 +2,14 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+type CategoriesPageType {
+  items: [CategoryType!]!
+  limit: Int!
+  page: Int!
+  total: Int!
+  totalPages: Int!
+}
+
 type CategoryType {
   _id: ID!
   createdAt: DateTime!
@@ -101,6 +109,7 @@ type ProductsPageType {
 type Query {
   categories: [String!]!
   categoriesList: [CategoryType!]!
+  categoriesPage(limit: Int! = 10, page: Int! = 1, search: String): CategoriesPageType!
   category(id: ID!): CategoryType!
   product(id: ID!): ProductType!
   productsPage(filter: ProductsFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: ProductSortField! = updatedAt): ProductsPageType!
