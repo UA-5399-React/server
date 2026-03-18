@@ -21,6 +21,8 @@
     "seed": "npx ts-node -r tsconfig-paths/register src/cli.ts",
     "seed:categories": "npm run seed -- --only=categories",
     "seed:products": "npm run seed -- --only=products",
+    "seed:users": "npm run seed -- --only=users",
+    "seed:orders": "npm run seed -- --only=orders",
     "prepare": "husky"
   },
   "dependencies": {
