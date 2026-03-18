@@ -4,18 +4,22 @@ import { PassportModule } from '@nestjs/passport';
 
 import { AuthController } from '@/auth/auth.controller';
 import { AuthService } from '@/auth/auth.service';
+import { CryptoModule } from '@/auth/crypto/crypto.module';
 import { JwtStrategy } from '@/auth/strategies/jwt.strategy';
 import { JwtRefreshStrategy } from '@/auth/strategies/jwt-refresh.strategy';
 import { LocalStrategy } from '@/auth/strategies/local.strategy';
+import { UsersModule } from '@/users/users.module';
 
 @Module({
   imports: [
     PassportModule,
+    CryptoModule,
     JwtModule.register({
       global: true,
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '15m' },
     }),
+    UsersModule,
   ],
   exports: [AuthService],
   providers: [AuthService, JwtStrategy, LocalStrategy, JwtRefreshStrategy],
