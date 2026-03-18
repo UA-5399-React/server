@@ -4,7 +4,6 @@ import { MongooseModule } from '@nestjs/mongoose';
 
 import { Category, CategorySchema } from '@/categories/entities/categories.schema';
 import { UserSeeder } from '@/database/seeders/user.seeder';
-//import { ProductCategoriesMigration } from '@/migrations/migrate-product-categories';
 import { Product, ProductSchema } from '@/products/entities/product.schema';
 import { User, UserSchema } from '@/users/entities/user.schema';
 
