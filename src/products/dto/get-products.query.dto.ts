@@ -66,7 +66,7 @@ export class GetProductsQueryDto {
   // Category filter (stored in the product tags array)
   @ApiPropertyOptional({
     type: [String],
-    example: ['Laptop', 'Audio'],
+    example: ['69b1aa3ac9a8f9dfe1d2300d', '69b1aa3ac9a8f9dfe1d2300f'],
     description: 'Category (stored in tags[])',
   })
   @Field(() => [String], { nullable: true })

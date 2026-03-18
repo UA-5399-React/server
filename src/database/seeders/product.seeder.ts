@@ -65,7 +65,7 @@ export class ProductSeeder {
           faker.number.int({ min: 1, max: 3 }),
         ),
       };
-      products.push(product);
+      products.push(product as unknown as Partial<Product>);
     }
 
     await this.productModel.insertMany(products);

@@ -99,7 +99,6 @@ type ProductsPageType {
 }
 
 type Query {
-  categories: [String!]!
   categoriesList: [CategoryType!]!
   category(id: ID!): CategoryType!
   product(id: ID!): ProductType!
