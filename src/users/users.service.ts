@@ -13,12 +13,8 @@ export class UsersService {
     return this.userModel.findOne({ email: this.normalizedEmail(userEmail) }).exec();
   }
 
-  async ensureEmailNotTaken(email: string): Promise<void> {
-    const existingUser = await this.findByEmail(this.normalizedEmail(email));
-
-    if (existingUser) {
-      throw new ConflictException('Email already in use');
-    }
+  async findByEmailForAuth(email: string) {
+    return this.userModel.findOne({ email }).select('+passwordHash');
   }
 
   async create(data: CreateUserData, createdBy?: string): Promise<UserDocument> {
@@ -33,5 +29,13 @@ export class UsersService {
 
   private normalizedEmail(email: string) {
     return email.trim().toLowerCase();
+  }
+
+  async ensureEmailNotTaken(email: string): Promise<void> {
+    const existingUser = await this.findByEmail(this.normalizedEmail(email));
+    console.log(existingUser);
+    if (existingUser) {
+      throw new ConflictException('Email already in use');
+    }
   }
 }

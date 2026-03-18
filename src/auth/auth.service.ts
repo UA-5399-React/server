@@ -1,24 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 
 import { CryptoService } from '@/auth/crypto/crypto.service';
+import { AuthUser } from '@/auth/types/auth-user.type';
 import { JwtPayload } from '@/auth/types/jwt-payload.type';
+import { TokenPair } from '@/auth/types/token-pair.type';
 import { RegisterResponseDto } from '@/users/dto/register-resp.dto';
 import { SignUpDto } from '@/users/dto/sign-up.dto';
 import { Role } from '@/users/enums/Role';
 import { UsersService } from '@/users/users.service';
-
-type AuthUser = {
-  id: string;
-  email: string;
-  role: string;
-};
-
-type TokenPair = {
-  accessToken: string;
-  refreshToken: string;
-};
 
 @Injectable()
 export class AuthService {
@@ -53,7 +44,13 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  async register(dto: SignUpDto) {
+  async login(user: AuthUser): Promise<TokenPair> {
+    const tokens = await this.generateTokens(user);
+
+    return { ...tokens };
+  }
+
+  async register(dto: SignUpDto): Promise<RegisterResponseDto> {
     await this.userService.ensureEmailNotTaken(dto.email);
 
     const passwordHash = await this.cryptoService.hashPassword(dto.password);
@@ -64,11 +61,29 @@ export class AuthService {
       role: Role.CUSTOMER,
     });
 
-    const response: RegisterResponseDto = {
+    return {
       status: 'success',
       message: 'User created successfully.',
     };
+  }
 
-    return response;
+  async validateUser(email: string, password: string): Promise<AuthUser> {
+    const user = await this.userService.findByEmailForAuth(email);
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const isPasswordValid = await this.cryptoService.comparePassword(password, user.passwordHash);
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    };
   }
 }
