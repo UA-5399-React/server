@@ -1,9 +1,13 @@
+import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
+import { Category } from '@/categories/entities/categories.schema';
 import { ProductStatus } from '@/products/enums/product-status.enum';
 import { ProductsQueryArgs } from '@/products/graphql/product-query.args';
 import { ProductsResolver } from '@/products/products.resolver';
 import { ProductsService } from '@/products/products.service';
+
+import { ValidateProductCategoriesPipe } from './pipes/validate-product-categories.pipe';
 
 const ID = '1';
 const mockProduct = {
@@ -44,6 +48,13 @@ describe('ProductsResolver', () => {
         {
           provide: ProductsService,
           useValue: mockProductsService,
+        },
+        ValidateProductCategoriesPipe,
+        {
+          provide: getModelToken(Category.name),
+          useValue: {
+            countDocuments: jest.fn(),
+          },
         },
       ],
     }).compile();

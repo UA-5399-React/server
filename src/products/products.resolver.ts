@@ -8,6 +8,7 @@ import { ProductsQueryArgs } from '@/products/graphql/product-query.args';
 import { ProductsPageType } from '@/products/graphql/products-page.type';
 
 import { UpdateProductInput } from './graphql/update-product.input';
+import { ValidateProductCategoriesPipe } from './pipes/validate-product-categories.pipe';
 import { ProductsService } from './products.service';
 
 @UseGuards(GqlAuthGuard)
@@ -26,7 +27,10 @@ export class ProductsResolver {
   }
 
   @Mutation(() => ProductType)
-  createProduct(@Args('input') input: CreateProductInput) {
+  createProduct(
+    @Args('input', ValidateProductCategoriesPipe)
+    input: CreateProductInput,
+  ) {
     return this.productsService.create(input);
   }
 
