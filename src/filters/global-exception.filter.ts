@@ -1,6 +1,7 @@
 import {
   ArgumentsHost,
   Catch,
+  ConflictException,
   ExceptionFilter,
   HttpException,
   HttpStatus,
@@ -13,8 +14,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   // NestJS logger for structured logging
   private readonly logger = new Logger(GlobalExceptionFilter.name);
   catch(exception: unknown, host: ArgumentsHost) {
-    // Switch execution context to HTTP
     const type = host.getType<'http' | 'graphql' | 'ws'>();
+
+    if (this.isMongoDuplicateKeyError(exception)) {
+      return this.handleMongoDuplicateKeyError(exception, host, type);
+    }
 
     if (type === 'graphql') {
       if (exception instanceof HttpException) {
@@ -56,14 +60,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     }
 
     // Send unified error response to the client
-    return res.status(status).json({
-      success: false,
-      statusCode: status,
-      error,
-      message,
-      path: req.url,
-      timestamp: new Date().toISOString(),
-    });
+    return res.status(status).json(this.buildErrorResponse(status, error, message, req.url));
   }
 
   private extractHttpException(exception: HttpException): {
@@ -98,6 +95,62 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       status,
       message: exception.message,
       error: exception.name,
+    };
+  }
+
+  private handleMongoDuplicateKeyError(
+    exception: { code: number; keyPattern?: Record<string, unknown> },
+    host: ArgumentsHost,
+    type: 'http' | 'graphql' | 'ws',
+  ) {
+    const duplicatedField = Object.keys(exception.keyPattern ?? {})[0] ?? 'resource';
+    const message =
+      duplicatedField.charAt(0).toUpperCase() + duplicatedField.slice(1) + ' already in use';
+
+    this.logger.warn(`Handled Mongo duplicate key – ${duplicatedField}`);
+
+    if (type === 'graphql') {
+      throw new ConflictException(message);
+    }
+    if (type !== 'http') {
+      throw new ConflictException(message);
+    }
+
+    const ctx = host.switchToHttp();
+    const res = ctx.getResponse<Response>();
+    const req = ctx.getRequest<Request>();
+
+    return res
+      .status(HttpStatus.CONFLICT)
+      .json(this.buildErrorResponse(HttpStatus.CONFLICT, 'ConflictException', message, req.url));
+  }
+
+  private isMongoDuplicateKeyError(exception: unknown): exception is {
+    code: number;
+    keyPattern?: Record<string, unknown>;
+    keyValue?: Record<string, unknown>;
+  } {
+    return (
+      typeof exception === 'object' &&
+      exception !== null &&
+      'code' in exception &&
+      (exception as { code?: unknown }).code === 11000
+    );
+  }
+
+  private buildErrorResponse(
+    statusCode: number,
+    error: string,
+    message: string | string[],
+    path: string,
+  ) {
+    return {
+      success: false,
+      statusCode,
+      error,
+      message,
+      path,
+      timestamp: new Date().toISOString(),
     };
   }
 }

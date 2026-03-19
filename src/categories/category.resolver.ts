@@ -1,7 +1,9 @@
 import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
 
 import { CategoryService } from './category.service';
+import { CategoriesPageType } from './graphql/categories-page.type';
 import { CategoryType } from './graphql/category.type';
+import { CategoriesQueryArgs } from './graphql/category-query.args';
 import { CreateCategoryInput } from './graphql/create-category.input';
 import { UpdateCategoryInput } from './graphql/update-category.input';
 
@@ -12,6 +14,11 @@ export class CategoryResolver {
   @Query(() => [CategoryType], { name: 'categoriesList' })
   findAllCategories() {
     return this.categoryService.findAll();
+  }
+
+  @Query(() => CategoriesPageType)
+  categoriesPage(@Args() args: CategoriesQueryArgs) {
+    return this.categoryService.findPage(args);
   }
 
   @Query(() => CategoryType, { name: 'category' })

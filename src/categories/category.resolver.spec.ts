@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 import { CategoryResolver } from '@/categories/category.resolver';
 import { CategoryService } from '@/categories/category.service';
+import { CategoriesQueryArgs } from '@/categories/graphql/category-query.args';
 
 const ID = '67ca4f63c89e9c1a5d9f5f10';
 const mockCategory = {
@@ -14,8 +15,16 @@ const mockCategory = {
   createdAt: new Date('2026-03-01T10:00:00.000Z'),
   updatedAt: new Date('2026-03-01T10:00:00.000Z'),
 };
+const mockCategoriesPage = {
+  items: [mockCategory],
+  total: 1,
+  page: 1,
+  limit: 10,
+  totalPages: 1,
+};
 const mockCategoryService = {
   findAll: jest.fn(),
+  findPage: jest.fn(),
   findOne: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
@@ -52,6 +61,23 @@ describe('CategoryResolver', () => {
 
       expect(result).toEqual(categories);
       expect(mockCategoryService.findAll).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('categoriesPage', () => {
+    it('should return paginated categories', async () => {
+      const args: CategoriesQueryArgs = {
+        page: 1,
+        limit: 10,
+        search: 'Electronics',
+      };
+      mockCategoryService.findPage.mockResolvedValue(mockCategoriesPage);
+
+      const result = await resolver.categoriesPage(args);
+
+      expect(result).toEqual(mockCategoriesPage);
+      expect(mockCategoryService.findPage).toHaveBeenCalledTimes(1);
+      expect(mockCategoryService.findPage).toHaveBeenCalledWith(args);
     });
   });
 

@@ -21,12 +21,12 @@ export class User {
   role!: Role;
 
   @ApiProperty({ example: 'John' })
-  @Prop({ required: true, trim: true })
-  firstName!: string;
+  @Prop({ trim: true })
+  firstName?: string;
 
   @ApiProperty({ example: 'Doe' })
-  @Prop({ required: true, trim: true })
-  lastName!: string;
+  @Prop({ trim: true })
+  lastName?: string;
 
   @ApiPropertyOptional({ example: '+380...' })
   @Prop({ trim: true })

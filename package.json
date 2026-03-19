@@ -21,7 +21,8 @@
     "seed": "npx ts-node -r tsconfig-paths/register src/cli.ts",
     "seed:categories": "npm run seed -- --only=categories",
     "seed:products": "npm run seed -- --only=products",
-    "prepare": "husky"
+    "prepare": "husky",
+    "migrate": "npx ts-node -r tsconfig-paths/register src/database/migrations/migrate-product-categories.ts"
   },
   "dependencies": {
     "@apollo/server": "^5.4.0",
@@ -41,7 +42,9 @@
     "class-validator": "^0.15.1",
     "cloudinary": "^2.9.0",
     "cookie-parser": "^1.4.7",
+    "crypto": "^1.0.1",
     "graphql": "^16.13.0",
+    "mongodb": "^7.1.0",
     "mongoose": "^9.2.2",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
