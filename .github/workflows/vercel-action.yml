@@ -19,7 +19,7 @@ jobs:
               with:
                 vercel-token: ${{secrets.VERCEL_TOKEN}}
                 github-token: ${{secrets.GITHUB_TOKEN}}
-                verce;-args: '--prod'
+                vercel-args: '--prod'
                 vercel-org-id: ${{secrets.ORG_ID}}
                 vercel-project-id: ${{secrets.PROJECT_ID}}
             - name: preview-url
