@@ -1,3 +1,5 @@
 {
-  "buildCommand": "pnpm run build:deploy"
+  "buildCommand": "pnpm run build:deploy",
+  "outputDirectory": "dist",
+  "routes": [{ "src": "/(.*)", "dest": "dist/main.js" }]
 }
