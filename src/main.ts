@@ -8,7 +8,10 @@ import { GlobalExceptionFilter } from './filters/global-exception.filter';
 import { AppLogger } from './logger/app-logger.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: true,
+    rawBody: true,
+  });
 
   const appLogger = app.get(AppLogger);
   app.useLogger(appLogger);
