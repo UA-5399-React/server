@@ -1,3 +1,4 @@
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -159,6 +160,43 @@ describe('CategoryService', () => {
         totalPages: 0,
       });
       expect(mockCategoryModel.find).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('remove', () => {
+    it('should delete category when it has no subcategories', async () => {
+      countExecMock.mockResolvedValue(0);
+      mockCategoryModel.findByIdAndDelete.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockParentCategory),
+      });
+
+      const result = await service.remove(ROOT_ID);
+
+      expect(result).toEqual(mockParentCategory);
+      expect(mockCategoryModel.countDocuments).toHaveBeenCalledWith({
+        parent: ROOT_ID,
+      });
+      expect(mockCategoryModel.findByIdAndDelete).toHaveBeenCalledWith(ROOT_ID);
+    });
+
+    it('should throw when category has subcategories', async () => {
+      countExecMock.mockResolvedValue(1);
+
+      await expect(service.remove(ROOT_ID)).rejects.toThrow(
+        new BadRequestException('Cannot delete category with subcategories'),
+      );
+      expect(mockCategoryModel.findByIdAndDelete).not.toHaveBeenCalled();
+    });
+
+    it('should throw when category is not found', async () => {
+      countExecMock.mockResolvedValue(0);
+      mockCategoryModel.findByIdAndDelete.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null),
+      });
+
+      await expect(service.remove(ROOT_ID)).rejects.toThrow(
+        new NotFoundException(`Category with id ${ROOT_ID} not found`),
+      );
     });
   });
 });

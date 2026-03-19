@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
@@ -85,6 +85,12 @@ export class CategoryService {
   }
 
   async remove(id: string) {
+    const childrenCount = await this.categoryModel.countDocuments({ parent: id }).exec();
+
+    if (childrenCount > 0) {
+      throw new BadRequestException('Cannot delete category with subcategories');
+    }
+
     const deletedCategory = await this.categoryModel.findByIdAndDelete(id).exec();
 
     if (!deletedCategory) {
