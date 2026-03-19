@@ -96,6 +96,13 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    this.userService.updateLastLogin(user.id).catch((err: unknown) => {
+      this.logger.warn('Failed to update lastLoginAt', {
+        userId: user.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    });
+
     this.logger.info('User authenticated successfully', {
       id: user.id,
       email: user.email,

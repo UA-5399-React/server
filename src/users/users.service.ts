@@ -55,4 +55,10 @@ export class UsersService {
     }
     return user;
   }
+
+  async updateLastLogin(id: string): Promise<void> {
+    await this.userModel.findByIdAndUpdate(id, {
+      lastLoginAt: new Date(),
+    });
+  }
 }
