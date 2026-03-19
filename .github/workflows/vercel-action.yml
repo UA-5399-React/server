@@ -14,12 +14,18 @@ jobs:
             repository-projects: write
         steps:
             - uses: actions/checkout@v4
+            - name: Install deps
+              run: npm ci
+
+            - name: Build app
+              run: npm run build:deploy
+
             - uses: amondnet/vercel-action@v20
               id: vercel-deploy
               with:
                 vercel-token: ${{secrets.VERCEL_TOKEN}}
                 github-token: ${{secrets.GITHUB_TOKEN}}
-                vercel-args: '--prod'
+                vercel-args: '--prod --prebuilt'
                 vercel-org-id: ${{secrets.ORG_ID}}
                 vercel-project-id: ${{secrets.PROJECT_ID}}
             - name: preview-url
