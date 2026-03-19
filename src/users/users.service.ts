@@ -1,9 +1,15 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
-import { UpdateMeDto } from './dto/update-me.dto';
-import { User, UserDocument } from './entities/user.schema';
+import { CreateUserData } from '@/users/dto/create-user.type';
+import { UpdateMeDto } from '@/users/dto/update-me.dto';
+import { User, UserDocument } from '@/users/entities/user.schema';
 
 @Injectable()
 export class UsersService {
@@ -11,6 +17,28 @@ export class UsersService {
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
   ) {}
+
+  async findByEmail(userEmail: string): Promise<UserDocument | null> {
+    return this.userModel.findOne({ email: this.normalizedEmail(userEmail) }).exec();
+  }
+
+  async ensureEmailNotTaken(email: string): Promise<void> {
+    const existingUser = await this.findByEmail(this.normalizedEmail(email));
+
+    if (existingUser) {
+      throw new ConflictException('Email already in use');
+    }
+  }
+
+  async create(data: CreateUserData, createdBy?: string): Promise<UserDocument> {
+    const createdUser = new this.userModel({
+      ...data,
+      email: this.normalizedEmail(data.email),
+      createdBy: createdBy || null,
+    });
+
+    return await createdUser.save();
+  }
 
   async updateMe(userId: string, dto: UpdateMeDto): Promise<UserDocument> {
     const updateData: Partial<User> = {};
@@ -43,6 +71,11 @@ export class UsersService {
     if (!updatedUser) {
       throw new NotFoundException('User not found');
     }
+
     return updatedUser;
+  }
+
+  private normalizedEmail(email: string): string {
+    return email.trim().toLowerCase();
   }
 }
