@@ -1,6 +1,11 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 
 import { CreateUserData } from '@/users/dto/create-user.type';
 import { User, UserDocument } from '@/users/entities/user.schema';
@@ -37,5 +42,17 @@ export class UsersService {
     if (existingUser) {
       throw new ConflictException('Email already in use');
     }
+  }
+
+  async findById(id: string) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException(`Invalid user id: "${id}"`);
+    }
+    const user = await this.userModel.findById(id).exec();
+
+    if (!user) {
+      throw new NotFoundException(`User with id "${id}" not found`);
+    }
+    return user;
   }
 }

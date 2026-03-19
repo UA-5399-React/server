@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 
@@ -6,6 +6,7 @@ import { CryptoService } from '@/auth/crypto/crypto.service';
 import { AuthUser } from '@/auth/types/auth-user.type';
 import { JwtPayload } from '@/auth/types/jwt-payload.type';
 import { TokenPair } from '@/auth/types/token-pair.type';
+import { AppLogger } from '@/logger/app-logger.service';
 import { RegisterResponseDto } from '@/users/dto/register-resp.dto';
 import { SignUpDto } from '@/users/dto/sign-up.dto';
 import { Role } from '@/users/enums/Role';
@@ -18,6 +19,7 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly userService: UsersService,
     private readonly cryptoService: CryptoService,
+    private readonly logger: AppLogger,
   ) {}
 
   async generateTokens(user: AuthUser): Promise<TokenPair> {
@@ -71,14 +73,34 @@ export class AuthService {
     const user = await this.userService.findByEmailForAuth(email);
 
     if (!user) {
+      this.logger.security('Login failed: user not found', { email });
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (!user.isActive) {
+      this.logger.security('Blocked inactive user access', {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      });
+      throw new ForbiddenException('User account is deactivated');
     }
 
     const isPasswordValid = await this.cryptoService.comparePassword(password, user.passwordHash);
 
     if (!isPasswordValid) {
+      this.logger.security('Login failed: invalid password', {
+        id: user.id,
+        email: user.email,
+      });
       throw new UnauthorizedException('Invalid credentials');
     }
+
+    this.logger.info('User authenticated successfully', {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    });
 
     return {
       id: user.id,
