@@ -31,8 +31,6 @@ export class ProductSeeder {
       throw new Error('No categories found. Seed categories before seeding products.');
     }
 
-    // Prefer leaf categories for realistic data, but still guarantee coverage
-    // for every category so the filters never point to an empty bucket.
     const assignableCategories = categories.filter((category) => category.depth === 2);
     const availableCategories = assignableCategories.length > 0 ? assignableCategories : categories;
     const guaranteedCategories = faker.helpers.shuffle([...categories]);
