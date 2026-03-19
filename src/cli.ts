@@ -2,9 +2,9 @@ import { NestFactory } from '@nestjs/core';
 
 import { UserSeeder } from '@/database/seeders/user.seeder';
 
+import { ProductSeeder } from '../../product.seeder';
 import { AppModule } from './app.module';
 import { CategorySeeder } from './database/seeders/categories.seeder';
-import { ProductSeeder } from './database/seeders/product.seeder';
 
 async function bootstrap() {
   const app = await NestFactory.createApplicationContext(AppModule, {
