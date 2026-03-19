@@ -4,6 +4,7 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 
 import { AuthModule } from '@/auth/auth.module';
 import { AppGraphQLModule } from '@/graphql/graphql.module';
+import { UsersModule } from '@/users/users.module';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -29,6 +30,7 @@ import { UploadsModule } from './uploads/uploads.module';
     AppGraphQLModule,
     AuthModule,
     OrdersModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [
