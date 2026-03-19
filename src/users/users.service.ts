@@ -44,7 +44,7 @@ export class UsersService {
     }
   }
 
-  async findById(id: string) {
+  async findById(id: string): Promise<UserDocument> {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException(`Invalid user id: "${id}"`);
     }
