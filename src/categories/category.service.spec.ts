@@ -5,6 +5,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CategoryService } from '@/categories/category.service';
 import { Category } from '@/categories/entities/categories.schema';
 import { CategoriesQueryArgs } from '@/categories/graphql/category-query.args';
+import { Product } from '@/products/entities/product.schema';
 
 const ROOT_ID = '67ca4f63c89e9c1a5d9f5f10';
 
@@ -37,6 +38,7 @@ const parentSortMock = jest.fn();
 const childExecMock = jest.fn();
 const childSortMock = jest.fn();
 const countExecMock = jest.fn();
+const updateManyExecMock = jest.fn();
 
 type MockCategoryModelType = {
   find: jest.Mock;
@@ -46,12 +48,20 @@ type MockCategoryModelType = {
   countDocuments: jest.Mock;
 };
 
+type MockProductModelType = {
+  updateMany: jest.Mock;
+};
+
 const mockCategoryModel: MockCategoryModelType = {
   find: jest.fn(),
   findById: jest.fn(),
   findByIdAndUpdate: jest.fn(),
   findByIdAndDelete: jest.fn(),
   countDocuments: jest.fn(),
+};
+
+const mockProductModel: MockProductModelType = {
+  updateMany: jest.fn(),
 };
 
 describe('CategoryService', () => {
@@ -67,6 +77,7 @@ describe('CategoryService', () => {
       .mockReturnValueOnce({ sort: parentSortMock })
       .mockReturnValueOnce({ sort: childSortMock });
     mockCategoryModel.countDocuments.mockReturnValue({ exec: countExecMock });
+    mockProductModel.updateMany.mockReturnValue({ exec: updateManyExecMock });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -74,6 +85,10 @@ describe('CategoryService', () => {
         {
           provide: getModelToken(Category.name),
           useValue: mockCategoryModel,
+        },
+        {
+          provide: getModelToken(Product.name),
+          useValue: mockProductModel,
         },
       ],
     }).compile();
@@ -176,6 +191,10 @@ describe('CategoryService', () => {
       expect(mockCategoryModel.countDocuments).toHaveBeenCalledWith({
         parent: ROOT_ID,
       });
+      expect(mockProductModel.updateMany).toHaveBeenCalledWith(
+        { categories: expect.any(Object) },
+        { $pull: { categories: expect.any(Object) } },
+      );
       expect(mockCategoryModel.findByIdAndDelete).toHaveBeenCalledWith(ROOT_ID);
     });
 
@@ -185,6 +204,7 @@ describe('CategoryService', () => {
       await expect(service.remove(ROOT_ID)).rejects.toThrow(
         new BadRequestException('Cannot delete category with subcategories'),
       );
+      expect(mockProductModel.updateMany).not.toHaveBeenCalled();
       expect(mockCategoryModel.findByIdAndDelete).not.toHaveBeenCalled();
     });
 
@@ -197,6 +217,7 @@ describe('CategoryService', () => {
       await expect(service.remove(ROOT_ID)).rejects.toThrow(
         new NotFoundException(`Category with id ${ROOT_ID} not found`),
       );
+      expect(mockProductModel.updateMany).toHaveBeenCalledTimes(1);
     });
   });
 });
