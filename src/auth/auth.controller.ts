@@ -1,5 +1,15 @@
-import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
-import { ApiBody } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBody, ApiCreatedResponse } from '@nestjs/swagger';
 import type { Response } from 'express';
 
 import { AuthService } from '@/auth/auth.service';
@@ -13,6 +23,8 @@ import { JwtRefreshAuthGuard } from '@/auth/guards/jwt-refresh.guard';
 import { LocalAuthGuard } from '@/auth/guards/local-auth.guard';
 import { LoginDto } from '@/auth/login.dto';
 import type { AuthRequest } from '@/auth/types/auth-request.type';
+import { RegisterResponseDto } from '@/users/dto/register-resp.dto';
+import { SignUpDto } from '@/users/dto/sign-up.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -64,5 +76,12 @@ export class AuthController {
   private clearAuthCookies(res: Response) {
     res.clearCookie('accessToken', BASE_COOKIE_OPTIONS);
     res.clearCookie('refreshToken', BASE_COOKIE_OPTIONS);
+  }
+
+  @Post('register')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiCreatedResponse({ type: RegisterResponseDto })
+  async register(@Body() signupDTO: SignUpDto) {
+    return await this.authService.register(signupDTO);
   }
 }
