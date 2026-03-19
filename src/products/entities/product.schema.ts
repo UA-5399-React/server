@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { ApiProperty } from '@nestjs/swagger';
-import { HydratedDocument } from 'mongoose';
+import { HydratedDocument, Types } from 'mongoose';
 
 import { ProductStatus } from '../enums/product-status.enum';
 
@@ -25,8 +25,8 @@ export class Product {
   title: string;
 
   @ApiProperty({ example: ['electronics', 'smartphone'], required: false })
-  @Prop({ type: [String], default: [] })
-  categories: string[];
+  @Prop({ type: [Types.ObjectId], ref: 'Category', default: [] })
+  categories: Types.ObjectId[];
 
   @ApiProperty({ example: 'Latest Apple smartphone', required: false })
   @Prop()

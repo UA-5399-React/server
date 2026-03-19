@@ -107,7 +107,6 @@ type ProductsPageType {
 }
 
 type Query {
-  categories: [String!]!
   categoriesList: [CategoryType!]!
   categoriesPage(limit: Int! = 10, page: Int! = 1, search: String): CategoriesPageType!
   category(id: ID!): CategoryType!

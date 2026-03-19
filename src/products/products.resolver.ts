@@ -53,8 +53,8 @@ export class ProductsResolver {
     return this.productsService.duplicate(id);
   }
 
-  @Query(() => [String])
+  /*@Query(() => [String])
   categories() {
     return this.productsService.getCategories();
-  }
+  }*/
 }
