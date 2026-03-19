@@ -18,7 +18,7 @@ import { ShippingCarrier } from '../enums/shipping-carrier.enum';
 // ─── Nested DTOs ─────────────────────────────────────────────────────────────
 
 export class CreateOrderItemDto {
-  @ApiProperty({ example: '665f1b2c3e4a5b6c7d8e9f00' })
+  @ApiProperty({ example: '69bc110eee58bff21041e0c5' })
   @IsMongoId()
   product: string;
 
