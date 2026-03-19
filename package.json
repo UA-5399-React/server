@@ -21,7 +21,8 @@
     "seed": "npx ts-node -r tsconfig-paths/register src/cli.ts",
     "seed:categories": "npm run seed -- --only=categories",
     "seed:products": "npm run seed -- --only=products",
-    "prepare": "husky"
+    "prepare": "husky",
+    "migrate": "npx ts-node -r tsconfig-paths/register src/database/migrations/migrate-product-categories.ts"
   },
   "dependencies": {
     "@apollo/server": "^5.4.0",
