@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 
 import { Category, CategoryDocument } from './entities/categories.schema';
+import { CategoriesQueryArgs } from './graphql/category-query.args';
 import { CreateCategoryInput } from './graphql/create-category.input';
 import { UpdateCategoryInput } from './graphql/update-category.input';
 
@@ -16,6 +17,36 @@ export class CategoryService {
       throw new NotFoundException('No categories found');
     }
     return categories;
+  }
+
+  async findPage(query: CategoriesQueryArgs) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const skip = (page - 1) * limit;
+
+    const parentFilter = this.buildParentFilter(query.search);
+
+    const [parents, total] = await Promise.all([
+      this.categoryModel.find(parentFilter).sort({ updatedAt: -1 }).skip(skip).limit(limit).exec(),
+      this.categoryModel.countDocuments(parentFilter).exec(),
+    ]);
+
+    const parentIds = parents.map((parent) => new Types.ObjectId(parent._id));
+    const children =
+      parentIds.length > 0
+        ? await this.categoryModel
+            .find({ parent: { $in: parentIds } })
+            .sort({ updatedAt: -1 })
+            .exec()
+        : [];
+
+    return {
+      items: [...parents, ...children],
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async findOne(id: string) {
@@ -60,5 +91,21 @@ export class CategoryService {
       throw new NotFoundException(`Category with id ${id} not found`);
     }
     return deletedCategory;
+  }
+
+  private buildParentFilter(search?: string): Record<string, unknown> {
+    const normalizedSearch = search?.trim();
+
+    if (!normalizedSearch) {
+      return { depth: 1 };
+    }
+
+    return {
+      depth: 1,
+      $or: [
+        { title: { $regex: normalizedSearch, $options: 'i' } },
+        { description: { $regex: normalizedSearch, $options: 'i' } },
+      ],
+    };
   }
 }
