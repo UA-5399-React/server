@@ -5,3 +5,7 @@ import type { AuthUser } from './auth-user.type';
 export type AuthRequest = Request & {
   user: AuthUser;
 };
+
+export type GraphqlContextWithUser = {
+  req: AuthRequest;
+};
