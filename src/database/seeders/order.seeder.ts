@@ -136,8 +136,8 @@ export class OrderSeeder {
         },
         status: orderStatus,
         user: {
-          firstName: customer.firstName,
-          lastName: customer.lastName,
+          firstName: customer.firstName!,
+          lastName: customer.lastName!,
           email: customer.email,
           phone: customer.phone ?? faker.phone.number(),
         },
