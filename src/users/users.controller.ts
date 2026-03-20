@@ -1,4 +1,4 @@
-import { Body, Controller, Patch, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
@@ -13,6 +13,15 @@ import { UsersService } from './users.service';
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOkResponse({ type: UserResponseDto })
+  @Get('me')
+  async getMe(@Req() req: AuthRequest): Promise<UserResponseDto> {
+    const user = await this.usersService.findById(req.user.id);
+    return toUserResponseDto(user);
+  }
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
