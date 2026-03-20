@@ -1,16 +1,21 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
 
+import { Roles } from '@/auth/decorators/Roles';
 import { GqlAuthGuard } from '@/auth/guards/gql-auth.guard';
+import { RolesGuard } from '@/auth/guards/roles.guard';
 import { CreateProductInput } from '@/products/graphql/create-product.input';
 import { ProductType } from '@/products/graphql/product.type';
 import { ProductsQueryArgs } from '@/products/graphql/product-query.args';
 import { ProductsPageType } from '@/products/graphql/products-page.type';
+import { Role } from '@/users/enums/Role';
 
 import { UpdateProductInput } from './graphql/update-product.input';
+import { ValidateProductCategoriesPipe } from './pipes/validate-product-categories.pipe';
 import { ProductsService } from './products.service';
 
-@UseGuards(GqlAuthGuard)
+@UseGuards(GqlAuthGuard, RolesGuard)
+@Roles(Role.ADMIN, Role.SUPER_ADMIN)
 @Resolver(() => ProductType)
 export class ProductsResolver {
   constructor(private readonly productsService: ProductsService) {}
@@ -26,7 +31,10 @@ export class ProductsResolver {
   }
 
   @Mutation(() => ProductType)
-  createProduct(@Args('input') input: CreateProductInput) {
+  createProduct(
+    @Args('input', ValidateProductCategoriesPipe)
+    input: CreateProductInput,
+  ) {
     return this.productsService.create(input);
   }
 
@@ -49,8 +57,8 @@ export class ProductsResolver {
     return this.productsService.duplicate(id);
   }
 
-  @Query(() => [String])
+  /*@Query(() => [String])
   categories() {
     return this.productsService.getCategories();
-  }
+  }*/
 }

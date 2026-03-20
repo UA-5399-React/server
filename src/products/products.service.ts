@@ -8,6 +8,7 @@ import { UpdateProductInput } from '@/products/graphql/update-product.input';
 
 import { CreateProductDto } from './dto/create-product.dto';
 import { GetProductsQueryDto } from './dto/get-products.query.dto';
+import { PaginatedProductsDto } from './dto/paginated-products.dto';
 import { Product, ProductDocument } from './entities/product.schema';
 import { ProductStatus } from './enums/product-status.enum';
 
@@ -15,7 +16,7 @@ import { ProductStatus } from './enums/product-status.enum';
 export class ProductsService {
   constructor(@InjectModel(Product.name) private productModel: Model<ProductDocument>) {}
 
-  async findAll(query: GetProductsQueryDto | ProductsQueryArgs) {
+  async findAll(query: GetProductsQueryDto | ProductsQueryArgs): Promise<PaginatedProductsDto> {
     // Extract pagination parameters with fallback defults
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
@@ -37,7 +38,6 @@ export class ProductsService {
       filter.$or = [
         { title: { $regex: search, $options: 'i' } },
         { description: { $regex: search, $options: 'i' } },
-        { categories: { $regex: search, $options: 'i' } },
         { productCode: search },
       ];
     }
@@ -53,8 +53,18 @@ export class ProductsService {
       .map((c) => c.trim())
       .filter(Boolean);
     if (categories?.length) {
-      // exact match in categories array
-      filter.categories = { $in: categories };
+      // Convert incoming category filters to ObjectIds
+      const categoryIds = categories
+        .map((c) => {
+          try {
+            return new Types.ObjectId(c);
+          } catch {
+            return null;
+          }
+        })
+        .filter(Boolean);
+
+      filter.categories = { $in: categoryIds };
     }
 
     // Price range
@@ -231,14 +241,6 @@ export class ProductsService {
     }
 
     return { from, to };
-  }
-
-  async getCategories(): Promise<string[]> {
-    const raw = await this.productModel.distinct('categories');
-    return raw
-      .map((c) => (typeof c === 'string' ? c.trim() : ''))
-      .filter(Boolean)
-      .sort((a, b) => a.localeCompare(b));
   }
 
   private async generateCode(): Promise<string> {
