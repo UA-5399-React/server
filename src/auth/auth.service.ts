@@ -9,9 +9,8 @@ import { TokenPair } from '@/auth/types/token-pair.type';
 import { AppLogger } from '@/logger/app-logger.service';
 import { RegisterResponseDto } from '@/users/dto/register-resp.dto';
 import { SignUpDto } from '@/users/dto/sign-up.dto';
+import { Role } from '@/users/enums/role.enum';
 import { UsersService } from '@/users/users.service';
-
-import { Role } from '../../dist 4/users/enums/Role';
 
 @Injectable()
 export class AuthService {

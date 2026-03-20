@@ -1,4 +1,4 @@
-import { Role } from '../../../dist 4/users/enums/Role';
+import { Role } from '@/users/enums/role.enum';
 
 export type JwtPayload = {
   sub: string;

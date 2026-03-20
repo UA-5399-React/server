@@ -15,6 +15,7 @@ import { Roles } from '@/auth/decorators/Roles';
 import { GqlAuthGuard } from '@/auth/guards/gql-auth.guard';
 import type { AuthUser } from '@/auth/types/auth-user.type';
 import type { UserDocument } from '@/users/entities/user.schema';
+import { Role } from '@/users/enums/role.enum';
 import { UsersQueryArgs } from '@/users/graphql/args/users-query.args';
 import { CreateUserInput } from '@/users/graphql/inputs/create-user.input';
 import { UpdateUserInput } from '@/users/graphql/inputs/update-user.input';
@@ -23,8 +24,6 @@ import type { GraphqlLoadersContext } from '@/users/graphql/types/data-loader.ty
 import { UserType } from '@/users/graphql/types/user.type';
 import { UsersPage } from '@/users/graphql/types/users-page.type';
 import { UsersService } from '@/users/users.service';
-
-import { Role } from '../../dist 4/users/enums/Role';
 
 @UseGuards(GqlAuthGuard)
 @Roles(Role.ADMIN, Role.SUPER_ADMIN)
