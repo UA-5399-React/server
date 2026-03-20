@@ -14,7 +14,7 @@ async function bootstrap() {
   app.useLogger(appLogger);
   app.use(cookieParser());
   app.enableCors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: ['http://localhost:5173', 'https://client-one-indol-61.vercel.app'],
     credentials: true,
   });
 
