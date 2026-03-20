@@ -5,7 +5,7 @@ import { Model } from 'mongoose';
 
 import { AppLogger } from '@/logger/app-logger.service';
 import { User, UserDocument } from '@/users/entities/user.schema';
-import { Role } from '@/users/enums/Role';
+import { Role } from '@/users/enums/role.enum';
 
 @Injectable()
 export class UserSeeder {
