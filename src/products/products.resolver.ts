@@ -8,7 +8,7 @@ import { CreateProductInput } from '@/products/graphql/create-product.input';
 import { ProductType } from '@/products/graphql/product.type';
 import { ProductsQueryArgs } from '@/products/graphql/product-query.args';
 import { ProductsPageType } from '@/products/graphql/products-page.type';
-import { Role } from '@/users/enums/Role';
+import { Role } from '@/users/enums/role.enum';
 
 import { UpdateProductInput } from './graphql/update-product.input';
 import { ValidateProductCategoriesPipe } from './pipes/validate-product-categories.pipe';

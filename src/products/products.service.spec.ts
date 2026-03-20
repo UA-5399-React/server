@@ -3,10 +3,10 @@ import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Types } from 'mongoose';
 
+import { SortOrder } from '@/common/enums/sort-order.enum';
 import { Product } from '@/products/entities/product.schema';
 import { ProductSortField } from '@/products/enums/product-sort-field.enum';
 import { ProductStatus } from '@/products/enums/product-status.enum';
-import { SortOrder } from '@/products/enums/sort-order.enum';
 import { ProductsQueryArgs } from '@/products/graphql/product-query.args';
 import { ProductsService } from '@/products/products.service';
 
@@ -119,7 +119,7 @@ describe('ProductsService', () => {
           { productCode: 'Laptop' },
         ],
       });
-      expect(sortMock).toHaveBeenCalledWith({});
+      expect(sortMock).toHaveBeenCalledWith({ updatedAt: -1 });
       expect(skipMock).toHaveBeenCalledWith(0);
       expect(limitMock).toHaveBeenCalledWith(10);
       expect(mockProductModel.countDocuments).toHaveBeenCalledWith({
