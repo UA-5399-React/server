@@ -8,6 +8,7 @@ import { CryptoModule } from '@/auth/crypto/crypto.module';
 import { JwtStrategy } from '@/auth/strategies/jwt.strategy';
 import { JwtRefreshStrategy } from '@/auth/strategies/jwt-refresh.strategy';
 import { LocalStrategy } from '@/auth/strategies/local.strategy';
+import { TokensModule } from '@/auth/tokens/tokens.module';
 import { UsersModule } from '@/users/users.module';
 
 @Module({
@@ -20,6 +21,7 @@ import { UsersModule } from '@/users/users.module';
       signOptions: { expiresIn: '15m' },
     }),
     UsersModule,
+    TokensModule,
   ],
   exports: [AuthService],
   providers: [AuthService, JwtStrategy, LocalStrategy, JwtRefreshStrategy],

@@ -21,8 +21,8 @@ import {
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { JwtRefreshAuthGuard } from '@/auth/guards/jwt-refresh.guard';
 import { LocalAuthGuard } from '@/auth/guards/local-auth.guard';
-import { LoginDto } from '@/auth/login.dto';
 import type { AuthRequest } from '@/auth/types/auth-request.type';
+import { LoginDto } from '@/users/dto/login.dto';
 import { RegisterResponseDto } from '@/users/dto/register-resp.dto';
 import { SignUpDto } from '@/users/dto/sign-up.dto';
 
@@ -83,5 +83,19 @@ export class AuthController {
   @ApiCreatedResponse({ type: RegisterResponseDto })
   async register(@Body() signupDTO: SignUpDto) {
     return await this.authService.register(signupDTO);
+  }
+
+  @Post('confirm-email')
+  async confirmEmail(@Body('token') token: string) {
+    await this.authService.confirmEmail(token);
+
+    return {
+      message: 'Email confirmed successfully',
+    };
+  }
+
+  @Post('resend-confirmation')
+  async resendConfirmation(@Body('email') email: string) {
+    return this.authService.resendConfirmation(email);
   }
 }

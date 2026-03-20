@@ -49,7 +49,7 @@ export class User {
   createdBy?: Types.ObjectId;
 
   @ApiProperty({ example: true })
-  @Prop({ default: true })
+  @Prop({ default: false })
   isEmailConfirmed!: boolean;
 }
 
