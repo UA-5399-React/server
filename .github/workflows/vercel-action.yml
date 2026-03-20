@@ -3,7 +3,6 @@ on:
     push:
         branches:
             - deploy
-            - feat/221-deploy-application
 
 jobs:
     build-and-deploy:
