@@ -18,6 +18,15 @@ export class UsersController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOkResponse({ type: UserResponseDto })
+  @Get('me')
+  async getMe(@Req() req: AuthRequest): Promise<UserResponseDto> {
+    const user = await this.usersService.findById(req.user.id);
+    return toUserResponseDto(user);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOkResponse({ type: UserResponseDto })
   @Patch('me')
   async updateMe(@Req() req: AuthRequest, @Body() dto: UpdateMeDto): Promise<UserResponseDto> {
     const user = await this.usersService.updateMe(req.user.id, dto);
