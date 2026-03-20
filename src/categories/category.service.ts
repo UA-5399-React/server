@@ -1,6 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+
+import { Product, ProductDocument } from '@/products/entities/product.schema';
 
 import { Category, CategoryDocument } from './entities/categories.schema';
 import { CategoriesQueryArgs } from './graphql/category-query.args';
@@ -9,7 +11,10 @@ import { UpdateCategoryInput } from './graphql/update-category.input';
 
 @Injectable()
 export class CategoryService {
-  constructor(@InjectModel(Category.name) private categoryModel: Model<CategoryDocument>) {}
+  constructor(
+    @InjectModel(Category.name) private categoryModel: Model<CategoryDocument>,
+    @InjectModel(Product.name) private productModel: Model<ProductDocument>,
+  ) {}
 
   async findAll() {
     const categories = await this.categoryModel.find().exec();
@@ -85,6 +90,18 @@ export class CategoryService {
   }
 
   async remove(id: string) {
+    const childrenCount = await this.categoryModel.countDocuments({ parent: id }).exec();
+
+    if (childrenCount > 0) {
+      throw new BadRequestException('Cannot delete category with subcategories');
+    }
+
+    const categoryObjectId = new Types.ObjectId(id);
+
+    await this.productModel
+      .updateMany({ categories: categoryObjectId }, { $pull: { categories: categoryObjectId } })
+      .exec();
+
     const deletedCategory = await this.categoryModel.findByIdAndDelete(id).exec();
 
     if (!deletedCategory) {

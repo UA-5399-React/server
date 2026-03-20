@@ -7,6 +7,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
+    "build:deploy": "nest build && tsc-alias -p tsconfig.build.json",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
@@ -21,6 +22,8 @@
     "seed": "npx ts-node -r tsconfig-paths/register src/cli.ts",
     "seed:categories": "npm run seed -- --only=categories",
     "seed:products": "npm run seed -- --only=products",
+    "seed:users": "npm run seed -- --only=users",
+    "seed:orders": "npm run seed -- --only=orders",
     "prepare": "husky",
     "migrate": "npx ts-node -r tsconfig-paths/register src/database/migrations/migrate-product-categories.ts"
   },
@@ -51,7 +54,8 @@
     "passport-local": "^1.0.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
-    "stripe": "^20.4.1"
+    "stripe": "^20.4.1",
+    "tsc-alias": "^1.8.16"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
