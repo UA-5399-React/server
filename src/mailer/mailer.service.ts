@@ -17,7 +17,7 @@ export class MailService {
       from: `"Test App" <${process.env.MAIL_USER}>`,
       to,
       subject: 'Test Email',
-      text: 'Nodemailer is working 🚀',
+      text: 'Nodemailer is working',
     });
 
     return info;
