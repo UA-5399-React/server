@@ -2,7 +2,7 @@ name: Deploy server  to vercel on push
 on:
     push:
         branches:
-            - deploy
+            - demo
             - feat/221-deploy-application
 
 jobs:
