@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { UserSeeder } from '@/database/seeders/user.seeder';
 
 import { AppModule } from './app.module';
+import { CartSeeder } from './database/seeders/cart.seeder';
 import { CategorySeeder } from './database/seeders/categories.seeder';
 import { ProductSeeder } from './database/seeders/product.seeder';
 
@@ -19,6 +20,7 @@ async function bootstrap() {
     const userSeeder = app.get(UserSeeder);
     const productSeeder = app.get(ProductSeeder);
     const categorySeeder = app.get(CategorySeeder);
+    const cartSeeder = app.get(CartSeeder);
 
     if (!only || only === 'users') {
       await userSeeder.seed(shouldClear);
@@ -32,6 +34,10 @@ async function bootstrap() {
       await productSeeder.seed(shouldClear);
     }
 
+    if (!only || only === 'cart') {
+      await cartSeeder.seed(shouldClear);
+    }
+
     await app.close();
     process.exit(0);
   } catch (error) {
@@ -40,4 +46,4 @@ async function bootstrap() {
     process.exit(1);
   }
 }
-bootstrap();
+void bootstrap();
