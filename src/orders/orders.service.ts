@@ -8,6 +8,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
 import { AppLogger } from '@/logger/app-logger.service';
+import { MailService } from '@/mailer/mailer.service';
 import { Product, ProductDocument } from '@/products/entities/product.schema';
 import { ProductStatus } from '@/products/enums/product-status.enum';
 import { Role } from '@/users/enums/role.enum';
@@ -26,6 +27,7 @@ export class OrdersService {
   constructor(
     @InjectModel(Order.name) private readonly orderModel: Model<OrderDocument>,
     @InjectModel(Product.name) private readonly productModel: Model<ProductDocument>,
+    private readonly mailService: MailService,
   ) {}
 
   // ─── Customer ──────────────────────────────────────────────────────────────
@@ -195,6 +197,12 @@ export class OrdersService {
     const updated = await this.orderModel
       .findOneAndUpdate({ orderId }, { status }, { returnDocument: 'after' })
       .lean();
+
+    if (updated?.user?.email) {
+      this.mailService
+        .sendOrderStatusEmail(updated.user.email, updated.orderId, status)
+        .catch((err) => console.error('Failed to send email', err));
+    }
     return updated!;
   }
 
