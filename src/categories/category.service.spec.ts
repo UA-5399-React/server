@@ -35,12 +35,16 @@ const parentExecMock = jest.fn();
 const parentLimitMock = jest.fn();
 const parentSkipMock = jest.fn();
 const parentSortMock = jest.fn();
+const findAllExecMock = jest.fn();
+const findByIdExecMock = jest.fn();
 const childExecMock = jest.fn();
 const childSortMock = jest.fn();
 const countExecMock = jest.fn();
 const updateManyExecMock = jest.fn();
+const deleteExecMock = jest.fn();
+const saveMock = jest.fn();
 
-type MockCategoryModelType = {
+type MockCategoryModelType = jest.Mock & {
   find: jest.Mock;
   findById: jest.Mock;
   findByIdAndUpdate: jest.Mock;
@@ -52,13 +56,19 @@ type MockProductModelType = {
   updateMany: jest.Mock;
 };
 
-const mockCategoryModel: MockCategoryModelType = {
-  find: jest.fn(),
-  findById: jest.fn(),
-  findByIdAndUpdate: jest.fn(),
-  findByIdAndDelete: jest.fn(),
-  countDocuments: jest.fn(),
-};
+const mockCategoryModel = Object.assign(
+  jest.fn().mockImplementation((data) => ({
+    ...data,
+    save: saveMock,
+  })),
+  {
+    find: jest.fn(),
+    findById: jest.fn(),
+    findByIdAndUpdate: jest.fn(),
+    findByIdAndDelete: jest.fn(),
+    countDocuments: jest.fn(),
+  },
+) as MockCategoryModelType;
 
 const mockProductModel: MockProductModelType = {
   updateMany: jest.fn(),
@@ -68,16 +78,16 @@ describe('CategoryService', () => {
   let service: CategoryService;
 
   beforeEach(async () => {
+    jest.clearAllMocks();
+
     parentSortMock.mockReturnValue({ skip: parentSkipMock });
     parentSkipMock.mockReturnValue({ limit: parentLimitMock });
     parentLimitMock.mockReturnValue({ exec: parentExecMock });
     childSortMock.mockReturnValue({ exec: childExecMock });
-
-    mockCategoryModel.find
-      .mockReturnValueOnce({ sort: parentSortMock })
-      .mockReturnValueOnce({ sort: childSortMock });
     mockCategoryModel.countDocuments.mockReturnValue({ exec: countExecMock });
     mockProductModel.updateMany.mockReturnValue({ exec: updateManyExecMock });
+    mockCategoryModel.findById.mockReturnValue({ exec: findByIdExecMock });
+    mockCategoryModel.findByIdAndDelete.mockReturnValue({ exec: deleteExecMock });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -100,8 +110,30 @@ describe('CategoryService', () => {
     jest.clearAllMocks();
   });
 
+  describe('findAll', () => {
+    it('should return all existing categories', async () => {
+      mockCategoryModel.find.mockReturnValue({ exec: findAllExecMock });
+      findAllExecMock.mockResolvedValue([mockParentCategory, mockChildCategory]);
+
+      const result = await service.findAll();
+
+      expect(result).toEqual([mockParentCategory, mockChildCategory]);
+      expect(mockCategoryModel.find).toHaveBeenCalledWith();
+    });
+
+    it('should throw when categories are not found', async () => {
+      mockCategoryModel.find.mockReturnValue({ exec: findAllExecMock });
+      findAllExecMock.mockResolvedValue(null);
+
+      await expect(service.findAll()).rejects.toThrow(new NotFoundException('No categories found'));
+    });
+  });
+
   describe('findPage', () => {
     it('should return paginated parent categories with their children', async () => {
+      mockCategoryModel.find
+        .mockReturnValueOnce({ sort: parentSortMock })
+        .mockReturnValueOnce({ sort: childSortMock });
       parentExecMock.mockResolvedValue([mockParentCategory]);
       childExecMock.mockResolvedValue([mockChildCategory]);
       countExecMock.mockResolvedValue(1);
@@ -132,6 +164,9 @@ describe('CategoryService', () => {
     });
 
     it('should apply search filter to parent categories only', async () => {
+      mockCategoryModel.find
+        .mockReturnValueOnce({ sort: parentSortMock })
+        .mockReturnValueOnce({ sort: childSortMock });
       parentExecMock.mockResolvedValue([mockParentCategory]);
       childExecMock.mockResolvedValue([]);
       countExecMock.mockResolvedValue(1);
@@ -159,6 +194,7 @@ describe('CategoryService', () => {
     });
 
     it('should skip child query when no parent categories are found', async () => {
+      mockCategoryModel.find.mockReturnValueOnce({ sort: parentSortMock });
       parentExecMock.mockResolvedValue([]);
       countExecMock.mockResolvedValue(0);
 
@@ -178,12 +214,131 @@ describe('CategoryService', () => {
     });
   });
 
+  describe('findOne', () => {
+    it('should return category by id', async () => {
+      findByIdExecMock.mockResolvedValue(mockParentCategory);
+
+      const result = await service.findOne(ROOT_ID);
+
+      expect(result).toEqual(mockParentCategory);
+      expect(mockCategoryModel.findById).toHaveBeenCalledWith(ROOT_ID);
+    });
+
+    it('should throw when category is not found', async () => {
+      findByIdExecMock.mockResolvedValue(null);
+
+      await expect(service.findOne(ROOT_ID)).rejects.toThrow(
+        new NotFoundException(`Category with id ${ROOT_ID} not found`),
+      );
+    });
+  });
+
+  describe('create', () => {
+    it('should create category with null parent when parent is not provided', async () => {
+      const createInput = {
+        title: 'Accessories',
+        imageUrl: 'https://example.com/accessories.jpg',
+        description: 'Useful accessories',
+      };
+      const createdCategory = {
+        ...createInput,
+        parent: null,
+      };
+      saveMock.mockResolvedValue(createdCategory);
+
+      const result = await service.create(createInput);
+
+      expect(mockCategoryModel).toHaveBeenCalledWith({
+        ...createInput,
+        parent: null,
+      });
+      expect(saveMock).toHaveBeenCalledTimes(1);
+      expect(result).toEqual(createdCategory);
+    });
+
+    it('should create category with provided parent', async () => {
+      const createInput = {
+        title: 'Accessories',
+        imageUrl: 'https://example.com/accessories.jpg',
+        description: 'Useful accessories',
+        parent: ROOT_ID,
+      };
+      const createdCategory = {
+        ...createInput,
+      };
+      saveMock.mockResolvedValue(createdCategory);
+
+      const result = await service.create(createInput);
+
+      expect(mockCategoryModel).toHaveBeenCalledWith(createInput);
+      expect(saveMock).toHaveBeenCalledTimes(1);
+      expect(result).toEqual(createdCategory);
+    });
+  });
+
+  describe('update', () => {
+    it('should update category and return updated entity', async () => {
+      const updateInput = {
+        _id: ROOT_ID,
+        title: 'Updated electronics',
+        description: 'Updated description',
+      };
+      const updatedCategory = {
+        ...mockParentCategory,
+        ...updateInput,
+      };
+      mockCategoryModel.findByIdAndUpdate.mockResolvedValue(updatedCategory);
+
+      const result = await service.update(updateInput);
+
+      expect(mockCategoryModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        ROOT_ID,
+        {
+          title: 'Updated electronics',
+          description: 'Updated description',
+        },
+        { new: true },
+      );
+      expect(result).toEqual(updatedCategory);
+    });
+
+    it('should normalize empty parent to null during update', async () => {
+      const updateInput = {
+        _id: ROOT_ID,
+        parent: '',
+      };
+      const updatedCategory = {
+        ...mockParentCategory,
+        parent: null,
+      };
+      mockCategoryModel.findByIdAndUpdate.mockResolvedValue(updatedCategory);
+
+      const result = await service.update(updateInput);
+
+      expect(mockCategoryModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        ROOT_ID,
+        { parent: null },
+        { new: true },
+      );
+      expect(result).toEqual(updatedCategory);
+    });
+
+    it('should throw when updated category is not found', async () => {
+      mockCategoryModel.findByIdAndUpdate.mockResolvedValue(null);
+
+      await expect(
+        service.update({
+          _id: ROOT_ID,
+          title: 'Missing category',
+        }),
+      ).rejects.toThrow(new NotFoundException(`Category with id ${ROOT_ID} not found`));
+    });
+  });
+
   describe('remove', () => {
     it('should delete category when it has no subcategories', async () => {
       countExecMock.mockResolvedValue(0);
-      mockCategoryModel.findByIdAndDelete.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockParentCategory),
-      });
+      deleteExecMock.mockResolvedValue(mockParentCategory);
 
       const result = await service.remove(ROOT_ID);
 
@@ -210,9 +365,7 @@ describe('CategoryService', () => {
 
     it('should throw when category is not found', async () => {
       countExecMock.mockResolvedValue(0);
-      mockCategoryModel.findByIdAndDelete.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(null),
-      });
+      deleteExecMock.mockResolvedValue(null);
 
       await expect(service.remove(ROOT_ID)).rejects.toThrow(
         new NotFoundException(`Category with id ${ROOT_ID} not found`),

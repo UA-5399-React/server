@@ -8,6 +8,8 @@ import { Order, OrderDocument } from '@/orders/entities';
 import { OrderStatus, PaymentMethod, PaymentStatus, ShippingCarrier } from '@/orders/enums';
 import { Product, ProductDocument } from '@/products/entities/product.schema';
 import { ProductStatus } from '@/products/enums/product-status.enum';
+import { User, UserDocument } from '@/users/entities/user.schema';
+import { Role } from '@/users/enums/role.enum';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -27,14 +29,11 @@ const UKRAINIAN_CITIES = [
 // Order status drives payment status — we don't want "delivered" orders
 // sitting as payment pending.
 const PAYMENT_STATUS_BY_ORDER: Record<OrderStatus, PaymentStatus> = {
-  [OrderStatus.PENDING]: PaymentStatus.PENDING,
-  [OrderStatus.CONFIRMED]: PaymentStatus.PAID,
+  [OrderStatus.NEW]: PaymentStatus.PAID,
   [OrderStatus.PROCESSING]: PaymentStatus.PAID,
-  [OrderStatus.SHIPPED]: PaymentStatus.PAID,
-  [OrderStatus.ON_THE_WAY]: PaymentStatus.PAID,
-  [OrderStatus.DELIVERED]: PaymentStatus.PAID,
+  [OrderStatus.SHIPPING]: PaymentStatus.PAID,
+  [OrderStatus.COMPLETED]: PaymentStatus.PAID,
   [OrderStatus.CANCELLED]: PaymentStatus.FAILED,
-  [OrderStatus.REFUNDED]: PaymentStatus.REFUNDED,
 };
 
 function generateOrderId(index: number): string {
@@ -52,6 +51,7 @@ export class OrderSeeder {
   constructor(
     @InjectModel(Order.name) private readonly orderModel: Model<OrderDocument>,
     @InjectModel(Product.name) private readonly productModel: Model<ProductDocument>,
+    @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
   ) {}
 
   async seed(clear: boolean = false): Promise<void> {
@@ -74,6 +74,15 @@ export class OrderSeeder {
       return;
     }
 
+    const customers = await this.userModel
+      .find({ role: Role.CUSTOMER })
+      .select('_id firstName lastName email phone')
+      .lean();
+    if (customers.length === 0) {
+      this.logger.warn('No customers found. Run user seeder first.');
+      return;
+    }
+
     const ordersToCreate = 30;
     const orders: Partial<Order>[] = [];
 
@@ -92,6 +101,8 @@ export class OrderSeeder {
       const orderStatus = faker.helpers.arrayElement(Object.values(OrderStatus));
       const paymentMethod = faker.helpers.arrayElement(Object.values(PaymentMethod));
       const paymentStatus = PAYMENT_STATUS_BY_ORDER[orderStatus];
+
+      const customer = faker.helpers.arrayElement(customers);
 
       // Pick 1–4 distinct products for this order.
       const pickedProducts = faker.helpers.arrayElements(
@@ -114,6 +125,7 @@ export class OrderSeeder {
 
       orders.push({
         orderId: generateOrderId(nextIndex++),
+        userId: customer._id,
         items,
         amount: parseFloat(amount.toFixed(2)),
         totalPrice: parseFloat(amount.toFixed(2)), // equal until discounts land
@@ -124,10 +136,10 @@ export class OrderSeeder {
         },
         status: orderStatus,
         user: {
-          firstName: faker.person.firstName(),
-          lastName: faker.person.lastName(),
-          email: faker.internet.email().toLowerCase(),
-          phone: `+38067${faker.string.numeric(7)}`,
+          firstName: customer.firstName!,
+          lastName: customer.lastName!,
+          email: customer.email,
+          phone: customer.phone ?? faker.phone.number(),
         },
         payment: {
           method: paymentMethod,

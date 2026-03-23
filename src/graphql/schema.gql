@@ -38,6 +38,21 @@ input CreateProductInput {
   title: String!
 }
 
+input CreateUserInput {
+  avatarUrl: String
+  email: String!
+  firstName: String
+  lastName: String
+  password: String
+  phone: String
+  role: Role!
+}
+
+type CreateUserPayload {
+  tempPassword: String
+  user: UserType!
+}
+
 """
 A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
 """
@@ -46,11 +61,13 @@ scalar DateTime
 type Mutation {
   createCategory(createCategoryInput: CreateCategoryInput!): CategoryType!
   createProduct(input: CreateProductInput!): ProductType!
+  createUser(input: CreateUserInput!): CreateUserPayload!
   deleteCategory(id: ID!): CategoryType!
   deleteProduct(id: ID!): Boolean!
   duplicateProduct(id: ID!): ProductType!
   updateCategory(updateCategoryInput: UpdateCategoryInput!): CategoryType!
   updateProduct(id: ID!, input: UpdateProductInput!): ProductType!
+  updateUser(input: UpdateUserInput!): UserType!
 }
 
 enum ProductSortField {
@@ -112,6 +129,14 @@ type Query {
   category(id: ID!): CategoryType!
   product(id: ID!): ProductType!
   productsPage(filter: ProductsFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: ProductSortField! = updatedAt): ProductsPageType!
+  user(id: ID!): UserType!
+  users(filter: UsersFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: UserSortField! = createdAt): UsersPage!
+}
+
+enum Role {
+  ADMIN
+  CUSTOMER
+  SUPER_ADMIN
 }
 
 enum SortOrder {
@@ -136,4 +161,63 @@ input UpdateProductInput {
   price: Float
   status: ProductStatus
   title: String
+}
+
+input UpdateUserInput {
+  avatarUrl: String
+  firstName: String
+  id: String!
+  isActive: Boolean
+  isEmailConfirmed: Boolean
+  lastName: String
+  phone: String
+  role: Role
+}
+
+enum UserDateFilterField {
+  createdAt
+  lastLoginAt
+  updatedAt
+}
+
+enum UserSortField {
+  createdAt
+  email
+  lastLoginAt
+  updatedAt
+}
+
+"""user"""
+type UserType {
+  avatarUrl: String
+  createdAt: DateTime!
+  createdBy: UserType
+  email: String!
+  firstName: String
+  id: ID!
+  isActive: Boolean!
+  isEmailConfirmed: Boolean!
+  lastLoginAt: DateTime
+  lastName: String
+  phone: String
+  role: Role!
+  updatedAt: DateTime!
+}
+
+input UsersFilterInput {
+  dateFrom: DateTime
+  dateTo: DateTime
+  dateType: UserDateFilterField
+  isActive: Boolean
+  isEmailConfirmed: Boolean
+  neverLoggedIn: Boolean
+  role: Role
+}
+
+type UsersPage {
+  items: [UserType!]!
+  limit: Int!
+  page: Int!
+  total: Int!
+  totalPages: Int!
 }
