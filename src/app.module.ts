@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 
 import { AuthModule } from '@/auth/auth.module';
+import { CartModule } from '@/cart/cart.module';
 import { AppGraphQLModule } from '@/graphql/graphql.module';
 import { UsersModule } from '@/users/users.module';
 
@@ -32,6 +33,7 @@ import { UploadsModule } from './uploads/uploads.module';
     AuthModule,
     OrdersModule,
     UsersModule,
+    CartModule,
     MailModule,
   ],
   controllers: [AppController],
