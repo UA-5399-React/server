@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Types } from 'mongoose';
 
 import { AuthRequest } from '@/auth/types/auth-request.type';
-import { Role } from '@/users/enums/Role';
+import { Role } from '@/users/enums/role.enum';
 
 import { CartController } from './cart.controller';
 import { CartService } from './cart.service';
