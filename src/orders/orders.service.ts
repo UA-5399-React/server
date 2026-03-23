@@ -152,6 +152,14 @@ export class OrdersService {
       .lean();
   }
 
+  async findOrderById(orderId: string): Promise<Order> {
+    const order = await this.orderModel.findOne({ orderId }).lean();
+    if (!order) {
+      throw new NotFoundException(`Order ${orderId} not found.`);
+    }
+    return order;
+  }
+
   async adminCancelOrder(orderId: string): Promise<Order> {
     const order = await this.orderModel.findOne({ orderId });
 
@@ -165,6 +173,16 @@ export class OrdersService {
     await order.save();
 
     this.logger.log(`Order ${orderId} cancelled by admin`);
+    return order;
+  }
+
+  async updateOrderStatus(orderId: string, status: OrderStatus): Promise<Order> {
+    const order = await this.orderModel
+      .findOneAndUpdate({ orderId }, { $set: { status } }, { returnDocument: 'after' })
+      .lean();
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
     return order;
   }
 
