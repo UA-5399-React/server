@@ -2,12 +2,14 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 
+import { Cart, CartSchema } from '@/cart/entities/cart.schema';
 import { Category, CategorySchema } from '@/categories/entities/categories.schema';
 import { UserSeeder } from '@/database/seeders/user.seeder';
 import { Order, OrderSchema } from '@/orders/entities';
 import { Product, ProductSchema } from '@/products/entities/product.schema';
 import { User, UserSchema } from '@/users/entities/user.schema';
 
+import { CartSeeder } from './seeders/cart.seeder';
 import { CategorySeeder } from './seeders/categories.seeder';
 import { OrderSeeder } from './seeders/order.seeder';
 import { ProductSeeder } from './seeders/product.seeder';
@@ -45,8 +47,9 @@ import { ProductSeeder } from './seeders/product.seeder';
       { name: Category.name, schema: CategorySchema },
       { name: User.name, schema: UserSchema },
       { name: Order.name, schema: OrderSchema },
+      { name: Cart.name, schema: CartSchema },
     ]),
   ],
-  providers: [ProductSeeder, CategorySeeder, UserSeeder, OrderSeeder],
+  providers: [ProductSeeder, CategorySeeder, UserSeeder, OrderSeeder, CartSeeder],
 })
 export class DatabaseModule {}
