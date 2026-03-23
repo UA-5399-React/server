@@ -44,6 +44,10 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       throw new ForbiddenException('User account is deactivated');
     }
 
+    if (!user.isEmailConfirmed) {
+      throw new ForbiddenException('Email is not confirmed');
+    }
+
     return {
       id: user.id,
       email: user.email,

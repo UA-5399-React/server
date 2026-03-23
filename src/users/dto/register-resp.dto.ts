@@ -6,4 +6,6 @@ export class RegisterResponseDto {
 
   @ApiProperty({ example: 'User created successfully.' })
   message!: string;
+
+  verifyUrl?: string | null;
 }
