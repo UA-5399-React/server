@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { HydratedDocument } from 'mongoose';
+import { HydratedDocument, Types } from 'mongoose';
 
 import { OrderStatus } from '../enums';
 import { OrderItem, OrderItemSchema } from './order-item.schema';
@@ -15,6 +15,10 @@ export class Order {
   @ApiProperty({ description: 'Human-readable order identifier', example: 'ORD-20240318-0042' })
   @Prop({ required: true, unique: true, index: true })
   orderId: string;
+
+  @ApiProperty()
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
+  userId: Types.ObjectId;
 
   @ApiProperty({ type: [OrderItem] })
   @Prop({ type: [OrderItemSchema], required: true })
@@ -39,8 +43,8 @@ export class Order {
   @Prop({ type: ShippingAddressSchema, required: true })
   shippingAddress: ShippingAddress;
 
-  @ApiProperty({ enum: OrderStatus, default: OrderStatus.PENDING })
-  @Prop({ type: String, enum: OrderStatus, default: OrderStatus.PENDING, index: true })
+  @ApiProperty({ enum: OrderStatus, default: OrderStatus.NEW })
+  @Prop({ type: String, enum: OrderStatus, default: OrderStatus.NEW, index: true })
   status: OrderStatus;
 
   @ApiProperty({ type: OrderUser })

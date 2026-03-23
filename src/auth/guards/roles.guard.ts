@@ -6,7 +6,7 @@ import { ROLES_KEY } from '@/auth/decorators/Roles';
 import { AuthRequest, GraphqlContextWithUser } from '@/auth/types/auth-request.type';
 import { AuthUser } from '@/auth/types/auth-user.type';
 import { AppLogger } from '@/logger/app-logger.service';
-import { Role } from '@/users/enums/Role';
+import { Role } from '@/users/enums/role.enum';
 
 @Injectable()
 export class RolesGuard implements CanActivate {

@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { HydratedDocument, Types } from 'mongoose';
 
-import { Role } from '@/users/enums/Role';
+import { Role } from '@/users/enums/role.enum';
 
 export type UserDocument = HydratedDocument<User>;
 
@@ -45,12 +45,15 @@ export class User {
   avatarUrl?: string;
 
   @ApiPropertyOptional()
-  @Prop({ type: Types.ObjectId, ref: 'User', default: null })
-  createdBy?: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: User.name, default: null })
+  createdBy?: Types.ObjectId | null;
 
   @ApiProperty({ example: true })
-  @Prop({ default: true })
+  @Prop({ default: false })
   isEmailConfirmed!: boolean;
+
+  readonly createdAt!: Date;
+  readonly updatedAt!: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

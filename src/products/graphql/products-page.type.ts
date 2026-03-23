@@ -1,21 +1,7 @@
-import { Field, Int, ObjectType } from '@nestjs/graphql';
+import { ObjectType } from '@nestjs/graphql';
 
+import { PaginatedResponse } from '@/graphql/types/paginated-response';
 import { ProductType } from '@/products/graphql/product.type';
 
 @ObjectType()
-export class ProductsPageType {
-  @Field(() => [ProductType])
-  items: ProductType[];
-
-  @Field(() => Int)
-  total: number;
-
-  @Field(() => Int)
-  page: number;
-
-  @Field(() => Int)
-  limit: number;
-
-  @Field(() => Int)
-  totalPages: number;
-}
+export class ProductsPageType extends PaginatedResponse(ProductType) {}
