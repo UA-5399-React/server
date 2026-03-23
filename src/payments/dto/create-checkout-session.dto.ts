@@ -1,6 +1,14 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsNotEmpty, IsNumber, IsString, Min, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+  ValidateNested,
+} from 'class-validator';
 
 export class CheckoutItemDto {
   @ApiProperty({ example: '665f1b2c3e4a5b6c7d8e9f00', description: 'Product ID' })
@@ -34,4 +42,12 @@ export class CreateCheckoutSessionDto {
   @ValidateNested({ each: true })
   @Type(() => CheckoutItemDto)
   items: CheckoutItemDto[];
+
+  @ApiPropertyOptional({
+    example: 'ORD-20240318-AB12C',
+    description: 'Order ID to link with the Stripe session for payment status updates',
+  })
+  @IsOptional()
+  @IsString()
+  orderId?: string;
 }

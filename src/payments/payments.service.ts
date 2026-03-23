@@ -2,6 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 
+import { PaymentStatus } from '@/orders/enums/payment-status.enum';
+import { OrdersService } from '@/orders/orders.service';
+
 import { CheckoutItemDto } from './dto/create-checkout-session.dto';
 
 @Injectable()
@@ -9,7 +12,10 @@ export class PaymentsService {
   private readonly stripe: Stripe;
   private readonly logger = new Logger(PaymentsService.name);
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly ordersService: OrdersService,
+  ) {
     const secretKey = this.configService.getOrThrow<string>('STRIPE_SECRET_KEY');
     this.stripe = new Stripe(secretKey);
   }
@@ -18,10 +24,11 @@ export class PaymentsService {
     items: CheckoutItemDto[],
     successUrl: string,
     cancelUrl: string,
+    orderId?: string,
   ): Promise<{ sessionId: string; sessionUrl: string }> {
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = items.map((item) => ({
       price_data: {
-        currency: 'uah',
+        currency: 'usd',
         product_data: {
           name: item.title,
           ...(item.imageUrl && { images: [item.imageUrl] }),
@@ -39,10 +46,13 @@ export class PaymentsService {
       cancel_url: cancelUrl,
       metadata: {
         productIds: items.map((i) => i.productId).join(','),
+        ...(orderId && { orderId }),
       },
     });
 
-    this.logger.log(`Checkout session created: ${session.id}`);
+    this.logger.log(
+      `Checkout session created: ${session.id}${orderId ? ` for order ${orderId}` : ''}`,
+    );
 
     return {
       sessionId: session.id,
@@ -65,24 +75,40 @@ export class PaymentsService {
     return this.stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
   }
 
-  handleWebhookEvent(event: Stripe.Event): void {
+  async handleWebhookEvent(event: Stripe.Event): Promise<void> {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object;
         const intentId =
           typeof session.payment_intent === 'string'
             ? session.payment_intent
-            : (session.payment_intent?.id ?? 'unknown');
-        this.logger.log(
-          `Payment completed for session: ${session.id}, payment_intent: ${intentId}`,
-        );
-        // TODO: Create Order document after PR #48 merge
+            : (session.payment_intent?.id ?? undefined);
+
+        const orderId = session.metadata?.orderId;
+
+        if (orderId) {
+          await this.ordersService.updatePaymentStatus(orderId, PaymentStatus.PAID, intentId);
+          this.logger.log(
+            `Payment completed — order ${orderId} marked as PAID (intent: ${intentId ?? 'n/a'})`,
+          );
+        } else {
+          this.logger.warn(
+            `checkout.session.completed: no orderId in metadata for session ${session.id}`,
+          );
+        }
         break;
       }
 
       case 'checkout.session.expired': {
         const session = event.data.object;
-        this.logger.warn(`Checkout session expired: ${session.id}`);
+        const orderId = session.metadata?.orderId;
+
+        if (orderId) {
+          await this.ordersService.updatePaymentStatus(orderId, PaymentStatus.FAILED);
+          this.logger.warn(`Checkout session expired — order ${orderId} marked as FAILED`);
+        } else {
+          this.logger.warn(`Checkout session expired: ${session.id}`);
+        }
         break;
       }
 

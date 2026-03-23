@@ -15,6 +15,7 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateShippingAddressDto } from './dto/update-shipping-address.dto';
 import { Order, OrderDocument } from './entities';
 import { OrderStatus } from './enums/order-status.enum';
+import { PaymentStatus } from './enums/payment-status.enum';
 import { NON_CANCELLABLE_STATUSES, NON_EDITABLE_ADDRESS_STATUSES } from './orders.constants';
 
 @Injectable()
@@ -166,6 +167,27 @@ export class OrdersService {
 
     this.logger.log(`Order ${orderId} cancelled by admin`);
     return order;
+  }
+
+  async updatePaymentStatus(
+    orderId: string,
+    status: PaymentStatus,
+    stripePaymentIntentId?: string,
+  ): Promise<void> {
+    const order = await this.orderModel.findOne({ orderId });
+
+    if (!order) {
+      this.logger.warn(`updatePaymentStatus: order ${orderId} not found`);
+      return;
+    }
+
+    order.payment.status = status;
+    if (stripePaymentIntentId) {
+      order.payment.stripePaymentIntentId = stripePaymentIntentId;
+    }
+
+    await order.save();
+    this.logger.log(`Order ${orderId} payment status updated to ${status}`);
   }
 
   // ─── Private ───────────────────────────────────────────────────────────────
