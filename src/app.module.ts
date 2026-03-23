@@ -14,6 +14,7 @@ import { DatabaseModule } from './database/database.module';
 import { LoggerModule } from './logger/logger.module';
 import { OrdersModule } from './orders/orders.module';
 import { ProductsModule } from './products/products.module';
+import { ShippingModule } from './shipping/shipping.module';
 import { UploadsModule } from './uploads/uploads.module';
 
 @Module({
@@ -31,6 +32,7 @@ import { UploadsModule } from './uploads/uploads.module';
     AuthModule,
     OrdersModule,
     UsersModule,
+    ShippingModule,
   ],
   controllers: [AppController],
   providers: [
