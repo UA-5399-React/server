@@ -10,7 +10,9 @@ import { Model, Types } from 'mongoose';
 import { AppLogger } from '@/logger/app-logger.service';
 import { Product, ProductDocument } from '@/products/entities/product.schema';
 import { ProductStatus } from '@/products/enums/product-status.enum';
+import { Role } from '@/users/enums/role.enum';
 
+import { ADMIN_ALLOWED_FLOW } from './constants/order-flow';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateShippingAddressDto } from './dto/update-shipping-address.dto';
 import { Order, OrderDocument } from './entities';
@@ -176,14 +178,24 @@ export class OrdersService {
     return order;
   }
 
-  async updateOrderStatus(orderId: string, status: OrderStatus): Promise<Order> {
-    const order = await this.orderModel
-      .findOneAndUpdate({ orderId }, { $set: { status } }, { returnDocument: 'after' })
-      .lean();
+  async updateOrderStatus(orderId: string, status: OrderStatus, role: Role): Promise<Order> {
+    const order = await this.orderModel.findOne({ orderId }).lean();
     if (!order) {
       throw new NotFoundException('Order not found');
     }
-    return order;
+    if (role !== Role.SUPER_ADMIN) {
+      const allowed = ADMIN_ALLOWED_FLOW[order.status] ?? [];
+      if (!allowed.includes(status)) {
+        throw new BadRequestException(
+          `Transition from '${order.status}' to '${status}' is not allowed`,
+        );
+      }
+    }
+
+    const updated = await this.orderModel
+      .findOneAndUpdate({ orderId }, { status }, { returnDocument: 'after' })
+      .lean();
+    return updated!;
   }
 
   // ─── Private ───────────────────────────────────────────────────────────────

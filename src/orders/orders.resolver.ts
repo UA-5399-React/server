@@ -1,8 +1,10 @@
 import { NotFoundException, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
+import { CurrentUser } from '@/auth/decorators/current-user.decorator';
 import { Roles } from '@/auth/decorators/Roles';
 import { GqlAuthGuard } from '@/auth/guards/gql-auth.guard';
+import type { JwtPayload } from '@/auth/types/jwt-payload.type';
 import { OrdersService } from '@/orders/orders.service';
 import { Role } from '@/users/enums/role.enum';
 
@@ -26,10 +28,15 @@ export class OrdersResolver {
   }
 
   @Mutation(() => OrderType)
-  async updateOrderStatus(@Args('input') input: UpdateOrderStatusInput): Promise<OrderType> {
-    console.log('Mutation input:', input);
-    console.log('args keys:', Object.keys(input)); // Should print ["orderId", "status"]
-    const order = await this.ordersService.updateOrderStatus(input.orderId, input.status);
+  async updateOrderStatus(
+    @Args('input') input: UpdateOrderStatusInput,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<OrderType> {
+    const order = await this.ordersService.updateOrderStatus(
+      input.orderId,
+      input.status,
+      user.role,
+    );
 
     return mapOrderToGraphQL(order);
   }
