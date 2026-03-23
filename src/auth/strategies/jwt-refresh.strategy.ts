@@ -26,7 +26,9 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
       throw new UnauthorizedException('Invalid refresh token payload');
     }
     const user = await this.usersService.findById(payload.sub);
-
+    if (!user.isEmailConfirmed) {
+      throw new UnauthorizedException('Please confirm your email first');
+    }
     if (!user.isActive) {
       throw new UnauthorizedException('User account is deactivated');
     }

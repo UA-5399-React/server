@@ -1,9 +1,9 @@
-name: Deploy server  to vercel on push 
+name: Deploy to vercel on push
 on:
     push:
         branches:
-            - deploy
-            - feat/221-deploy-application
+            - demo
+            - feat/221-deploy-client
 
 jobs:
     build-and-deploy:

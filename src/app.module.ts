@@ -13,6 +13,7 @@ import { CategoryModule } from './categories/category.module';
 import { RequestLoggingInterceptor } from './common/request-logging.interceptor';
 import { DatabaseModule } from './database/database.module';
 import { LoggerModule } from './logger/logger.module';
+import { MailModule } from './mailer/mailer.module';
 import { OrdersModule } from './orders/orders.module';
 import { ProductsModule } from './products/products.module';
 import { UploadsModule } from './uploads/uploads.module';
@@ -33,6 +34,7 @@ import { UploadsModule } from './uploads/uploads.module';
     OrdersModule,
     UsersModule,
     CartModule,
+    MailModule,
   ],
   controllers: [AppController],
   providers: [
