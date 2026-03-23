@@ -1,24 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 
 import { CryptoService } from '@/auth/crypto/crypto.service';
+import { AuthUser } from '@/auth/types/auth-user.type';
 import { JwtPayload } from '@/auth/types/jwt-payload.type';
+import { TokenPair } from '@/auth/types/token-pair.type';
+import { AppLogger } from '@/logger/app-logger.service';
 import { RegisterResponseDto } from '@/users/dto/register-resp.dto';
 import { SignUpDto } from '@/users/dto/sign-up.dto';
 import { Role } from '@/users/enums/Role';
 import { UsersService } from '@/users/users.service';
-
-type AuthUser = {
-  id: string;
-  email: string;
-  role: string;
-};
-
-type TokenPair = {
-  accessToken: string;
-  refreshToken: string;
-};
 
 @Injectable()
 export class AuthService {
@@ -27,6 +19,7 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly userService: UsersService,
     private readonly cryptoService: CryptoService,
+    private readonly logger: AppLogger,
   ) {}
 
   async generateTokens(user: AuthUser): Promise<TokenPair> {
@@ -53,7 +46,13 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  async register(dto: SignUpDto) {
+  async login(user: AuthUser): Promise<TokenPair> {
+    const tokens = await this.generateTokens(user);
+
+    return { ...tokens };
+  }
+
+  async register(dto: SignUpDto): Promise<RegisterResponseDto> {
     await this.userService.ensureEmailNotTaken(dto.email);
 
     const passwordHash = await this.cryptoService.hashPassword(dto.password);
@@ -64,11 +63,56 @@ export class AuthService {
       role: Role.CUSTOMER,
     });
 
-    const response: RegisterResponseDto = {
+    return {
       status: 'success',
       message: 'User created successfully.',
     };
+  }
 
-    return response;
+  async validateUser(email: string, password: string): Promise<AuthUser> {
+    const user = await this.userService.findByEmailForAuth(email);
+
+    if (!user) {
+      this.logger.security('Login failed: user not found', { email });
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (!user.isActive) {
+      this.logger.security('Blocked inactive user access', {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      });
+      throw new ForbiddenException('User account is deactivated');
+    }
+
+    const isPasswordValid = await this.cryptoService.comparePassword(password, user.passwordHash);
+
+    if (!isPasswordValid) {
+      this.logger.security('Login failed: invalid password', {
+        id: user.id,
+        email: user.email,
+      });
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    this.userService.updateLastLogin(user.id).catch((err: unknown) => {
+      this.logger.warn('Failed to update lastLoginAt', {
+        userId: user.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    });
+
+    this.logger.info('User authenticated successfully', {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    });
+
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    };
   }
 }

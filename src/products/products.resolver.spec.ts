@@ -2,6 +2,7 @@ import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { Category } from '@/categories/entities/categories.schema';
+import { AppLogger } from '@/logger/app-logger.service';
 import { ProductStatus } from '@/products/enums/product-status.enum';
 import { ProductsQueryArgs } from '@/products/graphql/product-query.args';
 import { ProductsResolver } from '@/products/products.resolver';
@@ -54,6 +55,20 @@ describe('ProductsResolver', () => {
           provide: getModelToken(Category.name),
           useValue: {
             countDocuments: jest.fn(),
+          },
+        },
+        {
+          provide: AppLogger,
+          useValue: {
+            info: jest.fn(),
+            http: jest.fn(),
+            graphql: jest.fn(),
+            security: jest.fn(),
+            log: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+            debug: jest.fn(),
+            verbose: jest.fn(),
           },
         },
       ],
