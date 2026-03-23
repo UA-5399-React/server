@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Patch, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Get, Patch, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
