@@ -4,10 +4,12 @@ import { MongooseModule } from '@nestjs/mongoose';
 
 import { Category, CategorySchema } from '@/categories/entities/categories.schema';
 import { UserSeeder } from '@/database/seeders/user.seeder';
+import { Order, OrderSchema } from '@/orders/entities';
 import { Product, ProductSchema } from '@/products/entities/product.schema';
 import { User, UserSchema } from '@/users/entities/user.schema';
 
 import { CategorySeeder } from './seeders/categories.seeder';
+import { OrderSeeder } from './seeders/order.seeder';
 import { ProductSeeder } from './seeders/product.seeder';
 
 @Module({
@@ -42,8 +44,9 @@ import { ProductSeeder } from './seeders/product.seeder';
       { name: Product.name, schema: ProductSchema },
       { name: Category.name, schema: CategorySchema },
       { name: User.name, schema: UserSchema },
+      { name: Order.name, schema: OrderSchema },
     ]),
   ],
-  providers: [ProductSeeder, CategorySeeder, UserSeeder],
+  providers: [ProductSeeder, CategorySeeder, UserSeeder, OrderSeeder],
 })
 export class DatabaseModule {}

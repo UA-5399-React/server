@@ -1,9 +1,10 @@
-import { Body, Controller, Patch, Req, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, HttpCode, HttpStatus, Get, Patch, Req, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import type { AuthRequest } from '@/auth/types/auth-request.type';
 
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateMeDto } from './dto/update-me.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { toUserResponseDto } from './users.mapper';
@@ -17,9 +18,27 @@ export class UsersController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOkResponse({ type: UserResponseDto })
+  @Get('me')
+  async getMe(@Req() req: AuthRequest): Promise<UserResponseDto> {
+    const user = await this.usersService.findById(req.user.id);
+    return toUserResponseDto(user);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOkResponse({ type: UserResponseDto })
   @Patch('me')
   async updateMe(@Req() req: AuthRequest, @Body() dto: UpdateMeDto): Promise<UserResponseDto> {
     const user = await this.usersService.updateMe(req.user.id, dto);
     return toUserResponseDto(user);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiNoContentResponse({ description: 'Password changed successfully' })
+  @Patch('me/password')
+  async changePassword(@Req() req: AuthRequest, @Body() dto: ChangePasswordDto): Promise<void> {
+    await this.usersService.changePassword(req.user.id, dto);
   }
 }

@@ -2,13 +2,17 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
+import { PaginatedResult } from '@/common/types/paginated-result.type';
+import { buildDateFilter } from '@/common/utils/date.utils';
+import { buildPaginatedResult, getPagination } from '@/common/utils/pagination.util';
+import { buildSort } from '@/common/utils/sorting.util';
+import { ProductSortField } from '@/products/enums/product-sort-field.enum';
 import { ProductsQueryArgs } from '@/products/graphql/product-query.args';
 import { GqlFilters } from '@/products/graphql/products-filter.type';
 import { UpdateProductInput } from '@/products/graphql/update-product.input';
 
 import { CreateProductDto } from './dto/create-product.dto';
 import { GetProductsQueryDto } from './dto/get-products.query.dto';
-import { PaginatedProductsDto } from './dto/paginated-products.dto';
 import { Product, ProductDocument } from './entities/product.schema';
 import { ProductStatus } from './enums/product-status.enum';
 
@@ -16,13 +20,10 @@ import { ProductStatus } from './enums/product-status.enum';
 export class ProductsService {
   constructor(@InjectModel(Product.name) private productModel: Model<ProductDocument>) {}
 
-  async findAll(query: GetProductsQueryDto | ProductsQueryArgs): Promise<PaginatedProductsDto> {
-    // Extract pagination parameters with fallback defults
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 10;
-
-    // Calculate how many documents should be skipped
-    const skip = (page - 1) * limit;
+  async findAll(
+    query: GetProductsQueryDto | ProductsQueryArgs,
+  ): Promise<PaginatedResult<ProductDocument>> {
+    const { page, limit, skip } = getPagination(query.page, query.limit);
 
     const q = query as GetProductsQueryDto & Partial<ProductsQueryArgs>;
     const filterInput = (q.filter ?? q) as GqlFilters;
@@ -89,21 +90,18 @@ export class ProductsService {
     }
 
     // Date filter
-    const { updatedFrom, updatedTo, dateType } = filterInput;
-    const { from, to } = this.parseDateRange(updatedFrom, updatedTo);
-
-    if (from || to) {
-      const field = dateType || 'updatedAt';
-
-      filter[field] = {
-        ...(from ? { $gte: from } : {}),
-        ...(to ? { $lte: to } : {}),
-      };
-    }
+    Object.assign(
+      filter,
+      buildDateFilter(
+        filterInput.updatedFrom,
+        filterInput.updatedTo,
+        filterInput.dateType,
+        'updatedAt',
+      ),
+    );
 
     // -------------------- sorting --------------------
-    const sortOption: Record<string, 1 | -1> = {};
-    if (query.sort) sortOption[query.sort] = query.order === 'desc' ? -1 : 1;
+    const sortOption = buildSort(query.sort, query.order, ProductSortField.updatedAt);
 
     // 1) Get paginated items
     // 2) Count total matching documents
@@ -118,13 +116,7 @@ export class ProductsService {
     ]);
 
     // Return structured paginated response
-    return {
-      items,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
+    return buildPaginatedResult(items, total, page, limit);
   }
 
   async findOne(id: string): Promise<Product> {
@@ -220,36 +212,6 @@ export class ProductsService {
       throw new BadRequestException('Cannot revert product to draft');
     }
   }
-
-  private parseDate(value?: unknown) {
-    const date =
-      value instanceof Date ? value : typeof value === 'string' ? new Date(value) : undefined;
-
-    if (date && Number.isNaN(date.getTime())) {
-      throw new BadRequestException('Invalid date');
-    }
-
-    return date;
-  }
-
-  private parseDateRange(dateFrom?: unknown, dateTo?: unknown) {
-    const from = this.parseDate(dateFrom);
-    const to = this.parseDate(dateTo);
-
-    if (from && to && from > to) {
-      throw new BadRequestException('Invalid date range: updatedFrom must be <= updatedTo');
-    }
-
-    return { from, to };
-  }
-
-  /*async getCategories(): Promise<string[]> {
-    const raw = await this.productModel.distinct('categories');
-    return raw
-      .map((c) => (typeof c === 'string' ? c.trim() : ''))
-      .filter(Boolean)
-      .sort((a, b) => a.localeCompare(b));
-  }*/
 
   private async generateCode(): Promise<string> {
     const lastProduct = await this.productModel

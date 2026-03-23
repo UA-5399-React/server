@@ -4,6 +4,7 @@ import { UserSeeder } from '@/database/seeders/user.seeder';
 
 import { AppModule } from './app.module';
 import { CategorySeeder } from './database/seeders/categories.seeder';
+import { OrderSeeder } from './database/seeders/order.seeder';
 import { ProductSeeder } from './database/seeders/product.seeder';
 
 async function bootstrap() {
@@ -19,6 +20,7 @@ async function bootstrap() {
     const userSeeder = app.get(UserSeeder);
     const productSeeder = app.get(ProductSeeder);
     const categorySeeder = app.get(CategorySeeder);
+    const orderSeeder = app.get(OrderSeeder);
 
     if (!only || only === 'users') {
       await userSeeder.seed(shouldClear);
@@ -30,6 +32,10 @@ async function bootstrap() {
 
     if (!only || only === 'products') {
       await productSeeder.seed(shouldClear);
+    }
+
+    if (!only || only === 'orders') {
+      await orderSeeder.seed(shouldClear);
     }
 
     await app.close();
