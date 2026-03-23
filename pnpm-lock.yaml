@@ -62,6 +62,9 @@ importers:
       crypto:
         specifier: ^1.0.1
         version: 1.0.1
+      dataloader:
+        specifier: ^2.2.3
+        version: 2.2.3
       graphql:
         specifier: ^16.13.0
         version: 16.13.1
@@ -1913,6 +1916,9 @@ packages:
 
   cssfilter@0.0.10:
     resolution: {integrity: sha512-FAaLDaplstoRsDR8XGYH51znUN0UY7nMc6Z9/fvE8EXGwvJE9hu7W2vHwx1+bd6gCYnln9nLbzxFTrcO9YQDZw==}
+
+  dataloader@2.2.3:
+    resolution: {integrity: sha512-y2krtASINtPFS1rSDjacrFgn1dcUuoREVabwlOGOe4SdxenREqwjwjElAdwvbGM7kgZz9a3KVicWR7vcz8rnzA==}
 
   debug@4.4.3:
     resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
@@ -5890,6 +5896,8 @@ snapshots:
   crypto@1.0.1: {}
 
   cssfilter@0.0.10: {}
+
+  dataloader@2.2.3: {}
 
   debug@4.4.3:
     dependencies:

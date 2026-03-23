@@ -1,6 +1,6 @@
 import { Types } from 'mongoose';
 
-import { Role } from '@/users/enums/Role';
+import { Role } from '@/users/enums/role.enum';
 
 export type CreateUserData = {
   email: string;

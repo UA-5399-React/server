@@ -11,6 +11,7 @@ import { User, UserSchema } from '@/users/entities/user.schema';
 
 import { CartSeeder } from './seeders/cart.seeder';
 import { CategorySeeder } from './seeders/categories.seeder';
+import { OrderSeeder } from './seeders/order.seeder';
 import { ProductSeeder } from './seeders/product.seeder';
 
 @Module({
@@ -49,6 +50,6 @@ import { ProductSeeder } from './seeders/product.seeder';
       { name: Cart.name, schema: CartSchema },
     ]),
   ],
-  providers: [ProductSeeder, CategorySeeder, UserSeeder, CartSeeder],
+  providers: [ProductSeeder, CategorySeeder, UserSeeder, OrderSeeder, CartSeeder],
 })
 export class DatabaseModule {}

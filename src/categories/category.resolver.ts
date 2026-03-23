@@ -3,7 +3,7 @@ import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
 
 import { Roles } from '@/auth/decorators/Roles';
 import { GqlAuthGuard } from '@/auth/guards/gql-auth.guard';
-import { Role } from '@/users/enums/Role';
+import { Role } from '@/users/enums/role.enum';
 
 import { CategoryService } from './category.service';
 import { CategoriesPageType } from './graphql/categories-page.type';
