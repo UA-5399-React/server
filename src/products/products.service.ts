@@ -213,14 +213,6 @@ export class ProductsService {
     }
   }
 
-  /*async getCategories(): Promise<string[]> {
-    const raw = await this.productModel.distinct('categories');
-    return raw
-      .map((c) => (typeof c === 'string' ? c.trim() : ''))
-      .filter(Boolean)
-      .sort((a, b) => a.localeCompare(b));
-  }*/
-
   private async generateCode(): Promise<string> {
     const lastProduct = await this.productModel
       .findOne({ productCode: /^\d+$/ })

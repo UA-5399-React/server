@@ -3,8 +3,10 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import * as bcrypt from 'bcrypt';
 import { Model, Types } from 'mongoose';
 
 import { CryptoService } from '@/auth/crypto/crypto.service';
@@ -24,6 +26,8 @@ import { FindUsersQuery } from '@/users/graphql/types/find-users-query.type';
 import { buildAdminUpdateData, validateRoleCreation } from '@/users/policies/user-role.policy';
 import { UserListItem } from '@/users/types/user-list-item.type';
 import { buildUpdateData } from '@/users/utils/build-update-data';
+
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Injectable()
 export class UsersService {
@@ -72,6 +76,29 @@ export class UsersService {
     }
 
     return updatedUser;
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto): Promise<void> {
+    const user = await this.userModel.findById(userId).select('+passwordHash').exec();
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const isOldPasswordValid = await bcrypt.compare(dto.oldPassword, user.passwordHash);
+
+    if (!isOldPasswordValid) {
+      throw new UnauthorizedException('Old password is incorrect');
+    }
+
+    if (dto.oldPassword === dto.newPassword) {
+      throw new BadRequestException('New password must be different from old password');
+    }
+
+    const newPasswordHash = await bcrypt.hash(dto.newPassword, 10);
+
+    user.passwordHash = newPasswordHash;
+    await user.save();
   }
 
   private normalizedEmail(email: string): string {
