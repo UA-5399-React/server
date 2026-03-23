@@ -9,7 +9,7 @@ import { OrderStatus, PaymentMethod, PaymentStatus, ShippingCarrier } from '@/or
 import { Product, ProductDocument } from '@/products/entities/product.schema';
 import { ProductStatus } from '@/products/enums/product-status.enum';
 import { User, UserDocument } from '@/users/entities/user.schema';
-import { Role } from '@/users/enums/Role';
+import { Role } from '@/users/enums/role.enum';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
