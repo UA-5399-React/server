@@ -72,4 +72,9 @@ export class UsersResolver {
     }
     return loaders.userById.load(user.createdBy.toString());
   }
+
+  @Query(() => Object)
+  async userStats() {
+    return this.usersService.getStats();
+  }
 }
