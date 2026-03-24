@@ -4,6 +4,7 @@ on:
         branches:
             - demo
             - feat/221-deploy-client
+            - feat/264-demo-client
 
 jobs:
     build-and-deploy:
