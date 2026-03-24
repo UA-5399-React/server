@@ -7,19 +7,19 @@ import { OrderDateFilterField } from '@/orders/enums/date-filter-field.enum';
 
 @InputType()
 export class OrdersFilterInput {
-  @Field(() => OrderStatus, { nullable: true })
+  @Field(() => OrderStatus)
   @IsEnum(OrderStatus)
   status?: OrderStatus;
 
-  @Field(() => PaymentStatus, { nullable: true })
+  @Field(() => PaymentStatus)
   @IsEnum(PaymentStatus)
   paymentStatus?: PaymentStatus;
 
-  @Field(() => PaymentMethod, { nullable: true })
+  @Field(() => PaymentMethod)
   @IsEnum(PaymentMethod)
   paymentMethod?: PaymentMethod;
 
-  @Field(() => ShippingCarrier, { nullable: true })
+  @Field(() => ShippingCarrier)
   @IsEnum(ShippingCarrier)
   carrier?: ShippingCarrier;
 

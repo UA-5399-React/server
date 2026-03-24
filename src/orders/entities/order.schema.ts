@@ -58,9 +58,6 @@ export class Order {
   @ApiPropertyOptional({ example: 'Please leave at the door.' })
   @Prop()
   message?: string;
-
-  readonly createdAt!: Date;
-  readonly updatedAt!: Date;
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);
