@@ -12,11 +12,11 @@ import { buildDateFilter } from '@/common/utils/date.utils';
 import { buildPaginatedResult, getPagination } from '@/common/utils/pagination.util';
 import { buildSort } from '@/common/utils/sorting.util';
 import { AppLogger } from '@/logger/app-logger.service';
+import { MailService } from '@/mailer/mailer.service';
 import { OrderStatus } from '@/orders/enums';
 import { OrderDateFilterField } from '@/orders/enums/date-filter-field.enum';
 import { OrdersSortField } from '@/orders/enums/orders-sort-field.enum';
 import { FindOrdersQuery } from '@/orders/graphql/types/find-orders-query.type';
-import { MailService } from '@/mailer/mailer.service';
 import { Product, ProductDocument } from '@/products/entities/product.schema';
 import { ProductStatus } from '@/products/enums/product-status.enum';
 import { Role } from '@/users/enums/role.enum';
@@ -25,6 +25,7 @@ import { ADMIN_ALLOWED_FLOW } from './constants/order-flow';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateShippingAddressDto } from './dto/update-shipping-address.dto';
 import { Order, OrderDocument } from './entities';
+import { PaymentStatus } from './enums/payment-status.enum';
 import { NON_CANCELLABLE_STATUSES, NON_EDITABLE_ADDRESS_STATUSES } from './orders.constants';
 
 @Injectable()
@@ -185,6 +186,27 @@ export class OrdersService {
 
     this.logger.log(`Order ${orderId} cancelled by admin`);
     return order;
+  }
+
+  async updatePaymentStatus(
+    orderId: string,
+    status: PaymentStatus,
+    stripePaymentIntentId?: string,
+  ): Promise<void> {
+    const order = await this.orderModel.findOne({ orderId });
+
+    if (!order) {
+      this.logger.warn(`updatePaymentStatus: order ${orderId} not found`);
+      return;
+    }
+
+    order.payment.status = status;
+    if (stripePaymentIntentId) {
+      order.payment.stripePaymentIntentId = stripePaymentIntentId;
+    }
+
+    await order.save();
+    this.logger.log(`Order ${orderId} payment status updated to ${status}`);
   }
 
   async updateOrderStatus(orderId: string, status: OrderStatus, role: Role): Promise<Order> {
