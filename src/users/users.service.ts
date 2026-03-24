@@ -247,4 +247,13 @@ export class UsersService {
 
     return updatedUser;
   }
+
+  async getStats(): Promise<{ totalUsers: number; activeUsers: number; blockedUsers: number }> {
+    const [totalUsers, activeUsers] = await Promise.all([
+      this.userModel.countDocuments(),
+      this.userModel.countDocuments({ isActive: true }),
+    ]);
+    const blockedUsers = totalUsers - activeUsers;
+    return { totalUsers, activeUsers, blockedUsers };
+  }
 }
