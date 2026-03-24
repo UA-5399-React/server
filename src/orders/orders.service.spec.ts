@@ -3,6 +3,7 @@ import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Types } from 'mongoose';
 
+import { MailService } from '@/mailer/mailer.service';
 import { Product } from '@/products/entities/product.schema';
 import { ProductStatus } from '@/products/enums/product-status.enum';
 
@@ -68,8 +69,6 @@ const mockOrder = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-// Mongoose save() lives on the document instance, not the model — we need
-// to return an object with save() whenever findOne() should succeed.
 function asSaveableDoc<T extends object>(data: T, saveResult?: object): T & { save: jest.Mock } {
   return {
     ...data,
@@ -83,11 +82,15 @@ const mockOrderModel = {
   create: jest.fn(),
   find: jest.fn(),
   findOne: jest.fn(),
-  findOne_sort: jest.fn(),
+  findOneAndUpdate: jest.fn(),
 };
 
 const mockProductModel = {
   find: jest.fn(),
+};
+
+const mockMailService = {
+  sendOrderStatusEmail: jest.fn().mockResolvedValue(undefined),
 };
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -101,6 +104,7 @@ describe('OrdersService', () => {
         OrdersService,
         { provide: getModelToken(Order.name), useValue: mockOrderModel },
         { provide: getModelToken(Product.name), useValue: mockProductModel },
+        { provide: MailService, useValue: mockMailService },
       ],
     }).compile();
 
@@ -136,15 +140,12 @@ describe('OrdersService', () => {
     });
 
     it('should throw BadRequestException when a product is not found', async () => {
-      // Returns fewer products than requested — one is missing or inactive.
       mockProductModel.find.mockReturnValue({ lean: jest.fn().mockResolvedValue([]) });
 
       await expect(service.create(mockCreateDto, USER_ID)).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException when a product is inactive', async () => {
-      // find() filters by ACTIVE so inactive products are excluded by the query.
-      // Simulate this by returning an empty array — length mismatch triggers the exception.
       mockProductModel.find.mockReturnValue({ lean: jest.fn().mockResolvedValue([]) });
 
       await expect(service.create(mockCreateDto, USER_ID)).rejects.toThrow(BadRequestException);
@@ -261,6 +262,7 @@ describe('OrdersService', () => {
     it('should throw ForbiddenException when the order belongs to another user', async () => {
       const doc = asSaveableDoc({
         ...mockOrder,
+        status: OrderStatus.NEW,
         userId: { equals: () => false },
       });
       mockOrderModel.findOne.mockResolvedValue(doc);
@@ -322,6 +324,7 @@ describe('OrdersService', () => {
     it('should throw ForbiddenException when the order belongs to another user', async () => {
       const doc = asSaveableDoc({
         ...mockOrder,
+        status: OrderStatus.NEW,
         userId: { equals: () => false },
       });
       mockOrderModel.findOne.mockResolvedValue(doc);
