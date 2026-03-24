@@ -5,6 +5,7 @@ import { Product, ProductSchema } from '@/products/entities/product.schema';
 
 import { Order, OrderSchema } from './entities';
 import { OrdersController } from './orders.controller';
+import { OrdersResolver } from './orders.resolver';
 import { OrdersService } from './orders.service';
 
 @Module({
@@ -15,6 +16,6 @@ import { OrdersService } from './orders.service';
     ]),
   ],
   controllers: [OrdersController],
-  providers: [OrdersService],
+  providers: [OrdersService, OrdersResolver],
 })
 export class OrdersModule {}
