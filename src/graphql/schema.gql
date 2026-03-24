@@ -71,6 +71,11 @@ type Mutation {
   updateUser(input: UpdateUserInput!): UserType!
 }
 
+enum OrderDateFilterField {
+  createdAt
+  updatedAt
+}
+
 type OrderItemType {
   amount: Int!
   imageUrl: String
@@ -108,6 +113,30 @@ type OrderUserType {
   firstName: String!
   lastName: String!
   phone: String!
+}
+
+input OrdersFilterInput {
+  carrier: ShippingCarrier
+  dateFrom: DateTime
+  dateTo: DateTime
+  dateType: OrderDateFilterField
+  paymentMethod: PaymentMethod
+  paymentStatus: PaymentStatus
+  status: OrderStatus
+}
+
+type OrdersPage {
+  items: [OrderType!]!
+  limit: Int!
+  page: Int!
+  total: Int!
+  totalPages: Int!
+}
+
+enum OrdersSortField {
+  createdAt
+  totalPrice
+  updatedAt
 }
 
 type PaymentInfoType {
@@ -185,6 +214,8 @@ type Query {
   categoriesList: [CategoryType!]!
   categoriesPage(limit: Int! = 10, page: Int! = 1, search: String): CategoriesPageType!
   category(id: ID!): CategoryType!
+  order(id: ID!): OrderType!
+  orders(filter: OrdersFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: OrdersSortField! = createdAt): OrdersPage!
   getOrder(orderId: String!): OrderType!
   product(id: ID!): ProductType!
   productsPage(filter: ProductsFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: ProductSortField! = updatedAt): ProductsPageType!
