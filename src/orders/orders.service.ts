@@ -16,9 +16,12 @@ import { OrderStatus } from '@/orders/enums';
 import { OrderDateFilterField } from '@/orders/enums/date-filter-field.enum';
 import { OrdersSortField } from '@/orders/enums/orders-sort-field.enum';
 import { FindOrdersQuery } from '@/orders/graphql/types/find-orders-query.type';
+import { MailService } from '@/mailer/mailer.service';
 import { Product, ProductDocument } from '@/products/entities/product.schema';
 import { ProductStatus } from '@/products/enums/product-status.enum';
+import { Role } from '@/users/enums/role.enum';
 
+import { ADMIN_ALLOWED_FLOW } from './constants/order-flow';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateShippingAddressDto } from './dto/update-shipping-address.dto';
 import { Order, OrderDocument } from './entities';
@@ -31,6 +34,7 @@ export class OrdersService {
   constructor(
     @InjectModel(Order.name) private readonly orderModel: Model<OrderDocument>,
     @InjectModel(Product.name) private readonly productModel: Model<ProductDocument>,
+    private readonly mailService: MailService,
   ) {}
 
   // ─── Customer ──────────────────────────────────────────────────────────────
@@ -159,6 +163,14 @@ export class OrdersService {
       .lean();
   }
 
+  async findOrderById(orderId: string): Promise<Order> {
+    const order = await this.orderModel.findOne({ orderId }).lean();
+    if (!order) {
+      throw new NotFoundException(`Order ${orderId} not found.`);
+    }
+    return order;
+  }
+
   async adminCancelOrder(orderId: string): Promise<Order> {
     const order = await this.orderModel.findOne({ orderId });
 
@@ -173,6 +185,32 @@ export class OrdersService {
 
     this.logger.log(`Order ${orderId} cancelled by admin`);
     return order;
+  }
+
+  async updateOrderStatus(orderId: string, status: OrderStatus, role: Role): Promise<Order> {
+    const order = await this.orderModel.findOne({ orderId }).lean();
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+    if (role !== Role.SUPER_ADMIN) {
+      const allowed = ADMIN_ALLOWED_FLOW[order.status] ?? [];
+      if (!allowed.includes(status)) {
+        throw new BadRequestException(
+          `Transition from '${order.status}' to '${status}' is not allowed`,
+        );
+      }
+    }
+
+    const updated = await this.orderModel
+      .findOneAndUpdate({ orderId }, { status }, { returnDocument: 'after' })
+      .lean();
+
+    if (updated?.user?.email) {
+      this.mailService
+        .sendOrderStatusEmail(updated.user.email, updated.orderId, status)
+        .catch((err) => console.error('Failed to send email', err));
+    }
+    return updated!;
   }
 
   // ─── Private ───────────────────────────────────────────────────────────────

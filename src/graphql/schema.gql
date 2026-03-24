@@ -66,6 +66,7 @@ type Mutation {
   deleteProduct(id: ID!): Boolean!
   duplicateProduct(id: ID!): ProductType!
   updateCategory(updateCategoryInput: UpdateCategoryInput!): CategoryType!
+  updateOrderStatus(input: UpdateOrderStatusInput!): OrderType!
   updateProduct(id: ID!, input: UpdateProductInput!): ProductType!
   updateUser(input: UpdateUserInput!): UserType!
 }
@@ -215,6 +216,7 @@ type Query {
   category(id: ID!): CategoryType!
   order(id: ID!): OrderType!
   orders(filter: OrdersFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: OrdersSortField! = createdAt): OrdersPage!
+  getOrder(orderId: String!): OrderType!
   product(id: ID!): ProductType!
   productsPage(filter: ProductsFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: ProductSortField! = updatedAt): ProductsPageType!
   user(id: ID!): UserType!
@@ -251,6 +253,11 @@ input UpdateCategoryInput {
   imageUrl: String
   parent: String
   title: String
+}
+
+input UpdateOrderStatusInput {
+  orderId: String!
+  status: OrderStatus!
 }
 
 input UpdateProductInput {
