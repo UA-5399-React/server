@@ -1,17 +1,15 @@
-import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
-
-import { OrdersQueryArgs } from '@/orders/graphql/args/orders-query.args';
-import { OrderType } from '@/orders/graphql/types/order.type';
-import { OrdersPage } from '@/orders/graphql/types/orders-page.type';
-import { toOrderType } from '@/orders/orders.mapper';
-import { OrdersService } from '@/orders/orders.service';
-
 import { NotFoundException, UseGuards } from '@nestjs/common';
+import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
 
 import { CurrentUser } from '@/auth/decorators/current-user.decorator';
 import { Roles } from '@/auth/decorators/Roles';
 import { GqlAuthGuard } from '@/auth/guards/gql-auth.guard';
 import type { JwtPayload } from '@/auth/types/jwt-payload.type';
+import { OrdersQueryArgs } from '@/orders/graphql/args/orders-query.args';
+import { OrderType } from '@/orders/graphql/types/order.type';
+import { OrdersPage } from '@/orders/graphql/types/orders-page.type';
+import { toOrderType } from '@/orders/orders.mapper';
+import { OrdersService } from '@/orders/orders.service';
 import { Role } from '@/users/enums/role.enum';
 
 import { UpdateOrderStatusInput } from './graphql/inputs/status-update.inputs';
@@ -37,6 +35,8 @@ export class OrdersResolver {
   async order(@Args('id', { type: () => ID }) id: string) {
     const order = await this.ordersService.findById(id);
     return toOrderType(order);
+  }
+
   @Query(() => OrderType)
   async getOrder(@Args('orderId') orderId: string): Promise<OrderType> {
     const order = await this.ordersService.findOrderById(orderId);

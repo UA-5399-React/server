@@ -9,6 +9,7 @@ import { JwtStrategy } from '@/auth/strategies/jwt.strategy';
 import { JwtRefreshStrategy } from '@/auth/strategies/jwt-refresh.strategy';
 import { LocalStrategy } from '@/auth/strategies/local.strategy';
 import { TokensModule } from '@/auth/tokens/tokens.module';
+import { MailService } from '@/mailer/mailer.service';
 import { UsersModule } from '@/users/users.module';
 
 @Module({
@@ -24,7 +25,7 @@ import { UsersModule } from '@/users/users.module';
     TokensModule,
   ],
   exports: [AuthService],
-  providers: [AuthService, JwtStrategy, LocalStrategy, JwtRefreshStrategy],
+  providers: [AuthService, JwtStrategy, LocalStrategy, JwtRefreshStrategy, MailService],
   controllers: [AuthController],
 })
 export class AuthModule {}

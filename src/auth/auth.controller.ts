@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Query,
   Req,
   Res,
   UseGuards,
@@ -85,8 +86,8 @@ export class AuthController {
     return await this.authService.register(signupDTO);
   }
 
-  @Post('confirm-email')
-  async confirmEmail(@Body('token') token: string) {
+  @Get('confirm-email')
+  async confirmEmail(@Query('token') token: string) {
     await this.authService.confirmEmail(token);
 
     return {
