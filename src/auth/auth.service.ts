@@ -14,6 +14,7 @@ import { AuthUser } from '@/auth/types/auth-user.type';
 import { JwtPayload } from '@/auth/types/jwt-payload.type';
 import { TokenPair } from '@/auth/types/token-pair.type';
 import { AppLogger } from '@/logger/app-logger.service';
+import { MailService } from '@/mailer/mailer.service';
 import { RegisterResponseDto } from '@/users/dto/register-resp.dto';
 import { SignUpDto } from '@/users/dto/sign-up.dto';
 import { Role } from '@/users/enums/role.enum';
@@ -28,6 +29,7 @@ export class AuthService {
     private readonly cryptoService: CryptoService,
     private readonly logger: AppLogger,
     private readonly tokensService: TokensService,
+    private readonly mailService: MailService,
   ) {}
 
   async generateTokens(user: AuthUser): Promise<TokenPair> {
@@ -78,10 +80,13 @@ export class AuthService {
       expiresAt,
     });
 
+    const verifyUrl = `${process.env.BACKEND_URL}/auth/confirm-email?token=${rawToken}`;
+
+    await this.mailService.sendEmailVerification(createdUser.email, verifyUrl);
+
     return {
       status: 'success',
       message: 'User created successfully.',
-      verifyUrl: `http://localhost:3000/confirm-email?token=${rawToken}`,
     };
   }
 
@@ -185,9 +190,12 @@ export class AuthService {
       expiresAt,
     });
 
+    const verifyUrl = `${process.env.BACKEND_URL}/auth/confirm-email?token=${rawToken}`;
+
+    await this.mailService.sendEmailVerification(user.email, verifyUrl);
+
     return {
       message: 'Confirmation email sent.',
-      verifyUrl: `http://localhost:3000/confirm-email?token=${rawToken}`,
     };
   }
 
