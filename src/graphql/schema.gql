@@ -66,8 +66,95 @@ type Mutation {
   deleteProduct(id: ID!): Boolean!
   duplicateProduct(id: ID!): ProductType!
   updateCategory(updateCategoryInput: UpdateCategoryInput!): CategoryType!
+  updateOrderStatus(input: UpdateOrderStatusInput!): OrderType!
   updateProduct(id: ID!, input: UpdateProductInput!): ProductType!
   updateUser(input: UpdateUserInput!): UserType!
+}
+
+enum OrderDateFilterField {
+  createdAt
+  updatedAt
+}
+
+type OrderItemType {
+  amount: Int!
+  imageUrl: String
+  product: ID!
+  title: String!
+  unitPrice: Float!
+}
+
+enum OrderStatus {
+  CANCELLED
+  COMPLETED
+  NEW
+  PROCESSING
+  SHIPPING
+}
+
+type OrderType {
+  amount: Float!
+  createdAt: DateTime!
+  id: ID!
+  items: [OrderItemType!]!
+  message: String
+  orderId: ID!
+  payment: PaymentInfoType!
+  shippingAddress: ShippingAddressType!
+  status: OrderStatus!
+  totalPrice: Float!
+  updatedAt: DateTime!
+  user: OrderUserType!
+  userId: ID!
+}
+
+type OrderUserType {
+  email: String!
+  firstName: String!
+  lastName: String!
+  phone: String!
+}
+
+input OrdersFilterInput {
+  carrier: ShippingCarrier
+  dateFrom: DateTime
+  dateTo: DateTime
+  dateType: OrderDateFilterField
+  paymentMethod: PaymentMethod
+  paymentStatus: PaymentStatus
+  status: OrderStatus
+}
+
+type OrdersPage {
+  items: [OrderType!]!
+  limit: Int!
+  page: Int!
+  total: Int!
+  totalPages: Int!
+}
+
+enum OrdersSortField {
+  createdAt
+  totalPrice
+  updatedAt
+}
+
+type PaymentInfoType {
+  method: PaymentMethod!
+  status: PaymentStatus!
+  stripePaymentIntentId: String
+}
+
+enum PaymentMethod {
+  CASH_ON_DELIVERY
+  STRIPE
+}
+
+enum PaymentStatus {
+  FAILED
+  PAID
+  PENDING
+  REFUNDED
 }
 
 enum ProductSortField {
@@ -127,6 +214,9 @@ type Query {
   categoriesList: [CategoryType!]!
   categoriesPage(limit: Int! = 10, page: Int! = 1, search: String): CategoriesPageType!
   category(id: ID!): CategoryType!
+  order(id: ID!): OrderType!
+  orders(filter: OrdersFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: OrdersSortField! = createdAt): OrdersPage!
+  getOrder(orderId: String!): OrderType!
   product(id: ID!): ProductType!
   productsPage(filter: ProductsFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: ProductSortField! = updatedAt): ProductsPageType!
   user(id: ID!): UserType!
@@ -137,6 +227,18 @@ enum Role {
   ADMIN
   CUSTOMER
   SUPER_ADMIN
+}
+
+type ShippingAddressType {
+  branchNumber: String!
+  carrier: ShippingCarrier!
+  city: String!
+}
+
+enum ShippingCarrier {
+  MEEST
+  NOVA_POST
+  UKRPOSHTA
 }
 
 enum SortOrder {
@@ -151,6 +253,11 @@ input UpdateCategoryInput {
   imageUrl: String
   parent: String
   title: String
+}
+
+input UpdateOrderStatusInput {
+  orderId: String!
+  status: OrderStatus!
 }
 
 input UpdateProductInput {
