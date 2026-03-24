@@ -26,6 +26,7 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateShippingAddressDto } from './dto/update-shipping-address.dto';
 import { Order, OrderDocument } from './entities';
 import { PaymentStatus } from './enums/payment-status.enum';
+import { OrderStatsType } from './graphql/types/order-stats.type';
 import { NON_CANCELLABLE_STATUSES, NON_EDITABLE_ADDRESS_STATUSES } from './orders.constants';
 
 @Injectable()
@@ -233,6 +234,34 @@ export class OrdersService {
         .catch((err) => console.error('Failed to send email', err));
     }
     return updated!;
+  }
+
+  async getOrderStats(): Promise<OrderStatsType> {
+    const results = await this.orderModel.aggregate([
+      {
+        $facet: {
+          total: [{ $count: 'count' }],
+
+          byStatus: [
+            { $match: { status: { $in: Object.values(OrderStatus) } } },
+            { $group: { _id: '$status', count: { $sum: 1 } } },
+          ],
+        },
+      },
+    ]);
+
+    const { total, byStatus } = results[0];
+
+    const statusMap = Object.fromEntries(byStatus.map(({ _id, count }) => [_id, count]));
+
+    return {
+      totalOrders: total[0]?.count ?? 0,
+      completedOrders: statusMap[OrderStatus.COMPLETED] ?? 0,
+      newOrders: statusMap[OrderStatus.NEW] ?? 0,
+      cancelledOrders: statusMap[OrderStatus.CANCELLED] ?? 0,
+      processingOrders: statusMap[OrderStatus.PROCESSING] ?? 0,
+      shippingOrders: statusMap[OrderStatus.SHIPPING] ?? 0,
+    };
   }
 
   // ─── Private ───────────────────────────────────────────────────────────────
