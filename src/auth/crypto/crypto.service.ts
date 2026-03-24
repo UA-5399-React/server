@@ -15,6 +15,9 @@ export class CryptoService {
   generateSha256HashBase64(text: string): string {
     return crypto.createHash('sha256').update(text).digest('base64');
   }
+  generateRandomToken(bytes = 32): string {
+    return crypto.randomBytes(bytes).toString('hex');
+  }
 
   async preparePassword(input?: string): Promise<Record<string, string>> {
     const rawPassword: string = input ?? this.generateTemporaryPassword();

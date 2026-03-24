@@ -17,9 +17,9 @@ import { UsersService } from '@/users/users.service';
       useFactory: (usersService: UsersService) => ({
         path: 'graphql',
         autoSchemaFile:
-        process.env.NODE_ENV === 'production'
-          ? true
-          : join(process.cwd(), 'src/graphql/schema.gql'),
+          process.env.NODE_ENV === 'production'
+            ? true
+            : join(process.cwd(), 'src/graphql/schema.gql'),
         sortSchema: true,
         playground: true,
         context: ({ req }): GraphqlLoadersContext => ({
