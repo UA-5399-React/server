@@ -64,9 +64,6 @@ export class AuthService {
   async register(dto: SignUpDto): Promise<RegisterResponseDto> {
     await this.userService.ensureEmailNotTaken(dto.email);
 
-    console.log('MAIL_USER:', process.env.EMAIL_USER);
-    console.log('MAIL_PASS:', process.env.GOOGLE_APP_PASSWORD ? 'EXISTS' : 'MISSING');
-
     const passwordHash = await this.cryptoService.hashPassword(dto.password);
     const { rawToken, tokenHash, expiresAt } = this.createEmailVerificationData();
 
