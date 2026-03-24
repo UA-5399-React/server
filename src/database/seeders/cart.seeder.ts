@@ -26,33 +26,35 @@ export class CartSeeder {
 
     this.logger.log('Starting cart seeding...');
 
-    const testUser = await this.userModel.findOne({ email: 'customer@test.com' });
+    const customers = await this.userModel.find({ role: 'customer' }).exec();
 
-    if (!testUser) {
-      this.logger.warn('Test user customer@test.com not found. Skipping cart seeding.');
+    if (customers.length === 0) {
+      this.logger.warn('No customers found. Skipping cart seeding.');
       return;
     }
 
-    const products = await this.productModel.find({ status: ProductStatus.ACTIVE }).limit(3).exec();
+    const products = await this.productModel.find({ status: ProductStatus.ACTIVE }).limit(5).exec();
 
     if (products.length === 0) {
-      this.logger.warn('No active products found. Skipping cart seeding.');
+      this.logger.warn('No products found. Skipping cart seeding.');
       return;
     }
 
-    const cartItems = products.map((product, index) => ({
-      product: product._id,
-      quantity: index + 1,
-    }));
+    let cartCount = 0;
+    for (const customer of customers) {
+      const cartItems = products.slice(0, 2).map((product, index) => ({
+        product: product._id,
+        quantity: index + 1,
+      }));
 
-    await this.cartModel.findOneAndUpdate(
-      { userId: testUser._id },
-      { items: cartItems },
-      { upsert: true, returnDocument: 'after' },
-    );
+      await this.cartModel.findOneAndUpdate(
+        { userId: customer._id },
+        { items: cartItems },
+        { upsert: true, returnDocument: 'after' },
+      );
+      cartCount++;
+    }
 
-    this.logger.log(
-      `Successfully seeded cart for ${testUser.email} with ${cartItems.length} items.`,
-    );
+    this.logger.log(`Cart seeding completed. Seeded ${cartCount} carts.`);
   }
 }

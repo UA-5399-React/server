@@ -13,6 +13,7 @@ import { OrdersService } from '@/orders/orders.service';
 import { Role } from '@/users/enums/role.enum';
 
 import { UpdateOrderStatusInput } from './graphql/inputs/status-update.inputs';
+import { OrderStatsType } from './graphql/types/order-stats.type';
 import { mapOrderToGraphQL } from './graphql/utils/map-order';
 
 @UseGuards(GqlAuthGuard)
@@ -36,7 +37,6 @@ export class OrdersResolver {
     const order = await this.ordersService.findById(id);
     return toOrderType(order);
   }
-
   @Query(() => OrderType)
   async getOrder(@Args('orderId') orderId: string): Promise<OrderType> {
     const order = await this.ordersService.findOrderById(orderId);
@@ -44,6 +44,11 @@ export class OrdersResolver {
     if (!order) throw new NotFoundException('Order not found');
 
     return mapOrderToGraphQL(order);
+  }
+
+  @Query(() => OrderStatsType)
+  async orderStats() {
+    return this.ordersService.getOrderStats();
   }
 
   @Mutation(() => OrderType)
