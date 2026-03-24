@@ -28,6 +28,7 @@ import { UserListItem } from '@/users/types/user-list-item.type';
 import { buildUpdateData } from '@/users/utils/build-update-data';
 
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { UserStatsType } from './graphql/types/user-stats.type';
 
 @Injectable()
 export class UsersService {
@@ -248,7 +249,7 @@ export class UsersService {
     return updatedUser;
   }
 
-  async getStats(): Promise<{ totalUsers: number; activeUsers: number; blockedUsers: number }> {
+  async getStats(): Promise<UserStatsType> {
     const [totalUsers, activeUsers] = await Promise.all([
       this.userModel.countDocuments(),
       this.userModel.countDocuments({ isActive: true }),

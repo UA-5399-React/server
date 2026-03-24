@@ -84,6 +84,15 @@ type OrderItemType {
   unitPrice: Float!
 }
 
+type OrderStatsType {
+  cancelledOrders: Int!
+  completedOrders: Int!
+  newOrders: Int!
+  processingOrders: Int!
+  shippingOrders: Int!
+  totalOrders: Int!
+}
+
 enum OrderStatus {
   CANCELLED
   COMPLETED
@@ -214,12 +223,14 @@ type Query {
   categoriesList: [CategoryType!]!
   categoriesPage(limit: Int! = 10, page: Int! = 1, search: String): CategoriesPageType!
   category(id: ID!): CategoryType!
-  order(id: ID!): OrderType!
-  orders(filter: OrdersFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: OrdersSortField! = createdAt): OrdersPage!
   getOrder(orderId: String!): OrderType!
+  order(id: ID!): OrderType!
+  orderStats: OrderStatsType!
+  orders(filter: OrdersFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: OrdersSortField! = createdAt): OrdersPage!
   product(id: ID!): ProductType!
   productsPage(filter: ProductsFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: ProductSortField! = updatedAt): ProductsPageType!
   user(id: ID!): UserType!
+  userStats: UserStatsType!
   users(filter: UsersFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: UserSortField! = createdAt): UsersPage!
 }
 
@@ -292,6 +303,12 @@ enum UserSortField {
   email
   lastLoginAt
   updatedAt
+}
+
+type UserStatsType {
+  activeUsers: Int!
+  blockedUsers: Int!
+  totalUsers: Int!
 }
 
 """user"""
