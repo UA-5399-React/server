@@ -83,7 +83,7 @@ export class AuthService {
       expiresAt,
     });
 
-    const verifyUrl = `http://localhost:3000/auth/confirm-email?token=${rawToken}`;
+    const verifyUrl = `${process.env.BACKEND_URL}/auth/confirm-email?token=${rawToken}`;
 
     await this.mailService.sendEmailVerification(createdUser.email, verifyUrl);
 
@@ -193,7 +193,7 @@ export class AuthService {
       expiresAt,
     });
 
-    const verifyUrl = `http://localhost:3000/auth/confirm-email?token=${rawToken}`;
+    const verifyUrl = `${process.env.BACKEND_URL}/auth/confirm-email?token=${rawToken}`;
 
     await this.mailService.sendEmailVerification(user.email, verifyUrl);
 
