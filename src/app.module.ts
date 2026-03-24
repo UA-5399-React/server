@@ -17,6 +17,7 @@ import { MailModule } from './mailer/mailer.module';
 import { OrdersModule } from './orders/orders.module';
 import { PaymentsModule } from './payments/payments.module';
 import { ProductsModule } from './products/products.module';
+import { ShippingModule } from './shipping/shipping.module';
 import { UploadsModule } from './uploads/uploads.module';
 
 @Module({
@@ -34,6 +35,7 @@ import { UploadsModule } from './uploads/uploads.module';
     AuthModule,
     OrdersModule,
     UsersModule,
+    ShippingModule,
     CartModule,
     MailModule,
     PaymentsModule,
