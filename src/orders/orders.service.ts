@@ -267,15 +267,14 @@ export class OrdersService {
   }
 
   async updateOrderItems(input: UpdateOrderProductsInput): Promise<OrderType> {
-    const items = input.items ?? [];
-
-    console.log('GraphQL input.orderId:', input.orderId);
     const order = await this.orderModel.findOne({ orderId: input.orderId });
-    console.log('Order found:', order);
-
     if (!order) throw new NotFoundException('Order not found');
 
-    for (const itemInput of items) {
+    if (!input.items || input.items.length === 0) {
+      throw new BadRequestException('Items array is required');
+    }
+
+    for (const itemInput of input.items ?? []) {
       const existingItem = order.items.find((i) => i.product.toString() === itemInput.productId);
 
       if (itemInput.remove) {
@@ -283,16 +282,15 @@ export class OrdersService {
         continue;
       }
 
-      if (existingItem && itemInput.amount) {
-        existingItem.amount = itemInput.amount;
-        continue;
-      }
+      const product = await this.productModel.findById(itemInput.productId);
+      if (!product) throw new NotFoundException('Product not found');
 
-      if (!existingItem && itemInput.amount) {
-        const product = await this.productModel.findById(itemInput.productId);
-        if (!product) {
-          throw new NotFoundException('Product not found');
-        }
+      if (existingItem) {
+        if (itemInput.amount) existingItem.amount = itemInput.amount;
+        existingItem.title = product.title;
+        existingItem.imageUrl = product.imageUrl;
+        existingItem.unitPrice = product.price;
+      } else if (itemInput.amount) {
         order.items.push({
           product: product._id,
           title: product.title,
@@ -303,17 +301,16 @@ export class OrdersService {
       }
     }
 
-    // Recalculate totalPrice after loop
-    order.totalPrice = order.items.reduce((sum, item) => sum + item.unitPrice * item.amount, 0);
-
+    order.totalPrice = order.items.reduce((sum, i) => sum + i.unitPrice * i.amount, 0);
+    order.markModified('items');
     await order.save();
+
     const orderObj = order.toObject();
     return {
       ...orderObj,
       id: orderObj._id.toString(),
     } as unknown as OrderType;
   }
-
   // ─── Private ───────────────────────────────────────────────────────────────
 
   private assertCancellable(status: OrderStatus): void {

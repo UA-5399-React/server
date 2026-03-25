@@ -1,9 +1,10 @@
-import { Field, ID, InputType, Int } from '@nestjs/graphql';
-import { IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { Field, InputType, Int } from '@nestjs/graphql';
+import { Type } from 'class-transformer';
+import { IsBoolean, IsInt, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 
 @InputType()
 export class UpdateOrderItemInput {
-  @Field(() => ID)
+  @Field(() => String)
   @IsString()
   productId!: string;
 
@@ -15,6 +16,7 @@ export class UpdateOrderItemInput {
 
   @Field({ nullable: true })
   @IsOptional()
+  @IsBoolean()
   remove?: boolean;
 }
 
@@ -25,5 +27,7 @@ export class UpdateOrderProductsInput {
   orderId!: string;
 
   @Field(() => [UpdateOrderItemInput])
+  @ValidateNested({ each: true })
+  @Type(() => UpdateOrderItemInput)
   items!: UpdateOrderItemInput[];
 }

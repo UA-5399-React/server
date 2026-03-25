@@ -269,7 +269,7 @@ input UpdateCategoryInput {
 
 input UpdateOrderItemInput {
   amount: Int
-  productId: ID!
+  productId: String!
   remove: Boolean
 }
 
