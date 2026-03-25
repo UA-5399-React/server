@@ -4,21 +4,35 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  ParseFilePipeBuilder,
   Patch,
-  Query,
   Req,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
+  Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiNoContentResponse,
+  ApiOkResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
 import { Roles } from '@/auth/decorators/Roles';
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@/auth/guards/roles.guard';
 import type { AuthRequest } from '@/auth/types/auth-request.type';
+import { CloudinaryService } from '@/uploads/cloudinary.service';
+import type { UploadedImageFile } from '@/uploads/types/uploaded-image-file.type';
 import { Role } from '@/users/enums/role.enum';
 
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateMeDto } from './dto/update-me.dto';
+import { UploadAvatarBodyDto } from './dto/upload-avatar-body.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { UsersListResponseDto } from './dto/users-list-response.dto';
 import { UsersQueryDto } from './dto/users-query.dto';
@@ -28,7 +42,10 @@ import { UsersService } from './users.service';
 @ApiTags('Users')
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly cloudinaryService: CloudinaryService,
+  ) {}
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -85,5 +102,40 @@ export class UsersController {
   @Patch('me/password')
   async changePassword(@Req() req: AuthRequest, @Body() dto: ChangePasswordDto): Promise<void> {
     await this.usersService.changePassword(req.user.id, dto);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ type: UploadAvatarBodyDto })
+  @ApiOkResponse({ type: UserResponseDto })
+  @Patch('me/avatar')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadAvatar(
+    @Req() req: AuthRequest,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          fileType: /^(image\/jpeg|image\/png|image\/webp)$/,
+        })
+        .addMaxSizeValidator({
+          maxSize: 5 * 1024 * 1024,
+        })
+        .build({
+          fileIsRequired: true,
+          errorHttpStatusCode: HttpStatus.BAD_REQUEST,
+        }),
+    )
+    file: UploadedImageFile,
+  ): Promise<UserResponseDto> {
+    const uploaded = await this.cloudinaryService.uploadAvatar(file);
+
+    const user = await this.usersService.updateAvatar(
+      req.user.id,
+      uploaded.imageUrl,
+      uploaded.imagePublicId,
+    );
+
+    return toUserResponseDto(user);
   }
 }

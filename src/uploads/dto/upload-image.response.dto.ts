@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-export class UploadProductImageResponseDto {
+export class UploadImageResponseDto {
   @ApiProperty({ example: 'https://res.cloudinary.com/demo/image/upload/products/sample.jpg' })
   imageUrl: string;
 
