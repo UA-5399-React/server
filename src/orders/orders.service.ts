@@ -27,6 +27,7 @@ import { UpdateShippingAddressDto } from './dto/update-shipping-address.dto';
 import { Order, OrderDocument } from './entities';
 import { PaymentStatus } from './enums/payment-status.enum';
 import { UpdateOrderProductsInput } from './graphql/inputs/update-order-items.input';
+import { UpdateOrderShippingAddressInput } from './graphql/inputs/update-order-shipping.input';
 import { UpdateOrderUserInput } from './graphql/inputs/update-order-user.input';
 import { OrderType } from './graphql/types/order.type';
 import { OrderStatsType } from './graphql/types/order-stats.type';
@@ -320,6 +321,23 @@ export class OrdersService {
     order.user = {
       ...order.user,
       ...input.user,
+    };
+
+    await order.save();
+    const orderObj = order.toObject();
+    return {
+      ...orderObj,
+      id: orderObj._id.toString(),
+    } as unknown as OrderType;
+  }
+
+  async updateOrderShippingAddress(input: UpdateOrderShippingAddressInput): Promise<OrderType> {
+    const order = await this.orderModel.findOne({ orderId: input.orderId });
+    if (!order) throw new NotFoundException('Order not found');
+
+    order.shippingAddress = {
+      ...order.shippingAddress,
+      ...input.shippingAddress,
     };
 
     await order.save();

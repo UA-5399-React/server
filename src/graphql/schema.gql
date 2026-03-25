@@ -66,9 +66,10 @@ type Mutation {
   deleteProduct(id: ID!): Boolean!
   duplicateProduct(id: ID!): ProductType!
   updateCategory(updateCategoryInput: UpdateCategoryInput!): CategoryType!
-  updateOrderIserInfo(input: UpdateOrderUserInput!): OrderType!
   updateOrderItems(input: UpdateOrderProductsInput!): OrderType!
+  updateOrderShippingAddress(input: UpdateOrderShippingAddressInput!): OrderType!
   updateOrderStatus(input: UpdateOrderStatusInput!): OrderType!
+  updateOrderUserInfo(input: UpdateOrderUserInput!): OrderType!
   updateProduct(id: ID!, input: UpdateProductInput!): ProductType!
   updateUser(input: UpdateUserInput!): UserType!
 }
@@ -84,6 +85,12 @@ type OrderItemType {
   product: ID!
   title: String!
   unitPrice: Float!
+}
+
+input OrderShippingAddressInput {
+  branchNumber: Int!
+  carrier: ShippingCarrier!
+  city: String!
 }
 
 type OrderStatsType {
@@ -284,6 +291,11 @@ input UpdateOrderItemInput {
 input UpdateOrderProductsInput {
   items: [UpdateOrderItemInput!]!
   orderId: String!
+}
+
+input UpdateOrderShippingAddressInput {
+  orderId: String!
+  shippingAddress: OrderShippingAddressInput!
 }
 
 input UpdateOrderStatusInput {
