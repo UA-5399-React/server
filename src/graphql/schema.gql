@@ -66,6 +66,7 @@ type Mutation {
   deleteProduct(id: ID!): Boolean!
   duplicateProduct(id: ID!): ProductType!
   updateCategory(updateCategoryInput: UpdateCategoryInput!): CategoryType!
+  updateOrderIserInfo(input: UpdateOrderUserInput!): OrderType!
   updateOrderItems(input: UpdateOrderProductsInput!): OrderType!
   updateOrderStatus(input: UpdateOrderStatusInput!): OrderType!
   updateProduct(id: ID!, input: UpdateProductInput!): ProductType!
@@ -116,6 +117,13 @@ type OrderType {
   updatedAt: DateTime!
   user: OrderUserType!
   userId: ID!
+}
+
+input OrderUserInput {
+  email: String!
+  firstName: String!
+  lastName: String!
+  phone: String!
 }
 
 type OrderUserType {
@@ -281,6 +289,11 @@ input UpdateOrderProductsInput {
 input UpdateOrderStatusInput {
   orderId: String!
   status: OrderStatus!
+}
+
+input UpdateOrderUserInput {
+  orderId: String!
+  user: OrderUserInput!
 }
 
 input UpdateProductInput {
