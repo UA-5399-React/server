@@ -8,6 +8,7 @@ import { Product } from '@/products/entities/product.schema';
 import { ProductStatus } from '@/products/enums/product-status.enum';
 
 import { CreateOrderDto } from './dto/create-order.dto';
+import { GetOrdersQueryDto } from './dto/get-orders-query.dto';
 import { UpdateShippingAddressDto } from './dto/update-shipping-address.dto';
 import { Order } from './entities';
 import { OrderStatus } from './enums/order-status.enum';
@@ -369,6 +370,59 @@ describe('OrdersService', () => {
       expect(chainMock.skip).toHaveBeenCalledWith(20);
       expect(chainMock.limit).toHaveBeenCalledWith(10);
       expect(result).toEqual([mockOrder]);
+    });
+  });
+
+  describe('findAllFiltered', () => {
+    it('should return orders sorted by createdAt desc when no filters are provided', async () => {
+      const chainMock = {
+        sort: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockResolvedValue([mockOrder]),
+      };
+      mockOrderModel.find.mockReturnValue(chainMock);
+
+      const result = await service.findAllFiltered({});
+
+      expect(mockOrderModel.find).toHaveBeenCalledWith({});
+      expect(chainMock.sort).toHaveBeenCalledWith({ createdAt: -1 });
+      expect(result).toEqual([mockOrder]);
+    });
+
+    it('should filter orders by status when provided', async () => {
+      const chainMock = {
+        sort: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockResolvedValue([mockOrder]),
+      };
+      const query: GetOrdersQueryDto = { status: OrderStatus.NEW };
+      mockOrderModel.find.mockReturnValue(chainMock);
+
+      await service.findAllFiltered(query);
+
+      expect(mockOrderModel.find).toHaveBeenCalledWith({
+        status: OrderStatus.NEW,
+      });
+    });
+
+    it('should combine status and regex search for orderId or user email', async () => {
+      const chainMock = {
+        sort: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockResolvedValue([mockOrder]),
+      };
+      const query: GetOrdersQueryDto = {
+        status: OrderStatus.NEW,
+        search: 'ORD-20240318',
+      };
+      mockOrderModel.find.mockReturnValue(chainMock);
+
+      await service.findAllFiltered(query);
+
+      expect(mockOrderModel.find).toHaveBeenCalledWith({
+        status: OrderStatus.NEW,
+        $or: [
+          { orderId: { $regex: 'ORD-20240318', $options: 'i' } },
+          { 'user.email': { $regex: 'ORD-20240318', $options: 'i' } },
+        ],
+      });
     });
   });
 
