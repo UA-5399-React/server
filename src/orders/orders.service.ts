@@ -320,7 +320,7 @@ export class OrdersService {
 
     order.user = {
       ...order.user,
-      ...input.user,
+      ...Object.fromEntries(Object.entries(input.user).filter(([, v]) => v !== undefined)),
     };
 
     await order.save();
@@ -337,7 +337,9 @@ export class OrdersService {
 
     order.shippingAddress = {
       ...order.shippingAddress,
-      ...input.shippingAddress,
+      ...Object.fromEntries(
+        Object.entries(input.shippingAddress).filter(([, v]) => v !== undefined),
+      ),
     };
 
     await order.save();

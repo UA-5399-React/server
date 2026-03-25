@@ -88,9 +88,9 @@ type OrderItemType {
 }
 
 input OrderShippingAddressInput {
-  branchNumber: Int!
-  carrier: ShippingCarrier!
-  city: String!
+  branchNumber: Int
+  carrier: ShippingCarrier
+  city: String
 }
 
 type OrderStatsType {
@@ -127,10 +127,10 @@ type OrderType {
 }
 
 input OrderUserInput {
-  email: String!
-  firstName: String!
-  lastName: String!
-  phone: String!
+  email: String
+  firstName: String
+  lastName: String
+  phone: String
 }
 
 type OrderUserType {

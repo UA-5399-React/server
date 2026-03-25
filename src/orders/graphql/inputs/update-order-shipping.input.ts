@@ -1,22 +1,25 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
 import { Type } from 'class-transformer';
-import { IsEnum, IsNumber, IsString, ValidateNested } from 'class-validator';
+import { IsEnum, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
 
 import { ShippingCarrier } from '@/orders/enums';
 
 @InputType()
 export class OrderShippingAddressInput {
-  @Field(() => ShippingCarrier)
+  @Field(() => ShippingCarrier, { nullable: true })
   @IsEnum(ShippingCarrier)
-  carrier!: ShippingCarrier;
+  @IsOptional()
+  carrier?: ShippingCarrier;
 
-  @Field(() => String)
+  @Field(() => String, { nullable: true })
   @IsString()
-  city!: string;
+  @IsOptional()
+  city?: string;
 
-  @Field(() => Int)
+  @Field(() => Int, { nullable: true })
   @IsNumber()
-  branchNumber!: string;
+  @IsOptional()
+  branchNumber?: string;
 }
 
 @InputType()

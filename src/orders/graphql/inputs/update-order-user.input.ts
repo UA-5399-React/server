@@ -4,22 +4,22 @@ import { IsOptional, IsString, ValidateNested } from 'class-validator';
 
 @InputType()
 export class OrderUserInput {
-  @Field(() => String)
+  @Field(() => String, { nullable: true })
   @IsString()
   @IsOptional()
   firstName?: string;
 
-  @Field(() => String)
+  @Field(() => String, { nullable: true })
   @IsString()
   @IsOptional()
   lastName?: string;
 
-  @Field(() => String)
+  @Field(() => String, { nullable: true })
   @IsString()
   @IsOptional()
   email?: string;
 
-  @Field(() => String)
+  @Field(() => String, { nullable: true })
   @IsString()
   @IsOptional()
   phone?: string;
