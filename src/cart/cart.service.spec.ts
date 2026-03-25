@@ -34,6 +34,7 @@ const populateMock = jest.fn();
 const mockCartModel = {
   findOne: jest.fn(),
   findOneAndUpdate: jest.fn(),
+  findById: jest.fn(),
 };
 
 const mockProductModel = {
@@ -130,6 +131,76 @@ describe('CartService', () => {
       await expect(service.updateCart(VALID_USER_ID, updateCartDto)).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  describe('syncCart', () => {
+    it('should sum quantities for existing products and add new products', async () => {
+      const updateCartDto = {
+        items: [
+          { productId: VALID_PRODUCT_ID, quantity: 3 }, // existing product, current qty 2
+          { productId: '507f1f77bcf86cd799439013', quantity: 1 }, // new product
+        ],
+      };
+
+      const newProduct = {
+        _id: new Types.ObjectId('507f1f77bcf86cd799439013'),
+        title: 'New Product',
+        price: 50,
+        productCode: 'TEST-002',
+      };
+
+      mockProductModel.findById.mockImplementation((id) => {
+        if (id === VALID_PRODUCT_ID) return Promise.resolve(mockProduct);
+        if (id === '507f1f77bcf86cd799439013') return Promise.resolve(newProduct);
+        return Promise.resolve(null);
+      });
+
+      const mockCartDoc = {
+        _id: new Types.ObjectId(),
+        userId: new Types.ObjectId(VALID_USER_ID),
+        items: [{ product: mockProduct._id, quantity: 2 }],
+        save: jest.fn().mockResolvedValue(true),
+        set: jest.fn().mockImplementation(function (this: any, key: string, value: any) {
+          this[key] = value;
+        }),
+      };
+
+      const populatedCartDoc = {
+        _id: mockCartDoc._id,
+        userId: mockCartDoc.userId,
+        items: [
+          { product: mockProduct, quantity: 5 }, // 2 + 3
+          { product: newProduct, quantity: 1 },
+        ],
+      };
+
+      mockCartModel.findOne.mockResolvedValue(mockCartDoc);
+
+      const findByIdMockResult = {
+        populate: jest.fn().mockReturnValue({
+          exec: jest.fn().mockResolvedValue(populatedCartDoc),
+        }),
+      };
+      // Overwrite findById only for this test
+      mockCartModel.findById = jest.fn().mockReturnValue(findByIdMockResult);
+
+      const result = await service.syncCart(VALID_USER_ID, updateCartDto);
+
+      expect(mockCartModel.findOne).toHaveBeenCalledWith({
+        userId: new Types.ObjectId(VALID_USER_ID),
+      });
+      expect(mockCartDoc.save).toHaveBeenCalled();
+      expect(mockCartDoc.items).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ quantity: 5 }),
+          expect.objectContaining({ quantity: 1 }),
+        ]),
+      );
+
+      expect(result.userId).toBe(VALID_USER_ID);
+      expect(result.items).toHaveLength(2);
+      expect(result.total).toBe(550); // (100 * 5) + (50 * 1)
     });
   });
 });
