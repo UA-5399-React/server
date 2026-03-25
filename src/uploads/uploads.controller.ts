@@ -11,7 +11,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBody, ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import { CloudinaryService } from './cloudinary.service';
-import { UploadProductImageResponseDto } from './dto/upload-product-image.response.dto';
+import { UploadImageResponseDto } from './dto/upload-image.response.dto';
 import { UploadProductImageBodyDto } from './dto/upload-product-image-body.dto';
 import type { UploadedImageFile } from './types/uploaded-image-file.type';
 
@@ -29,7 +29,7 @@ export class UploadsController {
   @ApiResponse({
     status: 201,
     description: 'Image uploaded successfully',
-    type: UploadProductImageResponseDto,
+    type: UploadImageResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Invalid file type or size' })
   @ApiResponse({ status: 500, description: 'Cloudinary configuration is missing' })
@@ -42,7 +42,7 @@ export class UploadsController {
         .build({ fileIsRequired: true, errorHttpStatusCode: HttpStatus.BAD_REQUEST }),
     )
     file: UploadedImageFile,
-  ): Promise<UploadProductImageResponseDto> {
+  ): Promise<UploadImageResponseDto> {
     return this.cloudinaryService.uploadProductImage(file);
   }
 }
