@@ -36,8 +36,13 @@ export class UsersController {
   @ApiOkResponse({ type: UsersListResponseDto })
   @Get()
   async getUsers(@Query() query: UsersQueryDto): Promise<UsersListResponseDto> {
-    const isActive =
-      query.status === 'active' ? true : query.status === 'blocked' ? false : undefined;
+    let isActive: boolean | undefined;
+
+    if (query.status === 'active') {
+      isActive = true;
+    } else if (query.status === 'blocked') {
+      isActive = false;
+    }
 
     const result = await this.usersService.findAll({
       search: query.search,
