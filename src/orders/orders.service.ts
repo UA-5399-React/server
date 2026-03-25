@@ -26,6 +26,8 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateShippingAddressDto } from './dto/update-shipping-address.dto';
 import { Order, OrderDocument } from './entities';
 import { PaymentStatus } from './enums/payment-status.enum';
+import { UpdateOrderProductsInput } from './graphql/inputs/update-order-items.input';
+import { OrderType } from './graphql/types/order.type';
 import { OrderStatsType } from './graphql/types/order-stats.type';
 import { NON_CANCELLABLE_STATUSES, NON_EDITABLE_ADDRESS_STATUSES } from './orders.constants';
 
@@ -262,6 +264,54 @@ export class OrdersService {
       processingOrders: statusMap[OrderStatus.PROCESSING] ?? 0,
       shippingOrders: statusMap[OrderStatus.SHIPPING] ?? 0,
     };
+  }
+
+  async updateOrderItems(input: UpdateOrderProductsInput): Promise<OrderType> {
+    const items = input.items ?? [];
+
+    console.log('GraphQL input.orderId:', input.orderId);
+    const order = await this.orderModel.findOne({ orderId: input.orderId });
+    console.log('Order found:', order);
+
+    if (!order) throw new NotFoundException('Order not found');
+
+    for (const itemInput of items) {
+      const existingItem = order.items.find((i) => i.product.toString() === itemInput.productId);
+
+      if (itemInput.remove) {
+        order.items = order.items.filter((i) => i.product.toString() !== itemInput.productId);
+        continue;
+      }
+
+      if (existingItem && itemInput.amount) {
+        existingItem.amount = itemInput.amount;
+        continue;
+      }
+
+      if (!existingItem && itemInput.amount) {
+        const product = await this.productModel.findById(itemInput.productId);
+        if (!product) {
+          throw new NotFoundException('Product not found');
+        }
+        order.items.push({
+          product: product._id,
+          title: product.title,
+          imageUrl: product.imageUrl,
+          unitPrice: product.price,
+          amount: itemInput.amount,
+        });
+      }
+    }
+
+    // Recalculate totalPrice after loop
+    order.totalPrice = order.items.reduce((sum, item) => sum + item.unitPrice * item.amount, 0);
+
+    await order.save();
+    const orderObj = order.toObject();
+    return {
+      ...orderObj,
+      id: orderObj._id.toString(),
+    } as unknown as OrderType;
   }
 
   // ─── Private ───────────────────────────────────────────────────────────────
