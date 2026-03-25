@@ -1,24 +1,28 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { Type } from 'class-transformer';
-import { IsString, ValidateNested } from 'class-validator';
+import { IsOptional, IsString, ValidateNested } from 'class-validator';
 
 @InputType()
 export class OrderUserInput {
   @Field(() => String)
   @IsString()
-  firstName!: string;
+  @IsOptional()
+  firstName?: string;
 
   @Field(() => String)
   @IsString()
-  lastName!: string;
+  @IsOptional()
+  lastName?: string;
 
   @Field(() => String)
   @IsString()
-  email!: string;
+  @IsOptional()
+  email?: string;
 
   @Field(() => String)
   @IsString()
-  phone!: string;
+  @IsOptional()
+  phone?: string;
 }
 
 @InputType()
