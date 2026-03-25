@@ -16,3 +16,11 @@ export const REFRESH_TOKEN_COOKIE_OPTIONS: CookieOptions = {
   ...BASE_COOKIE_OPTIONS,
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
+
+export const GOOGLE_CONNECT_TOKEN_COOKIE_OPTIONS: CookieOptions = {
+  ...BASE_COOKIE_OPTIONS,
+  maxAge: 10 * 60 * 1000,
+};
+
+export const GOOGLE_CONNECT_TOKEN_TYPE = 'google-connect' as const;
+export const GOOGLE_URL = '/auth/google' as const;
