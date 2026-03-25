@@ -161,6 +161,9 @@ describe('CartService', () => {
         userId: new Types.ObjectId(VALID_USER_ID),
         items: [{ product: mockProduct._id, quantity: 2 }],
         save: jest.fn().mockResolvedValue(true),
+        set: jest.fn().mockImplementation(function (this: any, key: string, value: any) {
+          this[key] = value;
+        }),
       };
 
       const populatedCartDoc = {
