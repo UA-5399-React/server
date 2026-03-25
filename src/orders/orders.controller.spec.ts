@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Types } from 'mongoose';
 
 import { CreateOrderDto } from './dto/create-order.dto';
+import { GetOrdersQueryDto } from './dto/get-orders-query.dto';
 import { UpdateShippingAddressDto } from './dto/update-shipping-address.dto';
 import { OrderStatus } from './enums/order-status.enum';
 import { PaymentMethod } from './enums/payment-method.enum';
@@ -59,6 +60,7 @@ const mockOrder = {
 
 const mockOrdersService = {
   create: jest.fn(),
+  findAllFiltered: jest.fn(),
   findMyOrders: jest.fn(),
   findMyOrderById: jest.fn(),
   cancelMyOrder: jest.fn(),
@@ -82,6 +84,22 @@ describe('OrdersController', () => {
   afterEach(() => jest.clearAllMocks());
 
   // ─── POST /orders ──────────────────────────────────────────────────────────
+
+  describe('findAll', () => {
+    it('should delegate status and search query params to the service', async () => {
+      const query: GetOrdersQueryDto = {
+        status: OrderStatus.NEW,
+        search: 'john@example.com',
+      };
+
+      mockOrdersService.findAllFiltered.mockResolvedValue([mockOrder]);
+
+      const result = await controller.findAll(query);
+
+      expect(mockOrdersService.findAllFiltered).toHaveBeenCalledWith(query);
+      expect(result).toEqual([mockOrder]);
+    });
+  });
 
   describe('create', () => {
     it('should delegate to service and return the created order', async () => {

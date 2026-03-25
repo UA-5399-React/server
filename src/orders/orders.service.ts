@@ -23,6 +23,7 @@ import { Role } from '@/users/enums/role.enum';
 
 import { ADMIN_ALLOWED_FLOW } from './constants/order-flow';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { GetOrdersQueryDto } from './dto/get-orders-query.dto';
 import { UpdateShippingAddressDto } from './dto/update-shipping-address.dto';
 import { Order, OrderDocument } from './entities';
 import { PaymentStatus } from './enums/payment-status.enum';
@@ -154,6 +155,12 @@ export class OrdersService {
 
   // ─── Admin (used by GraphQL resolver) ─────────────────────────────────────
 
+  async findAllFiltered(query: GetOrdersQueryDto): Promise<Order[]> {
+    const filter = this.buildRestOrdersFilter(query);
+
+    return this.orderModel.find(filter).sort({ createdAt: -1 }).lean();
+  }
+
   async findAll(limit = 20, offset = 0): Promise<Order[]> {
     return this.orderModel.find().sort({ createdAt: -1 }).skip(offset).limit(limit).lean();
   }
@@ -270,6 +277,25 @@ export class OrdersService {
     if (NON_CANCELLABLE_STATUSES.includes(status)) {
       throw new BadRequestException(`Order with status "${status}" can no longer be cancelled.`);
     }
+  }
+
+  private buildRestOrdersFilter(query: GetOrdersQueryDto): Record<string, unknown> {
+    const filter: Record<string, unknown> = {};
+
+    if (query.status) {
+      filter.status = query.status;
+    }
+
+    const normalizedSearch = query.search?.trim();
+
+    if (normalizedSearch) {
+      filter.$or = [
+        { orderId: { $regex: normalizedSearch, $options: 'i' } },
+        { 'user.email': { $regex: normalizedSearch, $options: 'i' } },
+      ];
+    }
+
+    return filter;
   }
 
   private generateOrderId(): string {

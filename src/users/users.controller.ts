@@ -21,15 +21,20 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
+import { Roles } from '@/auth/decorators/Roles';
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
+import { RolesGuard } from '@/auth/guards/roles.guard';
 import type { AuthRequest } from '@/auth/types/auth-request.type';
 import { CloudinaryService } from '@/uploads/cloudinary.service';
 import type { UploadedImageFile } from '@/uploads/types/uploaded-image-file.type';
+import { Role } from '@/users/enums/role.enum';
 
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateMeDto } from './dto/update-me.dto';
 import { UploadAvatarBodyDto } from './dto/upload-avatar-body.dto';
 import { UserResponseDto } from './dto/user-response.dto';
+import { UsersListResponseDto } from './dto/users-list-response.dto';
+import { UsersQueryDto } from './dto/users-query.dto';
 import { toUserResponseDto } from './users.mapper';
 import { UsersService } from './users.service';
 
@@ -40,6 +45,36 @@ export class UsersController {
     private readonly usersService: UsersService,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.SUPER_ADMIN)
+  @ApiOkResponse({ type: UsersListResponseDto })
+  @Get()
+  async getUsers(@Query() query: UsersQueryDto): Promise<UsersListResponseDto> {
+    let isActive: boolean | undefined;
+
+    if (query.status === 'active') {
+      isActive = true;
+    } else if (query.status === 'blocked') {
+      isActive = false;
+    }
+
+    const result = await this.usersService.findAll({
+      search: query.search,
+      page: query.page,
+      limit: query.limit,
+      filter: {
+        role: query.role,
+        isActive,
+      },
+    });
+
+    return {
+      ...result,
+      items: result.items.map(toUserResponseDto),
+    };
+  }
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
