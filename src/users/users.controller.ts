@@ -6,11 +6,11 @@ import {
   HttpStatus,
   ParseFilePipeBuilder,
   Patch,
+  Query,
   Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
-  Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
