@@ -29,6 +29,32 @@ input CreateCategoryInput {
   title: String!
 }
 
+input CreateOrderInput {
+  items: [CreateOrderItemInput!]!
+  message: String
+  paymentMethod: PaymentMethod!
+  shippingAddress: CreateOrderShippingAddressInput!
+  user: CreateOrderUserInput!
+}
+
+input CreateOrderItemInput {
+  amount: Int!
+  product: ID!
+}
+
+input CreateOrderShippingAddressInput {
+  branchNumber: String!
+  carrier: ShippingCarrier!
+  city: String!
+}
+
+input CreateOrderUserInput {
+  email: String!
+  firstName: String!
+  lastName: String!
+  phone: String!
+}
+
 input CreateProductInput {
   categories: [String!]
   description: String
@@ -60,9 +86,11 @@ scalar DateTime
 
 type Mutation {
   createCategory(createCategoryInput: CreateCategoryInput!): CategoryType!
+  createOrder(input: CreateOrderInput!): OrderType!
   createProduct(input: CreateProductInput!): ProductType!
   createUser(input: CreateUserInput!): CreateUserPayload!
   deleteCategory(id: ID!): CategoryType!
+  deleteOrder(orderId: String!): Boolean!
   deleteProduct(id: ID!): Boolean!
   duplicateProduct(id: ID!): ProductType!
   updateCategory(updateCategoryInput: UpdateCategoryInput!): CategoryType!

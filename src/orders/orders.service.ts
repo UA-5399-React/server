@@ -356,6 +356,14 @@ export class OrdersService {
       id: orderObj._id.toString(),
     } as unknown as OrderType;
   }
+
+  async remove(orderId: string): Promise<void> {
+    const deleted = await this.orderModel.findOneAndDelete({ orderId }).exec();
+
+    if (!deleted) {
+      throw new NotFoundException('Order not found');
+    }
+  }
   // ─── Private ───────────────────────────────────────────────────────────────
 
   private assertCancellable(status: OrderStatus): void {
