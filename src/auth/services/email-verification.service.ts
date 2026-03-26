@@ -1,5 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
+import { ROUTES } from '@/auth/constants';
 import { CryptoService } from '@/auth/crypto/crypto.service';
 import { TokenType } from '@/auth/tokens/token.schema';
 import { TokensService } from '@/auth/tokens/tokens.service';
@@ -14,6 +16,7 @@ export class EmailVerificationService {
     private readonly cryptoService: CryptoService,
     private readonly tokensService: TokensService,
     private readonly mailService: MailService,
+    private readonly configService: ConfigService,
   ) {}
 
   async createAndSendVerification(user: UserDocument) {
@@ -26,7 +29,7 @@ export class EmailVerificationService {
       expiresAt,
     });
 
-    const verifyUrl = `${process.env.BACKEND_URL}/auth/confirm-email?token=${rawToken}`;
+    const verifyUrl = this.buildEmailVerificationUrl(rawToken);
 
     await this.mailService.sendEmailVerification(user.email, verifyUrl);
   }
@@ -83,7 +86,7 @@ export class EmailVerificationService {
       expiresAt,
     });
 
-    const verifyUrl = `${process.env.BACKEND_URL}/auth/confirm-email?token=${rawToken}`;
+    const verifyUrl = this.buildEmailVerificationUrl(rawToken);
 
     await this.mailService.sendEmailVerification(user.email, verifyUrl);
 
@@ -102,5 +105,9 @@ export class EmailVerificationService {
       tokenHash,
       expiresAt,
     };
+  }
+
+  buildEmailVerificationUrl(token: string): string {
+    return `${this.configService.getOrThrow<string>('CLIENT_URL')}${ROUTES.AUTH.CONFIRM_EMAIL}?token=${token}`;
   }
 }

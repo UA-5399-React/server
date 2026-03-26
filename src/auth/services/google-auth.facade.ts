@@ -7,7 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type { Response } from 'express';
 
-import { GOOGLE_URL } from '@/auth/constants/auth.constants';
+import { ROUTES } from '@/auth/constants';
 import { GoogleConnectStatus } from '@/auth/enums/google-connect-status.enum';
 import { AuthCookiesService } from '@/auth/services/auth-cookies.service';
 import { GoogleAccountService } from '@/auth/services/google-account-service';
@@ -29,7 +29,7 @@ export class GoogleAuthFacade {
 
     this.cookiesService.setGoogleConnectCookie(res, token);
 
-    return res.redirect(GOOGLE_URL);
+    return res.redirect(ROUTES.AUTH.GOOGLE);
   }
 
   async handleCallback(input: GoogleCallbackInput, res: Response) {
@@ -100,7 +100,7 @@ export class GoogleAuthFacade {
   }
 
   private buildGoogleConnectRedirect(status: GoogleConnectStatus): string {
-    const baseUrl = this.configService.getOrThrow<string>('GOOGLE_CONNECT_REDIRECT');
+    const baseUrl = `${this.configService.getOrThrow<string>('CLIENT_URL')}${ROUTES.USERS.PROFILE}`;
     const url = new URL(baseUrl);
     url.searchParams.set('google', status);
     return url.toString();

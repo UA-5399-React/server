@@ -23,4 +23,3 @@ export const GOOGLE_CONNECT_TOKEN_COOKIE_OPTIONS: CookieOptions = {
 };
 
 export const GOOGLE_CONNECT_TOKEN_TYPE = 'google-connect' as const;
-export const GOOGLE_URL = '/auth/google' as const;

@@ -8,7 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 
 import { AuthService } from '@/auth/auth.service';
-import { GOOGLE_CONNECT_TOKEN_TYPE } from '@/auth/constants/auth.constants';
+import { GOOGLE_CONNECT_TOKEN_TYPE } from '@/auth/constants';
 import { UserValidatorService } from '@/auth/services/user-validator.service';
 import { AuthUser } from '@/auth/types/auth-user.type';
 import { GoogleAuthUser } from '@/auth/types/google-auth-user.type';

@@ -6,7 +6,7 @@ import {
   BASE_COOKIE_OPTIONS,
   GOOGLE_CONNECT_TOKEN_COOKIE_OPTIONS,
   REFRESH_TOKEN_COOKIE_OPTIONS,
-} from '@/auth/constants/auth.constants';
+} from '@/auth/constants';
 
 @Injectable()
 export class AuthCookiesService {

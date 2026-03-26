@@ -1,4 +1,4 @@
-import { GOOGLE_CONNECT_TOKEN_TYPE } from '@/auth/constants/auth.constants';
+import { GOOGLE_CONNECT_TOKEN_TYPE } from '@/auth/constants/auth.cookies';
 
 export type GoogleConnectTokenPayload = {
   sub: string;

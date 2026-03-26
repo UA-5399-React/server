@@ -1,12 +1,12 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { NextFunction, Request, Response } from 'express';
 
-import { BASE_COOKIE_OPTIONS } from '@/auth/constants/auth.constants';
+import { BASE_COOKIE_OPTIONS, ROUTES } from '@/auth/constants';
 
 @Injectable()
 export class RedirectUrlMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
-    if (req.path === '/auth/google') {
+    if (req.path === ROUTES.AUTH.GOOGLE) {
       const redirect = typeof req.query.redirect === 'string' ? req.query.redirect : '/';
 
       const redirectPath = redirect.startsWith('/') ? redirect : '/';
