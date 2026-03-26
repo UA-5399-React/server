@@ -25,6 +25,8 @@ import { UserType } from '@/users/graphql/types/user.type';
 import { UsersPage } from '@/users/graphql/types/users-page.type';
 import { UsersService } from '@/users/users.service';
 
+import { UserStatsType } from './graphql/types/user-stats.type';
+
 @UseGuards(GqlAuthGuard)
 @Roles(Role.ADMIN, Role.SUPER_ADMIN)
 @Resolver(() => UserType)
@@ -71,5 +73,10 @@ export class UsersResolver {
       return null;
     }
     return loaders.userById.load(user.createdBy.toString());
+  }
+
+  @Query(() => UserStatsType)
+  async userStats() {
+    return this.usersService.getStats();
   }
 }

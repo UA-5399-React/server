@@ -1,10 +1,15 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Types } from 'mongoose';
 
+import { Role } from '@/users/enums/role.enum';
+
 import { CreateOrderDto } from './dto/create-order.dto';
+import { GetOrdersQueryDto } from './dto/get-orders-query.dto';
+import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { UpdateShippingAddressDto } from './dto/update-shipping-address.dto';
 import { Order } from './entities/order.schema';
+import { OrderStatus } from './enums/order-status.enum';
 import { OrdersService } from './orders.service';
 
 // TODO: remove static userId and restore auth once login is working
@@ -16,6 +21,20 @@ const DEV_USER_ID = new Types.ObjectId('000000000000000000000001');
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Get orders list with optional status and search filtering' })
+  @ApiQuery({ name: 'status', required: false, enum: OrderStatus })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Regex search by orderId or customer email',
+    example: 'ORD-20240318-AB12C',
+  })
+  @ApiResponse({ status: 200, type: [Order] })
+  findAll(@Query() query: GetOrdersQueryDto): Promise<Order[]> {
+    return this.ordersService.findAllFiltered(query);
+  }
 
   @Post()
   @ApiOperation({ summary: 'Place a new order' })
@@ -78,5 +97,19 @@ export class OrdersController {
   ): Promise<Order> {
     // TODO: replace DEV_USER_ID with @CurrentUser('_id') userId: Types.ObjectId
     return this.ordersService.updateShippingAddress(orderId, DEV_USER_ID, dto);
+  }
+
+  @Patch(':orderId/status')
+  @ApiOperation({ summary: 'Update order status (admin only)' })
+  @ApiParam({ name: 'orderId', example: 'ORD-20240318-AB12C' })
+  @ApiResponse({ status: 200, type: Order })
+  @ApiResponse({ status: 400, description: 'Transition not allowed. ' })
+  @ApiResponse({ status: 404, description: 'Order not found' })
+  updateOrderStatus(
+    @Param('orderId') orderId: string,
+    @Body() dto: UpdateOrderStatusDto,
+  ): Promise<Order> {
+    // TODO: replace Role.ADMIN with real role from @CurrentUser once auth is ready
+    return this.ordersService.updateOrderStatus(orderId, dto.status, Role.ADMIN);
   }
 }

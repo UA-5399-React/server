@@ -15,6 +15,7 @@ import { PaginatedResult } from '@/common/types/paginated-result.type';
 import { buildDateFilter } from '@/common/utils/date.utils';
 import { buildPaginatedResult, getPagination } from '@/common/utils/pagination.util';
 import { buildSort } from '@/common/utils/sorting.util';
+import { CloudinaryService } from '@/uploads/cloudinary.service';
 import { CreateUserData } from '@/users/dto/create-user.type';
 import { UpdateMeDto } from '@/users/dto/update-me.dto';
 import { User, UserDocument } from '@/users/entities/user.schema';
@@ -28,6 +29,7 @@ import { UserListItem } from '@/users/types/user-list-item.type';
 import { buildUpdateData } from '@/users/utils/build-update-data';
 
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { UserStatsType } from './graphql/types/user-stats.type';
 
 @Injectable()
 export class UsersService {
@@ -35,6 +37,7 @@ export class UsersService {
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
     private readonly cryptoService: CryptoService,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   async findByEmail(userEmail: string): Promise<UserDocument | null> {
@@ -103,6 +106,26 @@ export class UsersService {
 
   private normalizedEmail(email: string): string {
     return email.trim().toLowerCase();
+  }
+
+  async updateAvatar(
+    userId: string,
+    avatarUrl: string,
+    avatarPublicId: string,
+  ): Promise<UserDocument> {
+    const user = await this.findById(userId);
+    const oldAvatarPublicId = user.avatarPublicId;
+
+    user.avatarUrl = avatarUrl;
+    user.avatarPublicId = avatarPublicId;
+
+    await user.save();
+
+    if (oldAvatarPublicId && oldAvatarPublicId !== avatarPublicId) {
+      await this.cloudinaryService.deleteImage(oldAvatarPublicId).catch(() => null);
+    }
+
+    return user;
   }
 
   async ensureEmailNotTaken(email: string): Promise<void> {
@@ -246,5 +269,14 @@ export class UsersService {
     }
 
     return updatedUser;
+  }
+
+  async getStats(): Promise<UserStatsType> {
+    const [totalUsers, activeUsers] = await Promise.all([
+      this.userModel.countDocuments(),
+      this.userModel.countDocuments({ isActive: true }),
+    ]);
+    const blockedUsers = totalUsers - activeUsers;
+    return { totalUsers, activeUsers, blockedUsers };
   }
 }
