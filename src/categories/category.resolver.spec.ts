@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CategoryResolver } from '@/categories/category.resolver';
 import { CategoryService } from '@/categories/category.service';
 import { CategoriesQueryArgs } from '@/categories/graphql/category-query.args';
+import { AppLogger } from '@/logger/app-logger.service';
 
 const ID = '67ca4f63c89e9c1a5d9f5f10';
 const mockCategory = {
@@ -41,6 +42,20 @@ describe('CategoryResolver', () => {
         {
           provide: CategoryService,
           useValue: mockCategoryService,
+        },
+        {
+          provide: AppLogger,
+          useValue: {
+            info: jest.fn(),
+            http: jest.fn(),
+            graphql: jest.fn(),
+            security: jest.fn(),
+            log: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+            debug: jest.fn(),
+            verbose: jest.fn(),
+          },
         },
       ],
     }).compile();
