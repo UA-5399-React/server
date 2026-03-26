@@ -66,7 +66,10 @@ type Mutation {
   deleteProduct(id: ID!): Boolean!
   duplicateProduct(id: ID!): ProductType!
   updateCategory(updateCategoryInput: UpdateCategoryInput!): CategoryType!
+  updateOrderItems(input: UpdateOrderProductsInput!): OrderType!
+  updateOrderShippingAddress(input: UpdateOrderShippingAddressInput!): OrderType!
   updateOrderStatus(input: UpdateOrderStatusInput!): OrderType!
+  updateOrderUserInfo(input: UpdateOrderUserInput!): OrderType!
   updateProduct(id: ID!, input: UpdateProductInput!): ProductType!
   updateUser(input: UpdateUserInput!): UserType!
 }
@@ -82,6 +85,12 @@ type OrderItemType {
   product: ID!
   title: String!
   unitPrice: Float!
+}
+
+input OrderShippingAddressInput {
+  branchNumber: Int
+  carrier: ShippingCarrier
+  city: String
 }
 
 type OrderStatsType {
@@ -115,6 +124,13 @@ type OrderType {
   updatedAt: DateTime!
   user: OrderUserType!
   userId: ID!
+}
+
+input OrderUserInput {
+  email: String
+  firstName: String
+  lastName: String
+  phone: String
 }
 
 type OrderUserType {
@@ -266,9 +282,30 @@ input UpdateCategoryInput {
   title: String
 }
 
+input UpdateOrderItemInput {
+  amount: Int
+  productId: String!
+  remove: Boolean
+}
+
+input UpdateOrderProductsInput {
+  items: [UpdateOrderItemInput!]!
+  orderId: String!
+}
+
+input UpdateOrderShippingAddressInput {
+  orderId: String!
+  shippingAddress: OrderShippingAddressInput!
+}
+
 input UpdateOrderStatusInput {
   orderId: String!
   status: OrderStatus!
+}
+
+input UpdateOrderUserInput {
+  orderId: String!
+  user: OrderUserInput!
 }
 
 input UpdateProductInput {

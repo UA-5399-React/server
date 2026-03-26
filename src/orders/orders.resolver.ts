@@ -13,6 +13,9 @@ import { OrdersService } from '@/orders/orders.service';
 import { Role } from '@/users/enums/role.enum';
 
 import { UpdateOrderStatusInput } from './graphql/inputs/status-update.inputs';
+import { UpdateOrderProductsInput } from './graphql/inputs/update-order-items.input';
+import { UpdateOrderShippingAddressInput } from './graphql/inputs/update-order-shipping.input';
+import { UpdateOrderUserInput } from './graphql/inputs/update-order-user.input';
 import { OrderStatsType } from './graphql/types/order-stats.type';
 import { mapOrderToGraphQL } from './graphql/utils/map-order';
 
@@ -63,5 +66,22 @@ export class OrdersResolver {
     );
 
     return mapOrderToGraphQL(order);
+  }
+
+  @Mutation(() => OrderType)
+  async updateOrderItems(@Args('input') input: UpdateOrderProductsInput): Promise<OrderType> {
+    return this.ordersService.updateOrderItems(input);
+  }
+
+  @Mutation(() => OrderType)
+  async updateOrderUserInfo(@Args('input') input: UpdateOrderUserInput): Promise<OrderType> {
+    return this.ordersService.updateOrderUserInfo(input);
+  }
+
+  @Mutation(() => OrderType)
+  async updateOrderShippingAddress(
+    @Args('input') input: UpdateOrderShippingAddressInput,
+  ): Promise<OrderType> {
+    return this.ordersService.updateOrderShippingAddress(input);
   }
 }
