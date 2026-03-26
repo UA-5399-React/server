@@ -80,7 +80,9 @@ export class AuthService {
       expiresAt,
     });
 
-    const verifyUrl = `${process.env.BACKEND_URL}/auth/confirm-email?token=${rawToken}`;
+    const verifyUrl = `${this.configService.getOrThrow<string>(
+      'BACKEND_URL',
+    )}/auth/confirm-email?token=${rawToken}`;
 
     await this.mailService.sendEmailVerification(createdUser.email, verifyUrl);
 
@@ -190,7 +192,9 @@ export class AuthService {
       expiresAt,
     });
 
-    const verifyUrl = `${process.env.BACKEND_URL}/auth/confirm-email?token=${rawToken}`;
+    const verifyUrl = `${this.configService.getOrThrow<string>(
+      'BACKEND_URL',
+    )}/auth/confirm-email?token=${rawToken}`;
 
     await this.mailService.sendEmailVerification(user.email, verifyUrl);
 
