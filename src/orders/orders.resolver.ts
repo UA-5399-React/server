@@ -1,5 +1,6 @@
-import { NotFoundException, UseGuards } from '@nestjs/common';
+import { ForbiddenException, NotFoundException, UseGuards } from '@nestjs/common';
 import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { Types } from 'mongoose';
 
 import { CurrentUser } from '@/auth/decorators/current-user.decorator';
 import { Roles } from '@/auth/decorators/Roles';
@@ -13,6 +14,7 @@ import { toOrderType } from '@/orders/orders.mapper';
 import { OrdersService } from '@/orders/orders.service';
 import { Role } from '@/users/enums/role.enum';
 
+import { CreateOrderInput } from './graphql/inputs/create-order.input';
 import { UpdateOrderStatusInput } from './graphql/inputs/status-update.inputs';
 import { UpdateOrderProductsInput } from './graphql/inputs/update-order-items.input';
 import { UpdateOrderShippingAddressInput } from './graphql/inputs/update-order-shipping.input';
@@ -56,6 +58,22 @@ export class OrdersResolver {
   }
 
   @Mutation(() => OrderType)
+  async createOrder(
+    @Args('input') input: CreateOrderInput,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<OrderType> {
+    const order = await this.ordersService.create(input, new Types.ObjectId(user.sub));
+
+    const plain = (order as any).toObject();
+
+    return {
+      ...plain,
+      id: plain._id.toString(),
+      userId: plain.userId.toString(),
+    } as unknown as OrderType;
+  }
+
+  @Mutation(() => OrderType)
   async updateOrderStatus(
     @Args('input') input: UpdateOrderStatusInput,
     @CurrentUser() user: JwtPayload,
@@ -84,5 +102,14 @@ export class OrdersResolver {
     @Args('input') input: UpdateOrderShippingAddressInput,
   ): Promise<OrderType> {
     return this.ordersService.updateOrderShippingAddress(input);
+  }
+
+  @Mutation(() => Boolean)
+  async deleteOrder(@Args('orderId') orderId: string, @CurrentUser() user: JwtPayload) {
+    if (user.role !== Role.SUPER_ADMIN) {
+      throw new ForbiddenException('Not allowed');
+    }
+    await this.ordersService.remove(orderId);
+    return true;
   }
 }
