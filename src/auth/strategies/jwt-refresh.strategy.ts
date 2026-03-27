@@ -3,13 +3,17 @@ import { PassportStrategy } from '@nestjs/passport';
 import type { Request } from 'express';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
+import { UserValidatorService } from '@/auth/services/user-validator.service';
 import type { AuthUser } from '@/auth/types/auth-user.type';
 import type { JwtPayload } from '@/auth/types/jwt-payload.type';
 import { UsersService } from '@/users/users.service';
 
 @Injectable()
 export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
-  constructor(private readonly usersService: UsersService) {
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly userValidator: UserValidatorService,
+  ) {
     super({
       ignoreExpiration: false,
       secretOrKey: process.env.JWT_REFRESH_SECRET,
@@ -27,9 +31,9 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
     }
     const user = await this.usersService.findById(payload.sub);
 
-    if (!user.isActive) {
-      throw new UnauthorizedException('User account is deactivated');
-    }
+    this.userValidator.ensureActive(user);
+    this.userValidator.ensureEmailConfirmed(user);
+
     return {
       id: payload.sub,
       email: payload.email,

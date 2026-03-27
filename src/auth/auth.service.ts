@@ -1,15 +1,17 @@
-import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 
 import { CryptoService } from '@/auth/crypto/crypto.service';
+import { EmailVerificationService } from '@/auth/services/email-verification.service';
+import { UserValidatorService } from '@/auth/services/user-validator.service';
 import { AuthUser } from '@/auth/types/auth-user.type';
 import { JwtPayload } from '@/auth/types/jwt-payload.type';
 import { TokenPair } from '@/auth/types/token-pair.type';
 import { AppLogger } from '@/logger/app-logger.service';
 import { RegisterResponseDto } from '@/users/dto/register-resp.dto';
 import { SignUpDto } from '@/users/dto/sign-up.dto';
-import { Role } from '@/users/enums/Role';
+import { Role } from '@/users/enums/role.enum';
 import { UsersService } from '@/users/users.service';
 
 @Injectable()
@@ -20,6 +22,8 @@ export class AuthService {
     private readonly userService: UsersService,
     private readonly cryptoService: CryptoService,
     private readonly logger: AppLogger,
+    private readonly userValidatorService: UserValidatorService,
+    private readonly emailVerificationService: EmailVerificationService,
   ) {}
 
   async generateTokens(user: AuthUser): Promise<TokenPair> {
@@ -48,7 +52,6 @@ export class AuthService {
 
   async login(user: AuthUser): Promise<TokenPair> {
     const tokens = await this.generateTokens(user);
-
     return { ...tokens };
   }
 
@@ -57,11 +60,13 @@ export class AuthService {
 
     const passwordHash = await this.cryptoService.hashPassword(dto.password);
 
-    await this.userService.create({
+    const createdUser = await this.userService.create({
       email: dto.email,
       passwordHash,
       role: Role.CUSTOMER,
     });
+
+    await this.emailVerificationService.createAndSendVerification(createdUser);
 
     return {
       status: 'success',
@@ -77,13 +82,15 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    if (!user.isActive) {
-      this.logger.security('Blocked inactive user access', {
+    this.userValidatorService.ensureActive(user);
+
+    if (!user.passwordHash) {
+      this.logger.security('Login failed: password login is not available', {
         id: user.id,
         email: user.email,
         role: user.role,
       });
-      throw new ForbiddenException('User account is deactivated');
+      throw new UnauthorizedException('Invalid credentials');
     }
 
     const isPasswordValid = await this.cryptoService.comparePassword(password, user.passwordHash);
@@ -95,6 +102,8 @@ export class AuthService {
       });
       throw new UnauthorizedException('Invalid credentials');
     }
+
+    this.userValidatorService.ensureEmailConfirmed(user);
 
     this.userService.updateLastLogin(user.id).catch((err: unknown) => {
       this.logger.warn('Failed to update lastLoginAt', {

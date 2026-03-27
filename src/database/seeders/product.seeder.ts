@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
+import { Category, CategoryDocument } from '@/categories/entities/categories.schema';
 import { Product, ProductDocument } from '@/products/entities/product.schema';
 import { ProductStatus } from '@/products/enums/product-status.enum';
 
@@ -9,7 +10,10 @@ import { ProductStatus } from '@/products/enums/product-status.enum';
 export class ProductSeeder {
   private readonly logger = new Logger(ProductSeeder.name);
 
-  constructor(@InjectModel(Product.name) private readonly productModel: Model<ProductDocument>) {}
+  constructor(
+    @InjectModel(Product.name) private readonly productModel: Model<ProductDocument>,
+    @InjectModel(Category.name) private readonly categoryModel: Model<CategoryDocument>,
+  ) {}
 
   async seed(clear: boolean = false) {
     const { faker } = await import('@faker-js/faker');
@@ -20,6 +24,16 @@ export class ProductSeeder {
     }
 
     this.logger.log('Starting products seeding...');
+
+    const categories = await this.categoryModel.find().select('_id depth title').lean();
+
+    if (categories.length === 0) {
+      throw new Error('No categories found. Seed categories before seeding products.');
+    }
+
+    const assignableCategories = categories.filter((category) => category.depth === 2);
+    const availableCategories = assignableCategories.length > 0 ? assignableCategories : categories;
+    const guaranteedCategories = faker.helpers.shuffle([...categories]);
 
     const techImages = [
       'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=800&h=1200&fit=crop',
@@ -39,15 +53,33 @@ export class ProductSeeder {
       'https://images.unsplash.com/photo-1627509493009-9249a2ad2459?w=800&h=1200&fit=crop',
     ];
 
-    const productsToCreate = 50;
+    const productsToCreate = Math.max(50, guaranteedCategories.length);
     const products: Partial<Product>[] = [];
     const last = await this.productModel.findOne().sort({ productCode: -1 }).select('productCode');
 
     let nextNumber = last?.productCode ? Number(last.productCode) + 1 : 1;
 
     for (let i = 0; i < productsToCreate; i++) {
-      const productCode = String(nextNumber).padStart(7, '0'); // 0000001, 0000002...
+      const productCode = String(nextNumber).padStart(7, '0');
       nextNumber++;
+
+      const categoriesForProduct =
+        i < guaranteedCategories.length
+          ? [
+              guaranteedCategories[i]._id,
+              ...faker.helpers.arrayElements(
+                availableCategories
+                  .filter(
+                    (category) => String(category._id) !== String(guaranteedCategories[i]._id),
+                  )
+                  .map((category) => category._id),
+                faker.number.int({ min: 0, max: 2 }),
+              ),
+            ]
+          : faker.helpers.arrayElements(
+              availableCategories.map((category) => category._id),
+              faker.number.int({ min: 1, max: 3 }),
+            );
 
       const product = {
         productCode,
@@ -60,15 +92,15 @@ export class ProductSeeder {
           ProductStatus.DRAFT,
         ]),
         imageUrl: faker.helpers.arrayElement(techImages),
-        categories: faker.helpers.arrayElements(
-          ['Laptop', 'Smartphone', 'Audio', 'Accessories', 'Gaming', 'Apple', 'Samsung'],
-          faker.number.int({ min: 1, max: 3 }),
-        ),
+        categories: categoriesForProduct,
       };
+
       products.push(product as unknown as Partial<Product>);
     }
 
     await this.productModel.insertMany(products);
-    this.logger.log(`Successfully seeded ${productsToCreate} products! 🎉`);
+    this.logger.log(
+      `Successfully seeded ${productsToCreate} products with ${guaranteedCategories.length} guaranteed category assignments!`,
+    );
   }
 }

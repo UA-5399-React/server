@@ -8,7 +8,10 @@ import { GlobalExceptionFilter } from './filters/global-exception.filter';
 import { AppLogger } from './logger/app-logger.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: true,
+    rawBody: true,
+  });
 
   const appLogger = app.get(AppLogger);
   app.useLogger(appLogger);
@@ -33,7 +36,6 @@ async function bootstrap() {
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
-
   appLogger.log(`Server started on port ${port}`, 'Bootstrap');
   appLogger.log(`Swagger: http://localhost:${port}/api`, 'Bootstrap');
 }

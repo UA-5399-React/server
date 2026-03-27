@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { HydratedDocument, Types } from 'mongoose';
 
-import { Role } from '@/users/enums/Role';
+import { Role } from '@/users/enums/role.enum';
 
 export type UserDocument = HydratedDocument<User>;
 
@@ -13,8 +13,8 @@ export class User {
   email!: string;
 
   @ApiProperty({ example: 'hashed_password' })
-  @Prop({ required: true, select: false })
-  passwordHash!: string;
+  @Prop({ required: false, select: false })
+  passwordHash?: string;
 
   @ApiProperty({ enum: Role })
   @Prop({ type: String, enum: Role, default: Role.CUSTOMER })
@@ -44,13 +44,23 @@ export class User {
   @Prop({ trim: true })
   avatarUrl?: string;
 
+  @ApiPropertyOptional({ example: 'avatars/avatar-123456' })
+  @Prop({ trim: true })
+  avatarPublicId?: string;
+
   @ApiPropertyOptional()
-  @Prop({ type: Types.ObjectId, ref: 'User', default: null })
-  createdBy?: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: User.name, default: null })
+  createdBy?: Types.ObjectId | null;
 
   @ApiProperty({ example: true })
-  @Prop({ default: true })
+  @Prop({ default: false })
   isEmailConfirmed!: boolean;
+
+  readonly createdAt!: Date;
+  readonly updatedAt!: Date;
+
+  @Prop({ required: false, unique: true, sparse: true })
+  googleId?: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
