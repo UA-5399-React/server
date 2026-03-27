@@ -1,7 +1,9 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Types } from 'mongoose';
 
+import { CurrentUser } from '@/auth/decorators/current-user.decorator';
+import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { Role } from '@/users/enums/role.enum';
 
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -12,11 +14,8 @@ import { Order } from './entities/order.schema';
 import { OrderStatus } from './enums/order-status.enum';
 import { OrdersService } from './orders.service';
 
-// TODO: remove static userId and restore auth once login is working
-// @ApiBearerAuth()
-// @UseGuards(JwtAuthGuard)
-const DEV_USER_ID = new Types.ObjectId('000000000000000000000001');
-
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @ApiTags('Orders')
 @Controller('orders')
 export class OrdersController {
@@ -40,17 +39,18 @@ export class OrdersController {
   @ApiOperation({ summary: 'Place a new order' })
   @ApiResponse({ status: 201, type: Order })
   @ApiResponse({ status: 400, description: 'One or more products are unavailable.' })
-  create(@Body() dto: CreateOrderDto): Promise<Order> {
-    // TODO: replace DEV_USER_ID with @CurrentUser('_id') userId: Types.ObjectId
-    return this.ordersService.create(dto, DEV_USER_ID);
+  create(
+    @Body() dto: CreateOrderDto,
+    @CurrentUser('_id') userId: Types.ObjectId,
+  ): Promise<Order & { sessionUrl?: string }> {
+    return this.ordersService.create(dto, userId);
   }
 
   @Get('my')
   @ApiOperation({ summary: 'Get all orders belonging to the current user' })
   @ApiResponse({ status: 200, type: [Order] })
-  findMyOrders(): Promise<Order[]> {
-    // TODO: replace DEV_USER_ID with @CurrentUser('_id') userId: Types.ObjectId
-    return this.ordersService.findMyOrders(DEV_USER_ID);
+  findMyOrders(@CurrentUser('_id') userId: Types.ObjectId): Promise<Order[]> {
+    return this.ordersService.findMyOrders(userId);
   }
 
   @Get('my/:orderId')
@@ -59,9 +59,11 @@ export class OrdersController {
   @ApiResponse({ status: 200, type: Order })
   @ApiResponse({ status: 403, description: 'Access denied.' })
   @ApiResponse({ status: 404, description: 'Order not found.' })
-  findMyOrderById(@Param('orderId') orderId: string): Promise<Order> {
-    // TODO: replace DEV_USER_ID with @CurrentUser('_id') userId: Types.ObjectId
-    return this.ordersService.findMyOrderById(orderId, DEV_USER_ID);
+  findMyOrderById(
+    @Param('orderId') orderId: string,
+    @CurrentUser('_id') userId: Types.ObjectId,
+  ): Promise<Order> {
+    return this.ordersService.findMyOrderById(orderId, userId);
   }
 
   @Patch('my/:orderId/cancel')
@@ -75,9 +77,11 @@ export class OrdersController {
   @ApiResponse({ status: 200, type: Order })
   @ApiResponse({ status: 400, description: 'Order cannot be cancelled in its current status.' })
   @ApiResponse({ status: 403, description: 'Access denied.' })
-  cancelMyOrder(@Param('orderId') orderId: string): Promise<Order> {
-    // TODO: replace DEV_USER_ID with @CurrentUser('_id') userId: Types.ObjectId
-    return this.ordersService.cancelMyOrder(orderId, DEV_USER_ID);
+  cancelMyOrder(
+    @Param('orderId') orderId: string,
+    @CurrentUser('_id') userId: Types.ObjectId,
+  ): Promise<Order> {
+    return this.ordersService.cancelMyOrder(orderId, userId);
   }
 
   @Patch('my/:orderId/shipping-address')
@@ -94,9 +98,9 @@ export class OrdersController {
   updateShippingAddress(
     @Param('orderId') orderId: string,
     @Body() dto: UpdateShippingAddressDto,
+    @CurrentUser('_id') userId: Types.ObjectId,
   ): Promise<Order> {
-    // TODO: replace DEV_USER_ID with @CurrentUser('_id') userId: Types.ObjectId
-    return this.ordersService.updateShippingAddress(orderId, DEV_USER_ID, dto);
+    return this.ordersService.updateShippingAddress(orderId, userId, dto);
   }
 
   @Patch(':orderId/status')
@@ -109,7 +113,6 @@ export class OrdersController {
     @Param('orderId') orderId: string,
     @Body() dto: UpdateOrderStatusDto,
   ): Promise<Order> {
-    // TODO: replace Role.ADMIN with real role from @CurrentUser once auth is ready
     return this.ordersService.updateOrderStatus(orderId, dto.status, Role.ADMIN);
   }
 }
