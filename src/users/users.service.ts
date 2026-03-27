@@ -248,6 +248,7 @@ export class UsersService {
         firstName: input.firstName?.trim(),
         lastName: input.lastName?.trim(),
         phone: input.phone?.trim(),
+        avatarUrl: input.avatarUrl?.trim(),
         isActive: true,
         isEmailConfirmed: true,
       },
