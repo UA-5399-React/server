@@ -1,4 +1,3 @@
-import { faker } from '@faker-js/faker';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -12,7 +11,6 @@ import { User, UserDocument } from '@/users/entities/user.schema';
 import { Role } from '@/users/enums/role.enum';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
 const UKRAINIAN_CITIES = [
   'Kyiv',
   'Lviv',
@@ -26,8 +24,6 @@ const UKRAINIAN_CITIES = [
   'Sumy',
 ];
 
-// Order status drives payment status — we don't want "delivered" orders
-// sitting as payment pending.
 const PAYMENT_STATUS_BY_ORDER: Record<OrderStatus, PaymentStatus> = {
   [OrderStatus.NEW]: PaymentStatus.PAID,
   [OrderStatus.PROCESSING]: PaymentStatus.PAID,
@@ -36,14 +32,7 @@ const PAYMENT_STATUS_BY_ORDER: Record<OrderStatus, PaymentStatus> = {
   [OrderStatus.CANCELLED]: PaymentStatus.FAILED,
 };
 
-function generateOrderId(index: number): string {
-  const date = faker.date.recent({ days: 90 });
-  const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
-  return `ORD-${dateStr}-${String(index).padStart(4, '0')}`;
-}
-
 // ─── Seeder ───────────────────────────────────────────────────────────────────
-
 @Injectable()
 export class OrderSeeder {
   private readonly logger = new AppLogger();
@@ -55,6 +44,16 @@ export class OrderSeeder {
   ) {}
 
   async seed(clear: boolean = false): Promise<void> {
+    // Dynamic import for deployment / standalone seeding
+    const { faker } = await import('@faker-js/faker');
+
+    // Local helper to generate unique orderId
+    function generateOrderId(index: number): string {
+      const date = faker.date.recent({ days: 90 });
+      const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
+      return `ORD-${dateStr}-${String(index).padStart(4, '0')}`;
+    }
+
     if (clear) {
       this.logger.log('Clearing existing orders...');
       await this.orderModel.deleteMany({});
@@ -63,7 +62,6 @@ export class OrderSeeder {
 
     this.logger.log('Starting orders seeding...');
 
-    // Only seed from products that are actually purchasable.
     const activeProducts = await this.productModel
       .find({ status: ProductStatus.ACTIVE })
       .select('_id title imageUrl price')
@@ -74,19 +72,24 @@ export class OrderSeeder {
       return;
     }
 
+    // Ensure users have firstName and lastName
     const customers = await this.userModel
-      .find({ role: Role.CUSTOMER })
+      .find({
+        role: Role.CUSTOMER,
+        firstName: { $exists: true, $ne: null },
+        lastName: { $exists: true, $ne: null },
+      })
       .select('_id firstName lastName email phone')
       .lean();
+
     if (customers.length === 0) {
-      this.logger.warn('No customers found. Run user seeder first.');
+      this.logger.warn('No customers with valid names found. Run user seeder first.');
       return;
     }
 
     const ordersToCreate = 30;
     const orders: Partial<Order>[] = [];
 
-    // Get the highest existing index to keep orderId unique across runs.
     const lastOrder = await this.orderModel
       .findOne()
       .sort({ orderId: -1 })
@@ -104,22 +107,21 @@ export class OrderSeeder {
 
       const customer = faker.helpers.arrayElement(customers);
 
-      // Pick 1–4 distinct products for this order.
+      const firstName = customer.firstName || faker.person.firstName();
+      const lastName = customer.lastName || faker.person.lastName();
+
       const pickedProducts = faker.helpers.arrayElements(
         activeProducts,
         faker.number.int({ min: 1, max: 4 }),
       );
 
-      const items = pickedProducts.map((p) => {
-        const amount = faker.number.int({ min: 1, max: 3 });
-        return {
-          product: p._id,
-          title: p.title,
-          imageUrl: p.imageUrl,
-          unitPrice: p.price,
-          amount,
-        };
-      });
+      const items = pickedProducts.map((p) => ({
+        product: p._id,
+        title: p.title,
+        imageUrl: p.imageUrl,
+        unitPrice: p.price,
+        amount: faker.number.int({ min: 1, max: 3 }),
+      }));
 
       const amount = items.reduce((sum, item) => sum + item.unitPrice * item.amount, 0);
 
@@ -128,7 +130,7 @@ export class OrderSeeder {
         userId: customer._id,
         items,
         amount: parseFloat(amount.toFixed(2)),
-        totalPrice: parseFloat(amount.toFixed(2)), // equal until discounts land
+        totalPrice: parseFloat(amount.toFixed(2)),
         shippingAddress: {
           carrier: faker.helpers.arrayElement(Object.values(ShippingCarrier)),
           city: faker.helpers.arrayElement(UKRAINIAN_CITIES),
@@ -136,8 +138,8 @@ export class OrderSeeder {
         },
         status: orderStatus,
         user: {
-          firstName: customer.firstName!,
-          lastName: customer.lastName!,
+          firstName,
+          lastName,
           email: customer.email,
           phone: customer.phone ?? faker.phone.number(),
         },
