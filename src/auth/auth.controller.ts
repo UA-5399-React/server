@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   HttpCode,
+  HttpException,
   HttpStatus,
   Post,
   Query,
@@ -10,6 +11,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ApiBody, ApiCreatedResponse } from '@nestjs/swagger';
 import type { Response } from 'express';
 
@@ -27,9 +29,14 @@ import { LoginDto } from '@/users/dto/login.dto';
 import { RegisterResponseDto } from '@/users/dto/register-resp.dto';
 import { SignUpDto } from '@/users/dto/sign-up.dto';
 
+type RedirectResponse = Pick<Response, 'redirect'>;
+
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @ApiBody({ type: LoginDto })
   @Post('login')
@@ -87,16 +94,58 @@ export class AuthController {
   }
 
   @Get('confirm-email')
-  async confirmEmail(@Query('token') token: string) {
-    await this.authService.confirmEmail(token);
+  async confirmEmail(@Query('token') token: string, @Res() res: RedirectResponse) {
+    try {
+      await this.authService.confirmEmail(token);
 
-    return {
-      message: 'Email confirmed successfully',
-    };
+      return res.redirect(
+        this.buildEmailConfirmationRedirectUrl('success', 'Email confirmed successfully'),
+      );
+    } catch (error) {
+      return res.redirect(
+        this.buildEmailConfirmationRedirectUrl('error', this.extractErrorMessage(error)),
+      );
+    }
   }
 
   @Post('resend-confirmation')
   async resendConfirmation(@Body('email') email: string) {
     return this.authService.resendConfirmation(email);
+  }
+
+  private buildEmailConfirmationRedirectUrl(status: 'success' | 'error', message: string) {
+    const clientUrl = this.configService.get<string>('CLIENT_URL') ?? 'http://localhost:5173';
+    const redirectUrl = new URL('/email-confirmation', clientUrl);
+
+    redirectUrl.searchParams.set('status', status);
+    redirectUrl.searchParams.set('message', message);
+
+    return redirectUrl.toString();
+  }
+
+  private extractErrorMessage(error: unknown) {
+    if (error instanceof HttpException) {
+      const response = error.getResponse();
+
+      if (typeof response === 'string') {
+        return response;
+      }
+
+      if (response !== null && typeof response === 'object' && 'message' in response) {
+        const message = response.message;
+
+        if (Array.isArray(message)) {
+          return message[0] ?? 'Email confirmation failed';
+        }
+
+        if (typeof message === 'string') {
+          return message;
+        }
+      }
+
+      return error.message;
+    }
+
+    return 'Email confirmation failed';
   }
 }
