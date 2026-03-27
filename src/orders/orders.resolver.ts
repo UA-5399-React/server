@@ -4,6 +4,7 @@ import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { CurrentUser } from '@/auth/decorators/current-user.decorator';
 import { Roles } from '@/auth/decorators/Roles';
 import { GqlAuthGuard } from '@/auth/guards/gql-auth.guard';
+import { RolesGuard } from '@/auth/guards/roles.guard';
 import type { JwtPayload } from '@/auth/types/jwt-payload.type';
 import { OrdersQueryArgs } from '@/orders/graphql/args/orders-query.args';
 import { OrderType } from '@/orders/graphql/types/order.type';
@@ -19,7 +20,7 @@ import { UpdateOrderUserInput } from './graphql/inputs/update-order-user.input';
 import { OrderStatsType } from './graphql/types/order-stats.type';
 import { mapOrderToGraphQL } from './graphql/utils/map-order';
 
-@UseGuards(GqlAuthGuard)
+@UseGuards(GqlAuthGuard, RolesGuard)
 @Roles(Role.ADMIN, Role.SUPER_ADMIN)
 @Resolver(() => OrderType)
 export class OrdersResolver {
