@@ -29,6 +29,8 @@ import { LoginDto } from '@/users/dto/login.dto';
 import { RegisterResponseDto } from '@/users/dto/register-resp.dto';
 import { SignUpDto } from '@/users/dto/sign-up.dto';
 
+type RedirectResponse = Pick<Response, 'redirect'>;
+
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -92,7 +94,7 @@ export class AuthController {
   }
 
   @Get('confirm-email')
-  async confirmEmail(@Query('token') token: string, @Res() res: Response) {
+  async confirmEmail(@Query('token') token: string, @Res() res: RedirectResponse) {
     try {
       await this.authService.confirmEmail(token);
 

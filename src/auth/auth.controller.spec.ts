@@ -1,9 +1,12 @@
 import { BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
+import type { Response } from 'express';
 
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+
+type RedirectResponse = Pick<Response, 'redirect'>;
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -46,9 +49,9 @@ describe('AuthController', () => {
 
   describe('confirmEmail', () => {
     it('should redirect to frontend success page when confirmation succeeds', async () => {
-      const res = {
+      const res: RedirectResponse = {
         redirect: jest.fn(),
-      } as any;
+      };
 
       mockAuthService.confirmEmail.mockResolvedValue(undefined);
 
@@ -61,9 +64,9 @@ describe('AuthController', () => {
     });
 
     it('should redirect to frontend error page when confirmation fails', async () => {
-      const res = {
+      const res: RedirectResponse = {
         redirect: jest.fn(),
-      } as any;
+      };
 
       mockAuthService.confirmEmail.mockRejectedValue(new BadRequestException('Token expired'));
 
