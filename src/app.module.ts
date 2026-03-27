@@ -15,7 +15,7 @@ import { CategoryModule } from './categories/category.module';
 import { RequestLoggingInterceptor } from './common/request-logging.interceptor';
 import { DatabaseModule } from './database/database.module';
 import { LoggerModule } from './logger/logger.module';
-//import { MailModule } from './mailer/mailer.module';
+import { MailModule } from './mailer/mailer.module';
 import { OrdersModule } from './orders/orders.module';
 import { PaymentsModule } from './payments/payments.module';
 import { ProductsModule } from './products/products.module';
@@ -52,7 +52,7 @@ import { UploadsModule } from './uploads/uploads.module';
     UsersModule,
     ShippingModule,
     CartModule,
-    //MailModule,
+    MailModule,
     PaymentsModule,
   ],
   controllers: [AppController],
