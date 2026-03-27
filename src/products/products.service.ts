@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
+import { Category, CategoryDocument } from '@/categories/entities/categories.schema';
 import { PaginatedResult } from '@/common/types/paginated-result.type';
 import { buildDateFilter } from '@/common/utils/date.utils';
 import { buildPaginatedResult, getPagination } from '@/common/utils/pagination.util';
@@ -18,7 +19,10 @@ import { ProductStatus } from './enums/product-status.enum';
 
 @Injectable()
 export class ProductsService {
-  constructor(@InjectModel(Product.name) private productModel: Model<ProductDocument>) {}
+  constructor(
+    @InjectModel(Product.name) private readonly productModel: Model<ProductDocument>,
+    @InjectModel(Category.name) private readonly categoryModel: Model<CategoryDocument>,
+  ) {}
 
   async findAll(
     query: GetProductsQueryDto | ProductsQueryArgs,
@@ -54,18 +58,7 @@ export class ProductsService {
       .map((c) => c.trim())
       .filter(Boolean);
     if (categories?.length) {
-      // Convert incoming category filters to ObjectIds
-      const categoryIds = categories
-        .map((c) => {
-          try {
-            return new Types.ObjectId(c);
-          } catch {
-            return null;
-          }
-        })
-        .filter(Boolean);
-
-      filter.categories = { $in: categoryIds };
+      filter.$expr = await this.buildCategoryFilter(categories);
     }
 
     // Price range
@@ -224,5 +217,51 @@ export class ProductsService {
     const nextCode = Number.isNaN(lastNumericCode) ? startNumber : lastNumericCode + 1;
 
     return nextCode.toString().padStart(7, '0');
+  }
+
+  private async buildCategoryFilter(categories: string[]) {
+    const selectedCategoryIds = categories
+      .filter((category) => Types.ObjectId.isValid(category))
+      .map((category) => new Types.ObjectId(category));
+
+    const resolvedCategories =
+      selectedCategoryIds.length > 0
+        ? await this.categoryModel
+            .find({
+              $or: [
+                { _id: { $in: selectedCategoryIds } },
+                { parent: { $in: selectedCategoryIds } },
+              ],
+            })
+            .select('_id title')
+            .lean()
+        : [];
+
+    const categoryTokens = [
+      ...new Set([
+        ...categories,
+        ...resolvedCategories.flatMap((category) => [String(category._id), category.title]),
+      ]),
+    ];
+
+    return {
+      $gt: [
+        {
+          $size: {
+            $setIntersection: [
+              {
+                $map: {
+                  input: { $ifNull: ['$categories', []] },
+                  as: 'category',
+                  in: { $toString: '$$category' },
+                },
+              },
+              categoryTokens,
+            ],
+          },
+        },
+        0,
+      ],
+    };
   }
 }
