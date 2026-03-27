@@ -13,28 +13,29 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiBody, ApiCreatedResponse } from '@nestjs/swagger';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 
 import { AuthService } from '@/auth/auth.service';
-import {
-  ACCESS_TOKEN_COOKIE_OPTIONS,
-  BASE_COOKIE_OPTIONS,
-  REFRESH_TOKEN_COOKIE_OPTIONS,
-} from '@/auth/constants/auth.constants';
+import { GoogleOauthGuard } from '@/auth/guards/google-oauth.guard';
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { JwtRefreshAuthGuard } from '@/auth/guards/jwt-refresh.guard';
 import { LocalAuthGuard } from '@/auth/guards/local-auth.guard';
+import { AuthCookiesService } from '@/auth/services/auth-cookies.service';
+import { EmailVerificationService } from '@/auth/services/email-verification.service';
+import { GoogleAuthFacade } from '@/auth/services/google-auth.facade';
 import type { AuthRequest } from '@/auth/types/auth-request.type';
+import { GoogleAuthUser } from '@/auth/types/google-auth-user.type';
 import { LoginDto } from '@/users/dto/login.dto';
 import { RegisterResponseDto } from '@/users/dto/register-resp.dto';
 import { SignUpDto } from '@/users/dto/sign-up.dto';
-
-type RedirectResponse = Pick<Response, 'redirect'>;
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
+    private readonly cookiesService: AuthCookiesService,
+    private readonly emailVerificationService: EmailVerificationService,
+    private readonly googleAuthFacade: GoogleAuthFacade,
     private readonly configService: ConfigService,
   ) {}
 
@@ -47,17 +48,14 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const { accessToken, refreshToken } = await this.authService.login(req.user);
-
-    this.setAuthCookies(res, accessToken, refreshToken);
-
+    this.cookiesService.setAuthCookies(res, accessToken, refreshToken);
     return { status: 'success' };
   }
 
   @Post('logout')
   logout(@Res({ passthrough: true }) res: Response) {
-    this.clearAuthCookies(res);
-
-    return { success: true };
+    this.cookiesService.clearAuthCookies(res);
+    return { status: 'success' };
   }
 
   @UseGuards(JwtAuthGuard)
@@ -70,38 +68,26 @@ export class AuthController {
   @Post('refresh')
   async refresh(@Res({ passthrough: true }) res: Response, @Req() req: AuthRequest) {
     const { accessToken, refreshToken } = await this.authService.generateTokens(req.user);
-
-    this.setAuthCookies(res, accessToken, refreshToken);
-
+    this.cookiesService.setAuthCookies(res, accessToken, refreshToken);
     return { status: 'success' };
-  }
-
-  private setAuthCookies(res: Response, accessToken: string, refreshToken: string) {
-    res.cookie('accessToken', accessToken, ACCESS_TOKEN_COOKIE_OPTIONS);
-    res.cookie('refreshToken', refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
-  }
-
-  private clearAuthCookies(res: Response) {
-    res.clearCookie('accessToken', BASE_COOKIE_OPTIONS);
-    res.clearCookie('refreshToken', BASE_COOKIE_OPTIONS);
   }
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   @ApiCreatedResponse({ type: RegisterResponseDto })
-  async register(@Body() signupDTO: SignUpDto) {
-    return await this.authService.register(signupDTO);
+  register(@Body() signupDTO: SignUpDto) {
+    return this.authService.register(signupDTO);
   }
 
   @Get('confirm-email')
-  async confirmEmail(@Query('token') token: string, @Res() res: RedirectResponse) {
+  async confirmEmail(@Query('token') token: string, @Res() res: Response) {
     try {
-      await this.authService.confirmEmail(token);
+      await this.emailVerificationService.confirmEmail(token);
 
       return res.redirect(
         this.buildEmailConfirmationRedirectUrl('success', 'Email confirmed successfully'),
       );
-    } catch (error) {
+    } catch (error: unknown) {
       return res.redirect(
         this.buildEmailConfirmationRedirectUrl('error', this.extractErrorMessage(error)),
       );
@@ -109,8 +95,37 @@ export class AuthController {
   }
 
   @Post('resend-confirmation')
-  async resendConfirmation(@Body('email') email: string) {
-    return this.authService.resendConfirmation(email);
+  resendConfirmation(@Body('email') email: string) {
+    return this.emailVerificationService.resendConfirmation(email);
+  }
+
+  @Get('google')
+  @UseGuards(GoogleOauthGuard)
+  googleLogin() {}
+
+  @Get('google/callback')
+  @UseGuards(GoogleOauthGuard)
+  async googleCallback(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    return this.googleAuthFacade.handleCallback(
+      {
+        googleUser: req.user as GoogleAuthUser,
+        googleConnectToken: req.cookies.google_connect_token as string | undefined,
+        redirectAfterLogin: req.cookies.redirect_after_login as string | undefined,
+      },
+      res,
+    );
+  }
+
+  @Get('google/connect')
+  @UseGuards(JwtAuthGuard)
+  async googleConnect(@Req() req: AuthRequest, @Res({ passthrough: true }) res: Response) {
+    return this.googleAuthFacade.startConnectFlow(req.user, res);
+  }
+
+  @Post('google/disconnect')
+  @UseGuards(JwtAuthGuard)
+  async googleDisconnect(@Req() req: AuthRequest) {
+    return this.googleAuthFacade.disconnect(req.user);
   }
 
   private buildEmailConfirmationRedirectUrl(status: 'success' | 'error', message: string) {

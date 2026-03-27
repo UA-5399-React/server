@@ -13,8 +13,8 @@ export class User {
   email!: string;
 
   @ApiProperty({ example: 'hashed_password' })
-  @Prop({ required: true, select: false })
-  passwordHash!: string;
+  @Prop({ required: false, select: false })
+  passwordHash?: string;
 
   @ApiProperty({ enum: Role })
   @Prop({ type: String, enum: Role, default: Role.CUSTOMER })
@@ -58,6 +58,9 @@ export class User {
 
   readonly createdAt!: Date;
   readonly updatedAt!: Date;
+
+  @Prop({ required: false, unique: true, sparse: true })
+  googleId?: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

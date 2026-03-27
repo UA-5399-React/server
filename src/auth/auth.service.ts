@@ -1,20 +1,14 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 
 import { CryptoService } from '@/auth/crypto/crypto.service';
-import { TokenType } from '@/auth/tokens/token.schema';
-import { TokensService } from '@/auth/tokens/tokens.service';
+import { EmailVerificationService } from '@/auth/services/email-verification.service';
+import { UserValidatorService } from '@/auth/services/user-validator.service';
 import { AuthUser } from '@/auth/types/auth-user.type';
 import { JwtPayload } from '@/auth/types/jwt-payload.type';
 import { TokenPair } from '@/auth/types/token-pair.type';
 import { AppLogger } from '@/logger/app-logger.service';
-import { MailService } from '@/mailer/mailer.service';
 import { RegisterResponseDto } from '@/users/dto/register-resp.dto';
 import { SignUpDto } from '@/users/dto/sign-up.dto';
 import { Role } from '@/users/enums/role.enum';
@@ -28,8 +22,8 @@ export class AuthService {
     private readonly userService: UsersService,
     private readonly cryptoService: CryptoService,
     private readonly logger: AppLogger,
-    private readonly tokensService: TokensService,
-    private readonly mailService: MailService,
+    private readonly userValidatorService: UserValidatorService,
+    private readonly emailVerificationService: EmailVerificationService,
   ) {}
 
   async generateTokens(user: AuthUser): Promise<TokenPair> {
@@ -65,7 +59,6 @@ export class AuthService {
     await this.userService.ensureEmailNotTaken(dto.email);
 
     const passwordHash = await this.cryptoService.hashPassword(dto.password);
-    const { rawToken, tokenHash, expiresAt } = this.createEmailVerificationData();
 
     const createdUser = await this.userService.create({
       email: dto.email,
@@ -73,18 +66,7 @@ export class AuthService {
       role: Role.CUSTOMER,
     });
 
-    await this.tokensService.createToken({
-      userId: createdUser.id,
-      type: TokenType.EMAIL_VERIFICATION,
-      tokenHash,
-      expiresAt,
-    });
-
-    const verifyUrl = `${this.configService.getOrThrow<string>(
-      'BACKEND_URL',
-    )}/auth/confirm-email?token=${rawToken}`;
-
-    await this.mailService.sendEmailVerification(createdUser.email, verifyUrl);
+    await this.emailVerificationService.createAndSendVerification(createdUser);
 
     return {
       status: 'success',
@@ -100,14 +82,17 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    if (!user.isActive) {
-      this.logger.security('Blocked inactive user access', {
+    this.userValidatorService.ensureActive(user);
+
+    if (!user.passwordHash) {
+      this.logger.security('Login failed: password login is not available', {
         id: user.id,
         email: user.email,
         role: user.role,
       });
-      throw new ForbiddenException('User account is deactivated');
+      throw new UnauthorizedException('Invalid credentials');
     }
+
     const isPasswordValid = await this.cryptoService.comparePassword(password, user.passwordHash);
 
     if (!isPasswordValid) {
@@ -118,13 +103,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    if (!user.isEmailConfirmed) {
-      this.logger.security('Login blocked: email not confirmed', {
-        id: user.id,
-        email: user.email,
-      });
-      throw new UnauthorizedException('Please confirm your email first');
-    }
+    this.userValidatorService.ensureEmailConfirmed(user);
 
     this.userService.updateLastLogin(user.id).catch((err: unknown) => {
       this.logger.warn('Failed to update lastLoginAt', {
@@ -143,75 +122,6 @@ export class AuthService {
       id: user.id,
       email: user.email,
       role: user.role,
-    };
-  }
-  async confirmEmail(token: string): Promise<void> {
-    if (!token) {
-      throw new BadRequestException('Token is required');
-    }
-    const tokenHash = this.cryptoService.generateSha256HashBase64(token);
-
-    const tokenDoc = await this.tokensService.findByTokenHash(
-      tokenHash,
-      TokenType.EMAIL_VERIFICATION,
-    );
-
-    if (!tokenDoc) {
-      throw new BadRequestException('Invalid or expired token');
-    }
-
-    if (tokenDoc.expiresAt < new Date()) {
-      throw new BadRequestException('Token expired');
-    }
-
-    const user = await this.userService.findById(tokenDoc.userId.toString());
-
-    user.isEmailConfirmed = true;
-    await user.save();
-
-    await this.tokensService.markAsUsed(tokenDoc.id);
-  }
-
-  async resendConfirmation(email: string) {
-    const user = await this.userService.findByEmail(email);
-
-    if (!user) {
-      return { message: 'If this email exists, a confirmation link was sent.' };
-    }
-    if (user.isEmailConfirmed) {
-      return { message: 'Email is already confirmed.' };
-    }
-    await this.tokensService.deleteByUserAndType(user.id, TokenType.EMAIL_VERIFICATION);
-
-    const { rawToken, tokenHash, expiresAt } = this.createEmailVerificationData();
-
-    await this.tokensService.createToken({
-      userId: user.id,
-      type: TokenType.EMAIL_VERIFICATION,
-      tokenHash,
-      expiresAt,
-    });
-
-    const verifyUrl = `${this.configService.getOrThrow<string>(
-      'BACKEND_URL',
-    )}/auth/confirm-email?token=${rawToken}`;
-
-    await this.mailService.sendEmailVerification(user.email, verifyUrl);
-
-    return {
-      message: 'Confirmation email sent.',
-    };
-  }
-
-  private createEmailVerificationData() {
-    const rawToken = this.cryptoService.generateRandomToken();
-    const tokenHash = this.cryptoService.generateSha256HashBase64(rawToken);
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
-    return {
-      rawToken,
-      tokenHash,
-      expiresAt,
     };
   }
 }
