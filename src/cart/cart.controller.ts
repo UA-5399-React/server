@@ -30,4 +30,14 @@ export class CartController {
   ): Promise<CartResponseDto> {
     return this.cartService.updateCart(req.user.id, updateCartDto);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('sync')
+  @ApiResponse({ status: 200, type: CartResponseDto })
+  async syncCart(
+    @Req() req: AuthRequest,
+    @Body(new ValidationPipe()) updateCartDto: UpdateCartDto,
+  ): Promise<CartResponseDto> {
+    return this.cartService.syncCart(req.user.id, updateCartDto);
+  }
 }

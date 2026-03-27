@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Types } from 'mongoose';
 
 import { CurrentUser } from '@/auth/decorators/current-user.decorator';
@@ -7,9 +7,11 @@ import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { Role } from '@/users/enums/role.enum';
 
 import { CreateOrderDto } from './dto/create-order.dto';
+import { GetOrdersQueryDto } from './dto/get-orders-query.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { UpdateShippingAddressDto } from './dto/update-shipping-address.dto';
 import { Order } from './entities/order.schema';
+import { OrderStatus } from './enums/order-status.enum';
 import { OrdersService } from './orders.service';
 
 @ApiBearerAuth()
@@ -18,6 +20,20 @@ import { OrdersService } from './orders.service';
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Get orders list with optional status and search filtering' })
+  @ApiQuery({ name: 'status', required: false, enum: OrderStatus })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Regex search by orderId or customer email',
+    example: 'ORD-20240318-AB12C',
+  })
+  @ApiResponse({ status: 200, type: [Order] })
+  findAll(@Query() query: GetOrdersQueryDto): Promise<Order[]> {
+    return this.ordersService.findAllFiltered(query);
+  }
 
   @Post()
   @ApiOperation({ summary: 'Place a new order' })

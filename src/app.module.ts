@@ -1,6 +1,8 @@
+import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
+import { redisStore } from 'cache-manager-redis-yet';
 
 import { AuthModule } from '@/auth/auth.module';
 import { CartModule } from '@/cart/cart.module';
@@ -25,6 +27,19 @@ import { UploadsModule } from './uploads/uploads.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
+    }),
+    CacheModule.registerAsync({
+      isGlobal: true,
+      useFactory: async (config: ConfigService) => ({
+        store: redisStore,
+        socket: {
+          host: config.getOrThrow('REDIS_HOST'),
+          port: config.getOrThrow<number>('REDIS_PORT'),
+        },
+        password: config.getOrThrow('REDIS_PASSWORD'),
+        ttl: 60 * 60 * 1000,
+      }),
+      inject: [ConfigService],
     }),
     LoggerModule,
     DatabaseModule,

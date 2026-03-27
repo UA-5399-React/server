@@ -13,6 +13,7 @@ import {
 import { CurrentUser } from '@/auth/decorators/current-user.decorator';
 import { Roles } from '@/auth/decorators/Roles';
 import { GqlAuthGuard } from '@/auth/guards/gql-auth.guard';
+import { RolesGuard } from '@/auth/guards/roles.guard';
 import type { AuthUser } from '@/auth/types/auth-user.type';
 import type { UserDocument } from '@/users/entities/user.schema';
 import { Role } from '@/users/enums/role.enum';
@@ -27,8 +28,8 @@ import { UsersService } from '@/users/users.service';
 
 import { UserStatsType } from './graphql/types/user-stats.type';
 
-@UseGuards(GqlAuthGuard)
-@Roles(Role.ADMIN, Role.SUPER_ADMIN)
+@UseGuards(GqlAuthGuard, RolesGuard)
+@Roles(Role.SUPER_ADMIN)
 @Resolver(() => UserType)
 export class UsersResolver {
   constructor(private readonly usersService: UsersService) {}

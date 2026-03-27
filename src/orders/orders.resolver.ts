@@ -4,6 +4,7 @@ import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { CurrentUser } from '@/auth/decorators/current-user.decorator';
 import { Roles } from '@/auth/decorators/Roles';
 import { GqlAuthGuard } from '@/auth/guards/gql-auth.guard';
+import { RolesGuard } from '@/auth/guards/roles.guard';
 import type { JwtPayload } from '@/auth/types/jwt-payload.type';
 import { OrdersQueryArgs } from '@/orders/graphql/args/orders-query.args';
 import { OrderType } from '@/orders/graphql/types/order.type';
@@ -13,10 +14,13 @@ import { OrdersService } from '@/orders/orders.service';
 import { Role } from '@/users/enums/role.enum';
 
 import { UpdateOrderStatusInput } from './graphql/inputs/status-update.inputs';
+import { UpdateOrderProductsInput } from './graphql/inputs/update-order-items.input';
+import { UpdateOrderShippingAddressInput } from './graphql/inputs/update-order-shipping.input';
+import { UpdateOrderUserInput } from './graphql/inputs/update-order-user.input';
 import { OrderStatsType } from './graphql/types/order-stats.type';
 import { mapOrderToGraphQL } from './graphql/utils/map-order';
 
-@UseGuards(GqlAuthGuard)
+@UseGuards(GqlAuthGuard, RolesGuard)
 @Roles(Role.ADMIN, Role.SUPER_ADMIN)
 @Resolver(() => OrderType)
 export class OrdersResolver {
@@ -63,5 +67,22 @@ export class OrdersResolver {
     );
 
     return mapOrderToGraphQL(order);
+  }
+
+  @Mutation(() => OrderType)
+  async updateOrderItems(@Args('input') input: UpdateOrderProductsInput): Promise<OrderType> {
+    return this.ordersService.updateOrderItems(input);
+  }
+
+  @Mutation(() => OrderType)
+  async updateOrderUserInfo(@Args('input') input: UpdateOrderUserInput): Promise<OrderType> {
+    return this.ordersService.updateOrderUserInfo(input);
+  }
+
+  @Mutation(() => OrderType)
+  async updateOrderShippingAddress(
+    @Args('input') input: UpdateOrderShippingAddressInput,
+  ): Promise<OrderType> {
+    return this.ordersService.updateOrderShippingAddress(input);
   }
 }
