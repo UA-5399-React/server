@@ -87,6 +87,8 @@ export class ProductsService {
     // Status filter
     if (filterInput.status) {
       filter.status = filterInput.status;
+    } else {
+      filter.status = 'active';
     }
 
     // Date filter
