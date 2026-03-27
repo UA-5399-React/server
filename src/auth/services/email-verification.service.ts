@@ -108,6 +108,6 @@ export class EmailVerificationService {
   }
 
   buildEmailVerificationUrl(token: string): string {
-    return `${this.configService.getOrThrow<string>('CLIENT_URL')}${ROUTES.AUTH.CONFIRM_EMAIL}?token=${token}`;
+    return `${this.configService.getOrThrow<string>('BACKEND_URL')}${ROUTES.AUTH.CONFIRM_EMAIL}?token=${token}`;
   }
 }
