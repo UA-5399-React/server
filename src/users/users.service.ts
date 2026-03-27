@@ -18,6 +18,7 @@ import { buildDateFilter } from '@/common/utils/date.utils';
 import { buildPaginatedResult, getPagination } from '@/common/utils/pagination.util';
 import { buildSort } from '@/common/utils/sorting.util';
 import { AppLogger } from '@/logger/app-logger.service';
+import { CloudinaryService } from '@/uploads/cloudinary.service';
 import { CreateUserData } from '@/users/dto/create-user.type';
 import { GoogleUserUpdateData } from '@/users/dto/google-user-update-data.type';
 import { UpdateMeDto } from '@/users/dto/update-me.dto';
@@ -41,6 +42,7 @@ export class UsersService {
     private readonly userModel: Model<User>,
     private readonly cryptoService: CryptoService,
     private readonly logger: AppLogger,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   async findByEmail(userEmail: string): Promise<UserDocument | null> {
@@ -115,6 +117,26 @@ export class UsersService {
 
   private normalizedEmail(email: string): string {
     return email.trim().toLowerCase();
+  }
+
+  async updateAvatar(
+    userId: string,
+    avatarUrl: string,
+    avatarPublicId: string,
+  ): Promise<UserDocument> {
+    const user = await this.findById(userId);
+    const oldAvatarPublicId = user.avatarPublicId;
+
+    user.avatarUrl = avatarUrl;
+    user.avatarPublicId = avatarPublicId;
+
+    await user.save();
+
+    if (oldAvatarPublicId && oldAvatarPublicId !== avatarPublicId) {
+      await this.cloudinaryService.deleteImage(oldAvatarPublicId).catch(() => null);
+    }
+
+    return user;
   }
 
   async ensureEmailNotTaken(email: string): Promise<void> {

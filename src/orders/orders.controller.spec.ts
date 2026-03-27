@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Types } from 'mongoose';
 
 import { CreateOrderDto } from './dto/create-order.dto';
+import { GetOrdersQueryDto } from './dto/get-orders-query.dto';
 import { UpdateShippingAddressDto } from './dto/update-shipping-address.dto';
 import { OrderStatus } from './enums/order-status.enum';
 import { PaymentMethod } from './enums/payment-method.enum';
@@ -13,6 +14,7 @@ import { OrdersService } from './orders.service';
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
 const PRODUCT_ID = new Types.ObjectId().toString();
+const userId = new Types.ObjectId('000000000000000000000001');
 
 const mockCreateDto: CreateOrderDto = {
   items: [{ product: PRODUCT_ID, amount: 2 }],
@@ -38,7 +40,6 @@ const mockUpdateAddressDto: UpdateShippingAddressDto = {
 
 const mockOrder = {
   orderId: 'ORD-20240318-0001',
-  userId: new Types.ObjectId('000000000000000000000001'),
   items: [
     {
       product: new Types.ObjectId(PRODUCT_ID),
@@ -59,6 +60,7 @@ const mockOrder = {
 
 const mockOrdersService = {
   create: jest.fn(),
+  findAllFiltered: jest.fn(),
   findMyOrders: jest.fn(),
   findMyOrderById: jest.fn(),
   cancelMyOrder: jest.fn(),
@@ -83,16 +85,29 @@ describe('OrdersController', () => {
 
   // ─── POST /orders ──────────────────────────────────────────────────────────
 
+  describe('findAll', () => {
+    it('should delegate status and search query params to the service', async () => {
+      const query: GetOrdersQueryDto = {
+        status: OrderStatus.NEW,
+        search: 'john@example.com',
+      };
+
+      mockOrdersService.findAllFiltered.mockResolvedValue([mockOrder]);
+
+      const result = await controller.findAll(query);
+
+      expect(mockOrdersService.findAllFiltered).toHaveBeenCalledWith(query);
+      expect(result).toEqual([mockOrder]);
+    });
+  });
+
   describe('create', () => {
     it('should delegate to service and return the created order', async () => {
       mockOrdersService.create.mockResolvedValue(mockOrder);
 
-      const result = await controller.create(mockCreateDto);
+      const result = await controller.create(mockCreateDto, userId);
 
-      expect(mockOrdersService.create).toHaveBeenCalledWith(
-        mockCreateDto,
-        expect.any(Types.ObjectId),
-      );
+      expect(mockOrdersService.create).toHaveBeenCalledWith(mockCreateDto, userId);
       expect(result).toEqual(mockOrder);
     });
 
@@ -101,7 +116,7 @@ describe('OrdersController', () => {
         new BadRequestException('One or more products are unavailable or do not exist.'),
       );
 
-      await expect(controller.create(mockCreateDto)).rejects.toThrow(BadRequestException);
+      await expect(controller.create(mockCreateDto, userId)).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -111,17 +126,18 @@ describe('OrdersController', () => {
     it('should return the list of orders for the current user', async () => {
       mockOrdersService.findMyOrders.mockResolvedValue([mockOrder]);
 
-      const result = await controller.findMyOrders();
+      const result = await controller.findMyOrders(userId);
 
-      expect(mockOrdersService.findMyOrders).toHaveBeenCalledWith(expect.any(Types.ObjectId));
+      expect(mockOrdersService.findMyOrders).toHaveBeenCalledWith(userId);
       expect(result).toEqual([mockOrder]);
     });
 
     it('should return an empty array when the user has no orders', async () => {
       mockOrdersService.findMyOrders.mockResolvedValue([]);
 
-      const result = await controller.findMyOrders();
+      const result = await controller.findMyOrders(userId);
 
+      expect(mockOrdersService.findMyOrders).toHaveBeenCalledWith(userId);
       expect(result).toEqual([]);
     });
   });
@@ -132,12 +148,9 @@ describe('OrdersController', () => {
     it('should return the order when it belongs to the current user', async () => {
       mockOrdersService.findMyOrderById.mockResolvedValue(mockOrder);
 
-      const result = await controller.findMyOrderById('ORD-20240318-0001');
+      const result = await controller.findMyOrderById('ORD-20240318-0001', userId);
 
-      expect(mockOrdersService.findMyOrderById).toHaveBeenCalledWith(
-        'ORD-20240318-0001',
-        expect.any(Types.ObjectId),
-      );
+      expect(mockOrdersService.findMyOrderById).toHaveBeenCalledWith('ORD-20240318-0001', userId);
       expect(result).toEqual(mockOrder);
     });
 
@@ -146,13 +159,15 @@ describe('OrdersController', () => {
         new NotFoundException('Order ORD-INVALID not found.'),
       );
 
-      await expect(controller.findMyOrderById('ORD-INVALID')).rejects.toThrow(NotFoundException);
+      await expect(controller.findMyOrderById('ORD-INVALID', userId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should propagate ForbiddenException when the order belongs to another user', async () => {
       mockOrdersService.findMyOrderById.mockRejectedValue(new ForbiddenException('Access denied.'));
 
-      await expect(controller.findMyOrderById('ORD-20240318-0001')).rejects.toThrow(
+      await expect(controller.findMyOrderById('ORD-20240318-0001', userId)).rejects.toThrow(
         ForbiddenException,
       );
     });
@@ -165,12 +180,9 @@ describe('OrdersController', () => {
       const cancelled = { ...mockOrder, status: OrderStatus.CANCELLED };
       mockOrdersService.cancelMyOrder.mockResolvedValue(cancelled);
 
-      const result = await controller.cancelMyOrder('ORD-20240318-0001');
+      const result = await controller.cancelMyOrder('ORD-20240318-0001', userId);
 
-      expect(mockOrdersService.cancelMyOrder).toHaveBeenCalledWith(
-        'ORD-20240318-0001',
-        expect.any(Types.ObjectId),
-      );
+      expect(mockOrdersService.cancelMyOrder).toHaveBeenCalledWith('ORD-20240318-0001', userId);
       expect(result.status).toBe(OrderStatus.CANCELLED);
     });
 
@@ -179,7 +191,7 @@ describe('OrdersController', () => {
         new BadRequestException('Order with status "shipped" can no longer be cancelled.'),
       );
 
-      await expect(controller.cancelMyOrder('ORD-20240318-0001')).rejects.toThrow(
+      await expect(controller.cancelMyOrder('ORD-20240318-0001', userId)).rejects.toThrow(
         BadRequestException,
       );
     });
@@ -187,7 +199,7 @@ describe('OrdersController', () => {
     it('should propagate ForbiddenException when the order belongs to another user', async () => {
       mockOrdersService.cancelMyOrder.mockRejectedValue(new ForbiddenException('Access denied.'));
 
-      await expect(controller.cancelMyOrder('ORD-20240318-0001')).rejects.toThrow(
+      await expect(controller.cancelMyOrder('ORD-20240318-0001', userId)).rejects.toThrow(
         ForbiddenException,
       );
     });
@@ -197,7 +209,9 @@ describe('OrdersController', () => {
         new NotFoundException('Order ORD-INVALID not found.'),
       );
 
-      await expect(controller.cancelMyOrder('ORD-INVALID')).rejects.toThrow(NotFoundException);
+      await expect(controller.cancelMyOrder('ORD-INVALID', userId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -214,6 +228,7 @@ describe('OrdersController', () => {
       const result = await controller.updateShippingAddress(
         'ORD-20240318-0001',
         mockUpdateAddressDto,
+        userId,
       );
 
       expect(mockOrdersService.updateShippingAddress).toHaveBeenCalledWith(
@@ -230,7 +245,7 @@ describe('OrdersController', () => {
       );
 
       await expect(
-        controller.updateShippingAddress('ORD-20240318-0001', mockUpdateAddressDto),
+        controller.updateShippingAddress('ORD-20240318-0001', mockUpdateAddressDto, userId),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -240,7 +255,7 @@ describe('OrdersController', () => {
       );
 
       await expect(
-        controller.updateShippingAddress('ORD-20240318-0001', mockUpdateAddressDto),
+        controller.updateShippingAddress('ORD-20240318-0001', mockUpdateAddressDto, userId),
       ).rejects.toThrow(ForbiddenException);
     });
 
@@ -250,7 +265,7 @@ describe('OrdersController', () => {
       );
 
       await expect(
-        controller.updateShippingAddress('ORD-INVALID', mockUpdateAddressDto),
+        controller.updateShippingAddress('ORD-INVALID', mockUpdateAddressDto, userId),
       ).rejects.toThrow(NotFoundException);
     });
   });

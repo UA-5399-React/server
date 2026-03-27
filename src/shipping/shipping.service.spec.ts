@@ -1,10 +1,11 @@
 import { HttpService } from '@nestjs/axios';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { of, throwError } from 'rxjs';
 
-import { NP_WAREHOUSE_TYPES } from './nova-poshta.constants';
+import { NP_CACHE_TTL, NP_WAREHOUSE_TYPES } from './nova-poshta.constants';
 import { ShippingService } from './shipping.service';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
@@ -46,14 +47,20 @@ function npFailure(errors: string[]) {
 describe('ShippingService', () => {
   let service: ShippingService;
   let httpService: { post: jest.Mock };
+  let cacheManager: { get: jest.Mock; set: jest.Mock };
 
   beforeEach(async () => {
     httpService = { post: jest.fn() };
+    cacheManager = { get: jest.fn().mockResolvedValue(null), set: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ShippingService,
         { provide: HttpService, useValue: httpService },
+        {
+          provide: CACHE_MANAGER,
+          useValue: cacheManager,
+        },
         {
           provide: ConfigService,
           useValue: { getOrThrow: jest.fn().mockReturnValue('test-api-key') },
@@ -111,6 +118,16 @@ describe('ShippingService', () => {
       httpService.post.mockReturnValue(throwError(() => new Error('Network error')));
 
       await expect(service.getCities()).rejects.toThrow(InternalServerErrorException);
+    });
+
+    it('should return cached value without calling Nova Poshta', async () => {
+      const cached = [{ ref: 'city-ref-1', name: 'Київ', area: 'Київська' }];
+      cacheManager.get.mockResolvedValue(cached);
+
+      const result = await service.getCities();
+
+      expect(httpService.post).not.toHaveBeenCalled();
+      expect(result).toEqual(cached);
     });
   });
 
@@ -194,6 +211,18 @@ describe('ShippingService', () => {
       httpService.post.mockReturnValue(throwError(() => new Error('Network error')));
 
       await expect(service.getWarehouses('Київ')).rejects.toThrow(InternalServerErrorException);
+    });
+
+    it('should store result in cache after fetching', async () => {
+      httpService.post.mockReturnValue(npSuccess([mockNpCity]));
+
+      await service.getCities();
+
+      expect(cacheManager.set).toHaveBeenCalledWith(
+        'cities:',
+        expect.any(Array),
+        NP_CACHE_TTL.CITIES,
+      );
     });
   });
 });

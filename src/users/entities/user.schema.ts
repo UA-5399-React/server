@@ -44,6 +44,10 @@ export class User {
   @Prop({ trim: true })
   avatarUrl?: string;
 
+  @ApiPropertyOptional({ example: 'avatars/avatar-123456' })
+  @Prop({ trim: true })
+  avatarPublicId?: string;
+
   @ApiPropertyOptional()
   @Prop({ type: Types.ObjectId, ref: User.name, default: null })
   createdBy?: Types.ObjectId | null;
