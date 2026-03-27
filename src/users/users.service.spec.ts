@@ -10,6 +10,7 @@ import * as bcrypt from 'bcrypt';
 import { Types } from 'mongoose';
 
 import { CryptoService } from '@/auth/crypto/crypto.service';
+import { AppLogger } from '@/logger/app-logger.service';
 import { CloudinaryService } from '@/uploads/cloudinary.service';
 import { User } from '@/users/entities/user.schema';
 import { Role } from '@/users/enums/role.enum';
@@ -55,6 +56,14 @@ describe('UsersService', () => {
         {
           provide: CloudinaryService,
           useValue: mockCloudinaryService,
+        },
+        {
+          provide: AppLogger, // 👈 ОСЬ ЦЕ ДОДАТИ
+          useValue: {
+            log: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+          },
         },
       ],
     }).compile();
