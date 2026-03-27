@@ -1,21 +1,38 @@
 import { BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
+import type { Response } from 'express';
 
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-
-
-const mockAuthCookiesService = {
-  setAuthCookies: jest.fn(),
-  clearAuthCookies: jest.fn(),
-};
+import { AuthCookiesService } from './services/auth-cookies.service';
+import { EmailVerificationService } from './services/email-verification.service';
+import { GoogleAuthFacade } from './services/google-auth.facade';
 
 describe('AuthController', () => {
   let controller: AuthController;
 
   const mockAuthService = {
+    login: jest.fn(),
+    register: jest.fn(),
+    logout: jest.fn(),
+    generateTokens: jest.fn(),
+  };
+
+  const mockAuthCookiesService = {
+    setAuthCookies: jest.fn(),
+    clearAuthCookies: jest.fn(),
+  };
+
+  const mockEmailVerificationService = {
     confirmEmail: jest.fn(),
+    resendConfirmation: jest.fn(),
+  };
+
+  const mockGoogleAuthFacade = {
+    handleCallback: jest.fn(),
+    startConnectFlow: jest.fn(),
+    disconnect: jest.fn(),
   };
 
   const mockConfigService = {
@@ -26,8 +43,15 @@ describe('AuthController', () => {
 
       return undefined;
     }),
-  };
+    getOrThrow: jest.fn((key: string) => {
+      if (key === 'CLIENT_URL') {
+        return 'http://localhost:5173';
+      }
 
+      throw new Error(`Missing config key: ${key}`);
+    }),
+  };
+  const redirectMock = jest.fn();
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
@@ -37,10 +61,21 @@ describe('AuthController', () => {
           useValue: mockAuthService,
         },
         {
+          provide: AuthCookiesService,
+          useValue: mockAuthCookiesService,
+        },
+        {
+          provide: EmailVerificationService,
+          useValue: mockEmailVerificationService,
+        },
+        {
+          provide: GoogleAuthFacade,
+          useValue: mockGoogleAuthFacade,
+        },
+        {
           provide: ConfigService,
           useValue: mockConfigService,
         },
-        { provide: AuthCookiesService, useValue: mockAuthCookiesService },
       ],
     }).compile();
 
@@ -53,30 +88,32 @@ describe('AuthController', () => {
 
   describe('confirmEmail', () => {
     it('should redirect to frontend success page when confirmation succeeds', async () => {
-      const res: RedirectResponse = {
-        redirect: jest.fn(),
-      };
+      const res = {
+        redirect: redirectMock,
+      } as unknown as Response;
 
-      mockAuthService.confirmEmail.mockResolvedValue(undefined);
+      mockEmailVerificationService.confirmEmail.mockResolvedValue(undefined);
 
       await controller.confirmEmail('valid-token', res);
 
-      expect(mockAuthService.confirmEmail).toHaveBeenCalledWith('valid-token');
-      expect(res.redirect).toHaveBeenCalledWith(
+      expect(mockEmailVerificationService.confirmEmail).toHaveBeenCalledWith('valid-token');
+      expect(redirectMock).toHaveBeenCalledWith(
         'http://localhost:5173/email-confirmation?status=success&message=Email+confirmed+successfully',
       );
     });
 
     it('should redirect to frontend error page when confirmation fails', async () => {
-      const res: RedirectResponse = {
-        redirect: jest.fn(),
-      };
+      const res = {
+        redirect: redirectMock,
+      } as unknown as Response;
 
-      mockAuthService.confirmEmail.mockRejectedValue(new BadRequestException('Token expired'));
+      mockEmailVerificationService.confirmEmail.mockRejectedValue(
+        new BadRequestException('Token expired'),
+      );
 
       await controller.confirmEmail('expired-token', res);
 
-      expect(res.redirect).toHaveBeenCalledWith(
+      expect(redirectMock).toHaveBeenCalledWith(
         'http://localhost:5173/email-confirmation?status=error&message=Token+expired',
       );
     });

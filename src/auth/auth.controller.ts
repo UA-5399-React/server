@@ -29,7 +29,6 @@ import { LoginDto } from '@/users/dto/login.dto';
 import { RegisterResponseDto } from '@/users/dto/register-resp.dto';
 import { SignUpDto } from '@/users/dto/sign-up.dto';
 
-
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -81,8 +80,18 @@ export class AuthController {
   }
 
   @Get('confirm-email')
-  confirmEmail(@Query('token') token: string) {
-    return this.emailVerificationService.confirmEmail(token);
+  async confirmEmail(@Query('token') token: string, @Res() res: Response) {
+    try {
+      await this.emailVerificationService.confirmEmail(token);
+
+      return res.redirect(
+        this.buildEmailConfirmationRedirectUrl('success', 'Email confirmed successfully'),
+      );
+    } catch (error: unknown) {
+      return res.redirect(
+        this.buildEmailConfirmationRedirectUrl('error', this.extractErrorMessage(error)),
+      );
+    }
   }
 
   @Post('resend-confirmation')
