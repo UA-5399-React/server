@@ -2,10 +2,10 @@ import { NestFactory } from '@nestjs/core';
 
 import { UserSeeder } from '@/database/seeders/user.seeder';
 
+import { OrderSeeder } from '../../order.seeder';
 import { AppModule } from './app.module';
 import { CartSeeder } from './database/seeders/cart.seeder';
 import { CategorySeeder } from './database/seeders/categories.seeder';
-import { OrderSeeder } from './database/seeders/order.seeder';
 import { ProductSeeder } from './database/seeders/product.seeder';
 
 async function bootstrap() {

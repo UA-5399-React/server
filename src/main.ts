@@ -38,6 +38,7 @@ async function bootstrap() {
   await app.listen(port);
   appLogger.log(`Server started on port ${port}`, 'Bootstrap');
   appLogger.log(`Swagger: http://localhost:${port}/api`, 'Bootstrap');
+  console.log('BACKEND_URL:', process.env.BACKEND_URL);
 }
 
 bootstrap().catch((err) => {
