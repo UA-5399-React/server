@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   HttpCode,
+  HttpException,
   HttpStatus,
   Post,
   Query,
@@ -10,6 +11,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ApiBody, ApiCreatedResponse } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 
@@ -27,6 +29,8 @@ import { LoginDto } from '@/users/dto/login.dto';
 import { RegisterResponseDto } from '@/users/dto/register-resp.dto';
 import { SignUpDto } from '@/users/dto/sign-up.dto';
 
+type RedirectResponse = Pick<Response, 'redirect'>;
+
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -34,6 +38,7 @@ export class AuthController {
     private readonly cookiesService: AuthCookiesService,
     private readonly emailVerificationService: EmailVerificationService,
     private readonly googleAuthFacade: GoogleAuthFacade,
+    private readonly configService: ConfigService,
   ) {}
 
   @ApiBody({ type: LoginDto })
@@ -113,5 +118,41 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async googleDisconnect(@Req() req: AuthRequest) {
     return this.googleAuthFacade.disconnect(req.user);
+  }
+
+  private buildEmailConfirmationRedirectUrl(status: 'success' | 'error', message: string) {
+    const clientUrl = this.configService.get<string>('CLIENT_URL') ?? 'http://localhost:5173';
+    const redirectUrl = new URL('/email-confirmation', clientUrl);
+
+    redirectUrl.searchParams.set('status', status);
+    redirectUrl.searchParams.set('message', message);
+
+    return redirectUrl.toString();
+  }
+
+  private extractErrorMessage(error: unknown) {
+    if (error instanceof HttpException) {
+      const response = error.getResponse();
+
+      if (typeof response === 'string') {
+        return response;
+      }
+
+      if (response !== null && typeof response === 'object' && 'message' in response) {
+        const message = response.message;
+
+        if (Array.isArray(message)) {
+          return message[0] ?? 'Email confirmation failed';
+        }
+
+        if (typeof message === 'string') {
+          return message;
+        }
+      }
+
+      return error.message;
+    }
+
+    return 'Email confirmation failed';
   }
 }

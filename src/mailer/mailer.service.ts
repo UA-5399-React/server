@@ -12,7 +12,7 @@ export class MailService {
   }
   async sendEmail(to: string, subject: string, text: string) {
     return this.transporter.sendMail({
-      from: 'Techno World',
+      from: `"Techno World" <${process.env.EMAIL_USER}>`,
       to,
       subject,
       text,
