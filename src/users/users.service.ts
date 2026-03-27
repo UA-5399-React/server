@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -11,11 +12,15 @@ import { Model, Types } from 'mongoose';
 
 import { CryptoService } from '@/auth/crypto/crypto.service';
 import { AuthUser } from '@/auth/types/auth-user.type';
+import { GoogleAuthUser } from '@/auth/types/google-auth-user.type';
 import { PaginatedResult } from '@/common/types/paginated-result.type';
 import { buildDateFilter } from '@/common/utils/date.utils';
 import { buildPaginatedResult, getPagination } from '@/common/utils/pagination.util';
 import { buildSort } from '@/common/utils/sorting.util';
+import { AppLogger } from '@/logger/app-logger.service';
+import { CloudinaryService } from '@/uploads/cloudinary.service';
 import { CreateUserData } from '@/users/dto/create-user.type';
+import { GoogleUserUpdateData } from '@/users/dto/google-user-update-data.type';
 import { UpdateMeDto } from '@/users/dto/update-me.dto';
 import { User, UserDocument } from '@/users/entities/user.schema';
 import { UserDateFilterField } from '@/users/enums/user-date-filter-field.enum';
@@ -34,16 +39,21 @@ import { UserStatsType } from './graphql/types/user-stats.type';
 export class UsersService {
   constructor(
     @InjectModel(User.name)
-    private readonly userModel: Model<UserDocument>,
+    private readonly userModel: Model<User>,
     private readonly cryptoService: CryptoService,
+    private readonly logger: AppLogger,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   async findByEmail(userEmail: string): Promise<UserDocument | null> {
     return this.userModel.findOne({ email: this.normalizedEmail(userEmail) }).exec();
   }
 
-  async findByEmailForAuth(email: string) {
-    return this.userModel.findOne({ email: this.normalizedEmail(email) }).select('+passwordHash');
+  async findByEmailForAuth(email: string): Promise<UserDocument | null> {
+    return this.userModel
+      .findOne({ email: this.normalizedEmail(email) })
+      .select('+passwordHash')
+      .exec();
   }
 
   async create(data: CreateUserData, createdBy?: string): Promise<UserDocument> {
@@ -86,6 +96,9 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
+    if (!user.passwordHash) {
+      throw new ForbiddenException('Password is not set for this account');
+    }
     const isOldPasswordValid = await bcrypt.compare(dto.oldPassword, user.passwordHash);
 
     if (!isOldPasswordValid) {
@@ -104,6 +117,26 @@ export class UsersService {
 
   private normalizedEmail(email: string): string {
     return email.trim().toLowerCase();
+  }
+
+  async updateAvatar(
+    userId: string,
+    avatarUrl: string,
+    avatarPublicId: string,
+  ): Promise<UserDocument> {
+    const user = await this.findById(userId);
+    const oldAvatarPublicId = user.avatarPublicId;
+
+    user.avatarUrl = avatarUrl;
+    user.avatarPublicId = avatarPublicId;
+
+    await user.save();
+
+    if (oldAvatarPublicId && oldAvatarPublicId !== avatarPublicId) {
+      await this.cloudinaryService.deleteImage(oldAvatarPublicId).catch(() => null);
+    }
+
+    return user;
   }
 
   async ensureEmailNotTaken(email: string): Promise<void> {
@@ -256,5 +289,77 @@ export class UsersService {
     ]);
     const blockedUsers = totalUsers - activeUsers;
     return { totalUsers, activeUsers, blockedUsers };
+  }
+
+  async updateById(id: string, data: Partial<User>): Promise<UserDocument> {
+    const updatedUser = await this.userModel
+      .findByIdAndUpdate(id, { $set: data }, { new: true, runValidators: true })
+      .exec();
+
+    if (!updatedUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    return updatedUser;
+  }
+
+  // Google User
+
+  async findByIdForAuth(id: string): Promise<UserDocument | null> {
+    return this.userModel.findById(id).select('+passwordHash +googleId').exec();
+  }
+
+  async findByGoogleId(googleId: string) {
+    return this.userModel.findOne({ googleId: googleId }).exec();
+  }
+
+  async findOrCreateGoogleUser(googleUser: GoogleAuthUser): Promise<UserDocument> {
+    const { email, firstName, lastName, googleId, avatarUrl } = googleUser;
+
+    let user = await this.findByGoogleId(googleId);
+
+    if (user && user.email !== email) {
+      this.logger.security('Google account linked to existing user', {
+        email,
+        userId: user.id,
+      });
+      throw new ConflictException('Google account is already linked to another user');
+    }
+
+    if (!user) {
+      user = await this.findByEmail(email);
+    }
+
+    if (!user) {
+      const createdUser = new this.userModel({
+        email,
+        firstName,
+        lastName,
+        googleId,
+        avatarUrl,
+        isEmailConfirmed: true,
+      });
+      return createdUser.save();
+    }
+
+    if (!user.isActive) {
+      throw new ForbiddenException('Your account is deactivated');
+    }
+
+    const updateData: Partial<GoogleUserUpdateData> = {};
+    if (!user.googleId) updateData.googleId = googleId;
+    if (!user.isEmailConfirmed) updateData.isEmailConfirmed = true;
+    if (!user.firstName && firstName) updateData.firstName = firstName;
+    if (!user.lastName && lastName) updateData.lastName = lastName;
+    if (!user.avatarUrl && avatarUrl) updateData.avatarUrl = avatarUrl;
+
+    if (Object.keys(updateData).length > 0) {
+      user = await this.updateById(user.id, updateData);
+    }
+    return user;
+  }
+
+  async disconnectGoogleById(userId: string): Promise<void> {
+    await this.userModel.updateOne({ _id: userId }, { $unset: { googleId: 1 } });
   }
 }

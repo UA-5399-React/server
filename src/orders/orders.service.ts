@@ -23,9 +23,14 @@ import { Role } from '@/users/enums/role.enum';
 
 import { ADMIN_ALLOWED_FLOW } from './constants/order-flow';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { GetOrdersQueryDto } from './dto/get-orders-query.dto';
 import { UpdateShippingAddressDto } from './dto/update-shipping-address.dto';
 import { Order, OrderDocument } from './entities';
 import { PaymentStatus } from './enums/payment-status.enum';
+import { UpdateOrderProductsInput } from './graphql/inputs/update-order-items.input';
+import { UpdateOrderShippingAddressInput } from './graphql/inputs/update-order-shipping.input';
+import { UpdateOrderUserInput } from './graphql/inputs/update-order-user.input';
+import { OrderType } from './graphql/types/order.type';
 import { OrderStatsType } from './graphql/types/order-stats.type';
 import { NON_CANCELLABLE_STATUSES, NON_EDITABLE_ADDRESS_STATUSES } from './orders.constants';
 
@@ -154,6 +159,12 @@ export class OrdersService {
 
   // ─── Admin (used by GraphQL resolver) ─────────────────────────────────────
 
+  async findAllFiltered(query: GetOrdersQueryDto): Promise<Order[]> {
+    const filter = this.buildRestOrdersFilter(query);
+
+    return this.orderModel.find(filter).sort({ createdAt: -1 }).lean();
+  }
+
   async findAll(limit = 20, offset = 0): Promise<Order[]> {
     return this.orderModel.find().sort({ createdAt: -1 }).skip(offset).limit(limit).lean();
   }
@@ -264,12 +275,120 @@ export class OrdersService {
     };
   }
 
+  async updateOrderItems(input: UpdateOrderProductsInput): Promise<OrderType> {
+    const order = await this.orderModel.findOne({ orderId: input.orderId });
+    if (!order) throw new NotFoundException('Order not found');
+
+    if (!input.items || input.items.length === 0) {
+      throw new BadRequestException('Items array is required');
+    }
+
+    for (const itemInput of input.items ?? []) {
+      const existingItem = order.items.find((i) => i.product.toString() === itemInput.productId);
+
+      if (itemInput.remove) {
+        order.items = order.items.filter((i) => i.product.toString() !== itemInput.productId);
+        continue;
+      }
+
+      const product = await this.productModel.findById(itemInput.productId);
+      if (!product) throw new NotFoundException('Product not found');
+
+      if (existingItem) {
+        if (itemInput.amount) existingItem.amount = itemInput.amount;
+        existingItem.title = product.title;
+        existingItem.imageUrl = product.imageUrl;
+        existingItem.unitPrice = product.price;
+      } else if (itemInput.amount) {
+        order.items.push({
+          product: product._id,
+          title: product.title,
+          imageUrl: product.imageUrl,
+          unitPrice: product.price,
+          amount: itemInput.amount,
+        });
+      }
+    }
+
+    order.totalPrice = order.items.reduce((sum, i) => sum + i.unitPrice * i.amount, 0);
+    order.markModified('items');
+    await order.save();
+
+    const orderObj = order.toObject();
+    return {
+      ...orderObj,
+      id: orderObj._id.toString(),
+    } as unknown as OrderType;
+  }
+
+  async updateOrderUserInfo(input: UpdateOrderUserInput): Promise<OrderType> {
+    const order = await this.orderModel.findOne({ orderId: input.orderId });
+    if (!order) throw new NotFoundException('Order not found');
+
+    order.user = {
+      ...order.user,
+      ...Object.fromEntries(Object.entries(input.user).filter(([, v]) => v !== undefined)),
+    };
+
+    await order.save();
+    const orderObj = order.toObject();
+    return {
+      ...orderObj,
+      id: orderObj._id.toString(),
+    } as unknown as OrderType;
+  }
+
+  async updateOrderShippingAddress(input: UpdateOrderShippingAddressInput): Promise<OrderType> {
+    const order = await this.orderModel.findOne({ orderId: input.orderId });
+    if (!order) throw new NotFoundException('Order not found');
+
+    order.shippingAddress = {
+      ...order.shippingAddress,
+      ...Object.fromEntries(
+        Object.entries(input.shippingAddress).filter(([, v]) => v !== undefined),
+      ),
+    };
+
+    await order.save();
+    const orderObj = order.toObject();
+    return {
+      ...orderObj,
+      id: orderObj._id.toString(),
+    } as unknown as OrderType;
+  }
+
+  async remove(orderId: string): Promise<void> {
+    const deleted = await this.orderModel.findOneAndDelete({ orderId }).exec();
+
+    if (!deleted) {
+      throw new NotFoundException('Order not found');
+    }
+  }
   // ─── Private ───────────────────────────────────────────────────────────────
 
   private assertCancellable(status: OrderStatus): void {
     if (NON_CANCELLABLE_STATUSES.includes(status)) {
       throw new BadRequestException(`Order with status "${status}" can no longer be cancelled.`);
     }
+  }
+
+  private buildRestOrdersFilter(query: GetOrdersQueryDto): Record<string, unknown> {
+    const filter: Record<string, unknown> = {};
+
+    if (query.status) {
+      filter.status = query.status;
+    }
+
+    const normalizedSearch = query.search?.trim();
+
+    if (normalizedSearch) {
+      filter.$or = [
+        { orderId: { $regex: normalizedSearch, $options: 'i' } },
+        { 'user.email': { $regex: normalizedSearch, $options: 'i' } },
+      ];
+    }
+
+    return filter;
   }
 
   private generateOrderId(): string {
