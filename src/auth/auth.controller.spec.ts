@@ -6,7 +6,11 @@ import type { Response } from 'express';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 
-type RedirectResponse = Pick<Response, 'redirect'>;
+
+const mockAuthCookiesService = {
+  setAuthCookies: jest.fn(),
+  clearAuthCookies: jest.fn(),
+};
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -37,6 +41,7 @@ describe('AuthController', () => {
           provide: ConfigService,
           useValue: mockConfigService,
         },
+        { provide: AuthCookiesService, useValue: mockAuthCookiesService },
       ],
     }).compile();
 
