@@ -176,6 +176,32 @@ export class OrdersService {
       .lean();
   }
 
+  async findProductsInOrders(productId: string) {
+    const orders = await this.orderModel.find({ 'items.product': new Types.ObjectId(productId) });
+
+    const result = orders.reduce(
+      (acc, order) => {
+        const isActive = this.isActiveOrder(order.status);
+
+        const matchingItems = order.items.filter((item) => item.product.toString() === productId);
+
+        for (const item of matchingItems) {
+          acc.totalOrders += 1;
+          acc.totalAmount += item.amount;
+
+          if (isActive) {
+            acc.activeOrders += 1;
+            acc.activeAmount += item.amount;
+          }
+        }
+
+        return acc;
+      },
+      { totalOrders: 0, totalAmount: 0, activeOrders: 0, activeAmount: 0 },
+    );
+
+    return { productId, ...result };
+  }
   async findOrderById(orderId: string): Promise<Order> {
     const order = await this.orderModel.findOne({ orderId }).lean();
     if (!order) {
@@ -476,5 +502,9 @@ export class OrdersService {
     }
 
     return order;
+  }
+
+  private isActiveOrder(status: OrderStatus): boolean {
+    return [OrderStatus.PROCESSING, OrderStatus.SHIPPING, OrderStatus.NEW].includes(status);
   }
 }

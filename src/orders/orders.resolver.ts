@@ -17,6 +17,7 @@ import { UpdateOrderStatusInput } from './graphql/inputs/status-update.inputs';
 import { UpdateOrderProductsInput } from './graphql/inputs/update-order-items.input';
 import { UpdateOrderShippingAddressInput } from './graphql/inputs/update-order-shipping.input';
 import { UpdateOrderUserInput } from './graphql/inputs/update-order-user.input';
+import { OrderProductStatsType } from './graphql/types/order-product-stats.type';
 import { OrderStatsType } from './graphql/types/order-stats.type';
 import { mapOrderToGraphQL } from './graphql/utils/map-order';
 
@@ -53,6 +54,11 @@ export class OrdersResolver {
   @Query(() => OrderStatsType)
   async orderStats() {
     return this.ordersService.getOrderStats();
+  }
+
+  @Query(() => OrderProductStatsType)
+  async getProductInOrders(@Args('productId', { type: () => ID }) productId: string) {
+    return this.ordersService.findProductsInOrders(productId);
   }
 
   @Mutation(() => OrderType)
