@@ -3,6 +3,7 @@ import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Types } from 'mongoose';
 
+import { Category } from '@/categories/entities/categories.schema';
 import { SortOrder } from '@/common/enums/sort-order.enum';
 import { Product } from '@/products/entities/product.schema';
 import { ProductSortField } from '@/products/enums/product-sort-field.enum';
@@ -35,6 +36,8 @@ const limitMock = jest.fn();
 const countExecMock = jest.fn();
 
 const saveMock = jest.fn();
+const categoryLeanMock = jest.fn();
+const categorySelectMock = jest.fn();
 
 type MockProductModelType = jest.Mock & {
   find: jest.Mock;
@@ -64,6 +67,10 @@ const mockProductModel: MockProductModelType = Object.assign(
   },
 );
 
+const mockCategoryModel = {
+  find: jest.fn(),
+};
+
 describe('ProductsService', () => {
   let service: ProductsService;
 
@@ -74,6 +81,8 @@ describe('ProductsService', () => {
 
     mockProductModel.find.mockReturnValue({ sort: sortMock });
     mockProductModel.countDocuments.mockReturnValue({ exec: countExecMock });
+    categorySelectMock.mockReturnValue({ lean: categoryLeanMock });
+    mockCategoryModel.find.mockReturnValue({ select: categorySelectMock });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -81,6 +90,10 @@ describe('ProductsService', () => {
         {
           provide: getModelToken(Product.name),
           useValue: mockProductModel,
+        },
+        {
+          provide: getModelToken(Category.name),
+          useValue: mockCategoryModel,
         },
       ],
     }).compile();
@@ -134,6 +147,20 @@ describe('ProductsService', () => {
     it('should apply filters and sorting', async () => {
       execMock.mockResolvedValue([mockProduct]);
       countExecMock.mockResolvedValue(1);
+      categoryLeanMock.mockResolvedValue([
+        {
+          _id: new Types.ObjectId('507f1f77bcf86cd799439011'),
+          title: 'Laptop',
+        },
+        {
+          _id: new Types.ObjectId('507f1f77bcf86cd799439012'),
+          title: 'Smartphone',
+        },
+        {
+          _id: new Types.ObjectId('507f1f77bcf86cd799439099'),
+          title: 'Gaming Laptops',
+        },
+      ]);
 
       const query: ProductsQueryArgs = {
         page: 1,
@@ -162,11 +189,52 @@ describe('ProductsService', () => {
         $lte: new Date('2026-03-31T23:59:59.999Z'),
       });
 
-      // ✅ categories check (important part)
-      expect(filter.categories).toBeDefined();
-      expect(filter.categories.$in).toHaveLength(2);
-      expect(filter.categories.$in[0]).toBeInstanceOf(Types.ObjectId);
-      expect(filter.categories.$in[1]).toBeInstanceOf(Types.ObjectId);
+      expect(mockCategoryModel.find).toHaveBeenCalledWith({
+        $or: [
+          {
+            _id: {
+              $in: [
+                new Types.ObjectId('507f1f77bcf86cd799439011'),
+                new Types.ObjectId('507f1f77bcf86cd799439012'),
+              ],
+            },
+          },
+          {
+            parent: {
+              $in: [
+                new Types.ObjectId('507f1f77bcf86cd799439011'),
+                new Types.ObjectId('507f1f77bcf86cd799439012'),
+              ],
+            },
+          },
+        ],
+      });
+      expect(filter.$expr).toEqual({
+        $gt: [
+          {
+            $size: {
+              $setIntersection: [
+                {
+                  $map: {
+                    input: { $ifNull: ['$categories', []] },
+                    as: 'category',
+                    in: { $toString: '$$category' },
+                  },
+                },
+                [
+                  '507f1f77bcf86cd799439011',
+                  '507f1f77bcf86cd799439012',
+                  'Laptop',
+                  'Smartphone',
+                  '507f1f77bcf86cd799439099',
+                  'Gaming Laptops',
+                ],
+              ],
+            },
+          },
+          0,
+        ],
+      });
       expect(sortMock).toHaveBeenCalledWith({ price: -1 });
       expect(skipMock).toHaveBeenCalledWith(0);
       expect(limitMock).toHaveBeenCalledWith(10);
