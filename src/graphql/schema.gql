@@ -115,6 +115,14 @@ type OrderItemType {
   unitPrice: Float!
 }
 
+type OrderProductStatsType {
+  activeAmount: Int!
+  activeOrders: Int!
+  productId: String!
+  totalAmount: Int!
+  totalOrders: Int!
+}
+
 input OrderShippingAddressInput {
   branchNumber: Int
   carrier: ShippingCarrier
@@ -268,6 +276,7 @@ type Query {
   categoriesPage(limit: Int! = 10, page: Int! = 1, search: String): CategoriesPageType!
   category(id: ID!): CategoryType!
   getOrder(orderId: String!): OrderType!
+  getProductInOrders(productId: ID!): OrderProductStatsType!
   order(id: ID!): OrderType!
   orderStats: OrderStatsType!
   orders(filter: OrdersFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: OrdersSortField! = createdAt): OrdersPage!
