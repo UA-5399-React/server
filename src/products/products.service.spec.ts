@@ -131,6 +131,7 @@ describe('ProductsService', () => {
           { description: { $regex: 'Laptop', $options: 'i' } },
           { productCode: 'Laptop' },
         ],
+        status: 'active',
       });
       expect(sortMock).toHaveBeenCalledWith({ updatedAt: -1 });
       expect(skipMock).toHaveBeenCalledWith(0);
@@ -141,6 +142,7 @@ describe('ProductsService', () => {
           { description: { $regex: 'Laptop', $options: 'i' } },
           { productCode: 'Laptop' },
         ],
+        status: 'active',
       });
     });
 
