@@ -10,7 +10,7 @@ import type { Response } from 'express';
 import { ROUTES } from '@/auth/constants';
 import { GoogleConnectStatus } from '@/auth/enums/google-connect-status.enum';
 import { AuthCookiesService } from '@/auth/services/auth-cookies.service';
-import { GoogleAccountService } from '@/auth/services/google-account-service';
+import { GoogleAccountService } from '@/auth/services/google-account.service';
 import type { AuthUser } from '@/auth/types/auth-user.type';
 import type { GoogleAuthUser } from '@/auth/types/google-auth-user.type';
 import { GoogleCallbackInput } from '@/auth/types/google-callback-input.type';
