@@ -8,7 +8,7 @@ import { CryptoModule } from '@/auth/crypto/crypto.module';
 import { RedirectUrlMiddleware } from '@/auth/middleware/redirect-url.middleware';
 import { AuthCookiesService } from '@/auth/services/auth-cookies.service';
 import { EmailVerificationService } from '@/auth/services/email-verification.service';
-import { GoogleAccountService } from '@/auth/services/google-account-service';
+import { GoogleAccountService } from '@/auth/services/google-account.service';
 import { GoogleAuthFacade } from '@/auth/services/google-auth.facade';
 import { UserValidatorService } from '@/auth/services/user-validator.service';
 import { GoogleStrategy } from '@/auth/strategies/google.strategy';
