@@ -3,7 +3,7 @@ on:
     push:
         branches:
             - demo
-            - feat/221-deploy-client
+            - feat/221-deploy-application
 
 jobs:
     build-and-deploy:

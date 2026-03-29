@@ -102,7 +102,7 @@ export class OrdersService {
       throw new NotFoundException(`Order ${orderId} not found.`);
     }
 
-    if (!order.userId.equals(userId)) {
+    if (order.userId.toString() !== userId.toString()) {
       throw new ForbiddenException('Access denied.');
     }
 
@@ -116,7 +116,7 @@ export class OrdersService {
       throw new NotFoundException(`Order ${orderId} not found.`);
     }
 
-    if (!order.userId.equals(userId)) {
+    if (order.userId.toString() !== userId.toString()) {
       throw new ForbiddenException('Access denied.');
     }
 
@@ -140,7 +140,7 @@ export class OrdersService {
       throw new NotFoundException(`Order ${orderId} not found.`);
     }
 
-    if (!order.userId.equals(userId)) {
+    if (order.userId.toString() !== userId.toString()) {
       throw new ForbiddenException('Access denied.');
     }
 
