@@ -4,7 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  ParseFilePipeBuilder,
+  //ParseFilePipeBuilder,
   Patch,
   Query,
   Req,
@@ -36,6 +36,7 @@ import { UploadAvatarBodyDto } from './dto/upload-avatar-body.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { UsersListResponseDto } from './dto/users-list-response.dto';
 import { UsersQueryDto } from './dto/users-query.dto';
+import { UploadImageFilePipe } from './pipes/update-avatar.pipe';
 import { toUserResponseDto } from './users.mapper';
 import { UsersService } from './users.service';
 
@@ -113,19 +114,7 @@ export class UsersController {
   @UseInterceptors(FileInterceptor('file'))
   async uploadAvatar(
     @Req() req: AuthRequest,
-    @UploadedFile(
-      new ParseFilePipeBuilder()
-        .addFileTypeValidator({
-          fileType: /^(image\/jpeg|image\/png|image\/webp)$/,
-        })
-        .addMaxSizeValidator({
-          maxSize: 5 * 1024 * 1024,
-        })
-        .build({
-          fileIsRequired: true,
-          errorHttpStatusCode: HttpStatus.BAD_REQUEST,
-        }),
-    )
+    @UploadedFile(new UploadImageFilePipe())
     file: UploadedImageFile,
   ): Promise<UserResponseDto> {
     const uploaded = await this.cloudinaryService.uploadAvatar(file);
