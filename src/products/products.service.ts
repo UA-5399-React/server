@@ -208,6 +208,28 @@ export class ProductsService {
     }
   }
 
+  private parseDate(value?: unknown) {
+    const date =
+      value instanceof Date ? value : typeof value === 'string' ? new Date(value) : undefined;
+
+    if (date && Number.isNaN(date.getTime())) {
+      throw new BadRequestException('Invalid date');
+    }
+
+    return date;
+  }
+
+  private parseDateRange(dateFrom?: unknown, dateTo?: unknown) {
+    const from = this.parseDate(dateFrom);
+    const to = this.parseDate(dateTo);
+
+    if (from && to && from > to) {
+      throw new BadRequestException('Invalid date range: updatedFrom must be <= updatedTo');
+    }
+
+    return { from, to };
+  }
+
   private async generateCode(): Promise<string> {
     const lastProduct = await this.productModel
       .findOne({ productCode: /^\d+$/ })

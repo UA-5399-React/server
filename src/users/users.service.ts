@@ -4,7 +4,6 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcrypt';
@@ -102,7 +101,7 @@ export class UsersService {
     const isOldPasswordValid = await bcrypt.compare(dto.oldPassword, user.passwordHash);
 
     if (!isOldPasswordValid) {
-      throw new UnauthorizedException('Old password is incorrect');
+      throw new BadRequestException('Old password is incorrect');
     }
 
     if (dto.oldPassword === dto.newPassword) {

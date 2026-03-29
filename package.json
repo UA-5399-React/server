@@ -8,6 +8,7 @@
   "scripts": {
     "build": "nest build",
     "build:deploy": "nest build && tsc-alias -p tsconfig.build.json",
+    "build:deploy": "nest build && tsc-alias -p tsconfig.build.json",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",

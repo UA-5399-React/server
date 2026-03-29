@@ -1,4 +1,4 @@
-name: Deploy to vercel on push
+name: Deploy server  to vercel on push 
 on:
     push:
         branches:

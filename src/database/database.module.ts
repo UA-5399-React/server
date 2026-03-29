@@ -50,6 +50,6 @@ import { ProductSeeder } from './seeders/product.seeder';
       { name: Cart.name, schema: CartSchema },
     ]),
   ],
-  providers: [ProductSeeder, CategorySeeder, UserSeeder, OrderSeeder, CartSeeder],
+  providers: [ProductSeeder, CategorySeeder, UserSeeder, CartSeeder, OrderSeeder],
 })
 export class DatabaseModule {}
