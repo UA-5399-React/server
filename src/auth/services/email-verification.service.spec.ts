@@ -83,7 +83,7 @@ describe('EmailVerificationService', () => {
       await service.createAndSendVerification(user);
 
       expect(tokensServiceMock.createToken).toHaveBeenCalledTimes(1);
-      expect(configServiceMock.getOrThrow).toHaveBeenCalledWith('CLIENT_URL');
+      expect(configServiceMock.getOrThrow).toHaveBeenCalledWith('BACKEND_URL');
 
       expect(tokensServiceMock.createToken).toHaveBeenCalledWith({
         userId: user.id,
@@ -206,7 +206,7 @@ describe('EmailVerificationService', () => {
 
       expect(tokensServiceMock.createToken).toHaveBeenCalledTimes(1);
 
-      expect(configServiceMock.getOrThrow).toHaveBeenCalledWith('CLIENT_URL');
+      expect(configServiceMock.getOrThrow).toHaveBeenCalledWith('BACKEND_URL');
 
       expect(tokensServiceMock.createToken).toHaveBeenCalledWith({
         userId: user.id,

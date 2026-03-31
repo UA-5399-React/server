@@ -22,10 +22,10 @@ export class PaymentsService {
 
   async createCheckoutSession(
     items: CheckoutItemDto[],
-    successUrl: string,
-    cancelUrl: string,
     orderId?: string,
   ): Promise<{ sessionId: string; sessionUrl: string }> {
+    const successUrl = this.buildClientCheckoutUrl('/order-confirmation');
+    const cancelUrl = this.buildClientCheckoutUrl('/cart');
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = items.map((item) => ({
       price_data: {
         currency: 'usd',
@@ -58,6 +58,11 @@ export class PaymentsService {
       sessionId: session.id,
       sessionUrl: session.url!,
     };
+  }
+
+  private buildClientCheckoutUrl(pathname: string): string {
+    const clientUrl = this.configService.getOrThrow<string>('CLIENT_URL');
+    return new URL(pathname, clientUrl).toString();
   }
 
   async getSessionStatus(sessionId: string): Promise<{ status: string; paymentStatus: string }> {

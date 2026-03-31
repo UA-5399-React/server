@@ -7,15 +7,10 @@ import { PaymentsService } from './payments.service';
 
 describe('PaymentsService', () => {
   let service: PaymentsService;
+  let configValues: Record<string, string>;
 
   const mockConfigService = {
-    getOrThrow: jest.fn((key: string) => {
-      const config: Record<string, string> = {
-        STRIPE_SECRET_KEY: 'sk_test_fake_key_for_testing',
-        STRIPE_WEBHOOK_SECRET: 'whsec_test_fake_secret',
-      };
-      return config[key];
-    }),
+    getOrThrow: jest.fn((key: string) => configValues[key]),
   };
 
   const mockOrdersService = {
@@ -23,6 +18,12 @@ describe('PaymentsService', () => {
   };
 
   beforeEach(async () => {
+    configValues = {
+      STRIPE_SECRET_KEY: 'sk_test_fake_key_for_testing',
+      STRIPE_WEBHOOK_SECRET: 'whsec_test_fake_secret',
+      CLIENT_URL: 'https://client-one-indol-61.vercel.app',
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PaymentsService,
@@ -33,6 +34,7 @@ describe('PaymentsService', () => {
 
     service = module.get<PaymentsService>(PaymentsService);
     jest.clearAllMocks();
+    mockConfigService.getOrThrow.mockClear();
   });
 
   it('should be defined', () => {
@@ -50,18 +52,14 @@ describe('PaymentsService', () => {
         .spyOn(service['stripe'].checkout.sessions, 'create')
         .mockResolvedValue(mockSession as any);
 
-      const result = await service.createCheckoutSession(
-        [
-          {
-            productId: '665f1b2c3e4a5b6c7d8e9f00',
-            title: 'Test Product',
-            price: 29.99,
-            quantity: 2,
-          },
-        ],
-        'http://localhost:5173/order-confirmation',
-        'http://localhost:5173/cart',
-      );
+      const result = await service.createCheckoutSession([
+        {
+          productId: '665f1b2c3e4a5b6c7d8e9f00',
+          title: 'Test Product',
+          price: 29.99,
+          quantity: 2,
+        },
+      ]);
 
       expect(result).toEqual({
         sessionId: 'cs_test_123',
@@ -73,6 +71,9 @@ describe('PaymentsService', () => {
         expect.objectContaining({
           mode: 'payment',
           payment_method_types: ['card'],
+          success_url:
+            'https://client-one-indol-61.vercel.app/order-confirmation?session_id={CHECKOUT_SESSION_ID}',
+          cancel_url: 'https://client-one-indol-61.vercel.app/cart',
           line_items: [
             expect.objectContaining({
               price_data: expect.objectContaining({
@@ -101,14 +102,33 @@ describe('PaymentsService', () => {
 
       await service.createCheckoutSession(
         [{ productId: 'p1', title: 'Item', price: 10, quantity: 1 }],
-        'http://localhost:5173/order-confirmation',
-        'http://localhost:5173/cart',
         'ORD-20240318-AB12C',
       );
 
       expect(createSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           metadata: expect.objectContaining({ orderId: 'ORD-20240318-AB12C' }),
+        }),
+      );
+    });
+
+    it('derives checkout redirect urls from CLIENT_URL without localhost fallbacks', async () => {
+      const createSpy = jest
+        .spyOn(service['stripe'].checkout.sessions, 'create')
+        .mockResolvedValue({
+          id: 'cs_test_123',
+          url: 'https://checkout.stripe.com/pay/cs_test_123',
+        } as any);
+
+      await service.createCheckoutSession([
+        { productId: 'p1', title: 'Item', price: 10, quantity: 1 },
+      ]);
+
+      expect(createSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success_url:
+            'https://client-one-indol-61.vercel.app/order-confirmation?session_id={CHECKOUT_SESSION_ID}',
+          cancel_url: 'https://client-one-indol-61.vercel.app/cart',
         }),
       );
     });
