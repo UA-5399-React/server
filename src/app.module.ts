@@ -2,11 +2,12 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { redisStore } from 'cache-manager-redis-yet';
 
 import { AuthModule } from '@/auth/auth.module';
 import { CartModule } from '@/cart/cart.module';
+import { AppThrottlerGuard } from '@/common/guards/app-throttler.guard';
 import { AppGraphQLModule } from '@/graphql/graphql.module';
 import { UsersModule } from '@/users/users.module';
 
@@ -71,7 +72,7 @@ import { UploadsModule } from './uploads/uploads.module';
     },
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: AppThrottlerGuard,
     },
   ],
 })
