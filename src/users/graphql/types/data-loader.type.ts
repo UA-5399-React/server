@@ -5,6 +5,7 @@ import type { UserDocument } from '@/users/entities/user.schema';
 
 export type GraphqlLoadersContext = {
   req: Request;
+  res: Response;
   loaders: {
     userById: DataLoader<string, UserDocument | null>;
   };

@@ -22,8 +22,9 @@ import { UsersService } from '@/users/users.service';
             : join(process.cwd(), 'src/graphql/schema.gql'),
         sortSchema: true,
         playground: true,
-        context: ({ req }): GraphqlLoadersContext => ({
+        context: ({ req, res }): GraphqlLoadersContext => ({
           req,
+          res,
           loaders: {
             userById: createUserByIdLoader(usersService),
           },
