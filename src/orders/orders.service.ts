@@ -27,11 +27,13 @@ import { GetOrdersQueryDto } from './dto/get-orders-query.dto';
 import { UpdateShippingAddressDto } from './dto/update-shipping-address.dto';
 import { Order, OrderDocument } from './entities';
 import { PaymentStatus } from './enums/payment-status.enum';
+import { UpdateOrderInput } from './graphql/inputs/update-order.input';
 import { UpdateOrderProductsInput } from './graphql/inputs/update-order-items.input';
 import { UpdateOrderShippingAddressInput } from './graphql/inputs/update-order-shipping.input';
 import { UpdateOrderUserInput } from './graphql/inputs/update-order-user.input';
 import { OrderType } from './graphql/types/order.type';
 import { OrderStatsType } from './graphql/types/order-stats.type';
+import { mapOrderToGraphQL } from './graphql/utils/map-order';
 import { NON_CANCELLABLE_STATUSES, NON_EDITABLE_ADDRESS_STATUSES } from './orders.constants';
 
 @Injectable()
@@ -381,6 +383,53 @@ export class OrdersService {
       ...orderObj,
       id: orderObj._id.toString(),
     } as unknown as OrderType;
+  }
+
+  async updateOrder(input: UpdateOrderInput, role: Role): Promise<OrderType> {
+    const order = await this.orderModel.findOne({ orderId: input.orderId });
+    if (!order) throw new NotFoundException('Order not found');
+
+    const hasChanges =
+      input.status !== undefined ||
+      input.items !== undefined ||
+      input.user !== undefined ||
+      input.shippingAddress !== undefined;
+
+    if (!hasChanges) {
+      throw new BadRequestException(
+        'At least one update field is required: status, items, user, or shippingAddress.',
+      );
+    }
+
+    let updatedOrder: OrderType | null = null;
+
+    if (input.status !== undefined) {
+      const order = await this.updateOrderStatus(input.orderId, input.status, role);
+      updatedOrder = mapOrderToGraphQL(order);
+    }
+
+    if (input.items !== undefined) {
+      updatedOrder = await this.updateOrderItems({
+        orderId: input.orderId,
+        items: input.items,
+      });
+    }
+
+    if (input.user !== undefined) {
+      updatedOrder = await this.updateOrderUserInfo({
+        orderId: input.orderId,
+        user: input.user,
+      });
+    }
+
+    if (input.shippingAddress !== undefined) {
+      updatedOrder = await this.updateOrderShippingAddress({
+        orderId: input.orderId,
+        shippingAddress: input.shippingAddress,
+      });
+    }
+
+    return updatedOrder!;
   }
 
   async remove(orderId: string): Promise<void> {

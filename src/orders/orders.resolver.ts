@@ -16,6 +16,7 @@ import { Role } from '@/users/enums/role.enum';
 
 import { CreateOrderInput } from './graphql/inputs/create-order.input';
 import { UpdateOrderStatusInput } from './graphql/inputs/status-update.inputs';
+import { UpdateOrderInput } from './graphql/inputs/update-order.input';
 import { UpdateOrderProductsInput } from './graphql/inputs/update-order-items.input';
 import { UpdateOrderShippingAddressInput } from './graphql/inputs/update-order-shipping.input';
 import { UpdateOrderUserInput } from './graphql/inputs/update-order-user.input';
@@ -108,6 +109,15 @@ export class OrdersResolver {
     @Args('input') input: UpdateOrderShippingAddressInput,
   ): Promise<OrderType> {
     return this.ordersService.updateOrderShippingAddress(input);
+  }
+
+  @Mutation(() => OrderType)
+  async updateOrder(
+    @Args('input') input: UpdateOrderInput,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<OrderType> {
+    const order = await this.ordersService.updateOrder(input, user.role);
+    return order;
   }
 
   @Mutation(() => Boolean)
