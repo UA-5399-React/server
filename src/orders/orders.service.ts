@@ -33,7 +33,6 @@ import { UpdateOrderShippingAddressInput } from './graphql/inputs/update-order-s
 import { UpdateOrderUserInput } from './graphql/inputs/update-order-user.input';
 import { OrderType } from './graphql/types/order.type';
 import { OrderStatsType } from './graphql/types/order-stats.type';
-import { mapOrderToGraphQL } from './graphql/utils/map-order';
 import { NON_CANCELLABLE_STATUSES, NON_EDITABLE_ADDRESS_STATUSES } from './orders.constants';
 
 @Injectable()
@@ -250,29 +249,24 @@ export class OrdersService {
   }
 
   async updateOrderStatus(orderId: string, status: OrderStatus, role: Role): Promise<Order> {
-    const order = await this.orderModel.findOne({ orderId }).lean();
+    const order = await this.orderModel.findOne({ orderId });
     if (!order) {
       throw new NotFoundException('Order not found');
     }
-    if (role !== Role.SUPER_ADMIN) {
-      const allowed = ADMIN_ALLOWED_FLOW[order.status] ?? [];
-      if (!allowed.includes(status)) {
-        throw new BadRequestException(
-          `Transition from '${order.status}' to '${status}' is not allowed`,
-        );
-      }
+
+    const wasUpdated = this.applyOrderStatusUpdate(order, status, role);
+    if (!wasUpdated) {
+      return order;
     }
 
-    const updated = await this.orderModel
-      .findOneAndUpdate({ orderId }, { status }, { returnDocument: 'after' })
-      .lean();
+    await order.save();
 
-    if (updated?.user?.email) {
+    if (wasUpdated && order.user?.email) {
       this.mailService
-        .sendOrderStatusEmail(updated.user.email, updated.orderId, status)
+        .sendOrderStatusEmail(order.user.email, order.orderId, order.status)
         .catch((err) => console.error('Failed to send email', err));
     }
-    return updated!;
+    return order;
   }
 
   async getOrderStats(): Promise<OrderStatsType> {
@@ -303,10 +297,111 @@ export class OrdersService {
     };
   }
 
-  async updateOrderItems(input: UpdateOrderProductsInput): Promise<OrderType> {
+  async updateOrderItems(input: UpdateOrderProductsInput, role: Role): Promise<OrderType> {
+    return this.updateOrder(
+      {
+        orderId: input.orderId,
+        items: input.items,
+      },
+      role,
+    );
+  }
+
+  async updateOrderUserInfo(input: UpdateOrderUserInput, role: Role): Promise<OrderType> {
+    return this.updateOrder(
+      {
+        orderId: input.orderId,
+        user: input.user,
+      },
+      role,
+    );
+  }
+
+  async updateOrderShippingAddress(
+    input: UpdateOrderShippingAddressInput,
+    role: Role,
+  ): Promise<OrderType> {
+    return this.updateOrder(
+      {
+        orderId: input.orderId,
+        shippingAddress: input.shippingAddress,
+      },
+      role,
+    );
+  }
+
+  async updateOrder(input: UpdateOrderInput, role: Role): Promise<OrderType> {
     const order = await this.orderModel.findOne({ orderId: input.orderId });
     if (!order) throw new NotFoundException('Order not found');
 
+    const hasChanges =
+      input.status !== undefined ||
+      input.items !== undefined ||
+      input.user !== undefined ||
+      input.shippingAddress !== undefined;
+
+    if (!hasChanges) {
+      throw new BadRequestException(
+        'At least one update field is required: status, items, user, or shippingAddress.',
+      );
+    }
+
+    let statusWasUpdated = false;
+    if (input.status !== undefined) {
+      statusWasUpdated = this.applyOrderStatusUpdate(order, input.status, role);
+    }
+
+    if (input.items !== undefined) {
+      await this.applyOrderItemsUpdate(order, {
+        orderId: input.orderId,
+        items: input.items,
+      });
+    }
+
+    if (input.user !== undefined) {
+      this.applyOrderUserInfoUpdate(order, {
+        orderId: input.orderId,
+        user: input.user,
+      });
+    }
+
+    if (input.shippingAddress !== undefined) {
+      this.applyOrderShippingAddressUpdate(order, {
+        orderId: input.orderId,
+        shippingAddress: input.shippingAddress,
+      });
+    }
+
+    await order.save();
+
+    if (statusWasUpdated && order.user?.email) {
+      this.mailService
+        .sendOrderStatusEmail(order.user.email, order.orderId, order.status)
+        .catch((err) => console.error('Failed to send email', err));
+    }
+
+    return this.mapOrderDocumentToGraphQL(order);
+  }
+
+  async remove(orderId: string): Promise<void> {
+    const deleted = await this.orderModel.findOneAndDelete({ orderId }).exec();
+
+    if (!deleted) {
+      throw new NotFoundException('Order not found');
+    }
+  }
+  // ─── Private ───────────────────────────────────────────────────────────────
+
+  private assertCancellable(status: OrderStatus): void {
+    if (NON_CANCELLABLE_STATUSES.includes(status)) {
+      throw new BadRequestException(`Order with status "${status}" can no longer be cancelled.`);
+    }
+  }
+
+  private async applyOrderItemsUpdate(
+    order: OrderDocument,
+    input: UpdateOrderProductsInput,
+  ): Promise<void> {
     if (!input.items || input.items.length === 0) {
       throw new BadRequestException('Items array is required');
     }
@@ -340,111 +435,65 @@ export class OrdersService {
 
     order.totalPrice = order.items.reduce((sum, i) => sum + i.unitPrice * i.amount, 0);
     order.markModified('items');
-    await order.save();
-
-    const orderObj = order.toObject();
-    return {
-      ...orderObj,
-      id: orderObj._id.toString(),
-    } as unknown as OrderType;
   }
 
-  async updateOrderUserInfo(input: UpdateOrderUserInput): Promise<OrderType> {
-    const order = await this.orderModel.findOne({ orderId: input.orderId });
-    if (!order) throw new NotFoundException('Order not found');
-
+  private applyOrderUserInfoUpdate(order: OrderDocument, input: UpdateOrderUserInput): void {
     order.user = {
       ...order.user,
       ...Object.fromEntries(Object.entries(input.user).filter(([, v]) => v !== undefined)),
     };
-
-    await order.save();
-    const orderObj = order.toObject();
-    return {
-      ...orderObj,
-      id: orderObj._id.toString(),
-    } as unknown as OrderType;
   }
 
-  async updateOrderShippingAddress(input: UpdateOrderShippingAddressInput): Promise<OrderType> {
-    const order = await this.orderModel.findOne({ orderId: input.orderId });
-    if (!order) throw new NotFoundException('Order not found');
-
+  private applyOrderShippingAddressUpdate(
+    order: OrderDocument,
+    input: UpdateOrderShippingAddressInput,
+  ): void {
     order.shippingAddress = {
       ...order.shippingAddress,
       ...Object.fromEntries(
         Object.entries(input.shippingAddress).filter(([, v]) => v !== undefined),
       ),
     };
+  }
 
-    await order.save();
+  private applyOrderStatusUpdate(
+    order: OrderDocument,
+    nextStatus: OrderStatus,
+    role: Role,
+  ): boolean {
+    this.assertStatusTransitionAllowed(order.status, nextStatus, role);
+
+    if (order.status === nextStatus) {
+      return false;
+    }
+
+    order.status = nextStatus;
+    return true;
+  }
+
+  private assertStatusTransitionAllowed(
+    currentStatus: OrderStatus,
+    nextStatus: OrderStatus,
+    role: Role,
+  ): void {
+    if (role === Role.SUPER_ADMIN) {
+      return;
+    }
+
+    const allowed = ADMIN_ALLOWED_FLOW[currentStatus] ?? [];
+    if (!allowed.includes(nextStatus)) {
+      throw new BadRequestException(
+        `Transition from '${currentStatus}' to '${nextStatus}' is not allowed`,
+      );
+    }
+  }
+
+  private mapOrderDocumentToGraphQL(order: OrderDocument): OrderType {
     const orderObj = order.toObject();
     return {
       ...orderObj,
       id: orderObj._id.toString(),
     } as unknown as OrderType;
-  }
-
-  async updateOrder(input: UpdateOrderInput, role: Role): Promise<OrderType> {
-    const order = await this.orderModel.findOne({ orderId: input.orderId });
-    if (!order) throw new NotFoundException('Order not found');
-
-    const hasChanges =
-      input.status !== undefined ||
-      input.items !== undefined ||
-      input.user !== undefined ||
-      input.shippingAddress !== undefined;
-
-    if (!hasChanges) {
-      throw new BadRequestException(
-        'At least one update field is required: status, items, user, or shippingAddress.',
-      );
-    }
-
-    let updatedOrder: OrderType | null = null;
-
-    if (input.status !== undefined) {
-      const order = await this.updateOrderStatus(input.orderId, input.status, role);
-      updatedOrder = mapOrderToGraphQL(order);
-    }
-
-    if (input.items !== undefined) {
-      updatedOrder = await this.updateOrderItems({
-        orderId: input.orderId,
-        items: input.items,
-      });
-    }
-
-    if (input.user !== undefined) {
-      updatedOrder = await this.updateOrderUserInfo({
-        orderId: input.orderId,
-        user: input.user,
-      });
-    }
-
-    if (input.shippingAddress !== undefined) {
-      updatedOrder = await this.updateOrderShippingAddress({
-        orderId: input.orderId,
-        shippingAddress: input.shippingAddress,
-      });
-    }
-
-    return updatedOrder!;
-  }
-
-  async remove(orderId: string): Promise<void> {
-    const deleted = await this.orderModel.findOneAndDelete({ orderId }).exec();
-
-    if (!deleted) {
-      throw new NotFoundException('Order not found');
-    }
-  }
-  // ─── Private ───────────────────────────────────────────────────────────────
-
-  private assertCancellable(status: OrderStatus): void {
-    if (NON_CANCELLABLE_STATUSES.includes(status)) {
-      throw new BadRequestException(`Order with status "${status}" can no longer be cancelled.`);
-    }
   }
 
   private buildRestOrdersFilter(query: GetOrdersQueryDto): Record<string, unknown> {

@@ -95,20 +95,27 @@ export class OrdersResolver {
   }
 
   @Mutation(() => OrderType)
-  async updateOrderItems(@Args('input') input: UpdateOrderProductsInput): Promise<OrderType> {
-    return this.ordersService.updateOrderItems(input);
+  async updateOrderItems(
+    @Args('input') input: UpdateOrderProductsInput,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<OrderType> {
+    return this.ordersService.updateOrderItems(input, user.role);
   }
 
   @Mutation(() => OrderType)
-  async updateOrderUserInfo(@Args('input') input: UpdateOrderUserInput): Promise<OrderType> {
-    return this.ordersService.updateOrderUserInfo(input);
+  async updateOrderUserInfo(
+    @Args('input') input: UpdateOrderUserInput,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<OrderType> {
+    return this.ordersService.updateOrderUserInfo(input, user.role);
   }
 
   @Mutation(() => OrderType)
   async updateOrderShippingAddress(
     @Args('input') input: UpdateOrderShippingAddressInput,
+    @CurrentUser() user: JwtPayload,
   ): Promise<OrderType> {
-    return this.ordersService.updateOrderShippingAddress(input);
+    return this.ordersService.updateOrderShippingAddress(input, user.role);
   }
 
   @Mutation(() => OrderType)
