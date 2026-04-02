@@ -1,12 +1,6 @@
-import {
-  BadRequestException,
-  ConflictException,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
-import * as bcrypt from 'bcrypt';
 import { Types } from 'mongoose';
 
 import { CryptoService } from '@/auth/crypto/crypto.service';
@@ -16,11 +10,6 @@ import { User } from '@/users/entities/user.schema';
 import { Role } from '@/users/enums/role.enum';
 
 import { UsersService } from './users.service';
-
-jest.mock('bcrypt', () => ({
-  compare: jest.fn(),
-  hash: jest.fn(),
-}));
 
 describe('UsersService', () => {
   let service: UsersService;
@@ -35,6 +24,8 @@ describe('UsersService', () => {
 
   const mockCryptoService = {
     preparePassword: jest.fn(),
+    comparePassword: jest.fn(),
+    hashPassword: jest.fn(),
   };
 
   const mockCloudinaryService = {
@@ -168,14 +159,14 @@ describe('UsersService', () => {
         }),
       });
 
-      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+      mockCryptoService.comparePassword.mockResolvedValue(false);
 
       await expect(
         service.changePassword('123', {
           oldPassword: 'wrong',
           newPassword: 'new123',
         } as never),
-      ).rejects.toThrow(UnauthorizedException);
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException if new password equals old password', async () => {
@@ -187,7 +178,7 @@ describe('UsersService', () => {
         }),
       });
 
-      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+      mockCryptoService.comparePassword.mockResolvedValue(true);
 
       await expect(
         service.changePassword('123', {
@@ -207,15 +198,15 @@ describe('UsersService', () => {
         }),
       });
 
-      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
-      (bcrypt.hash as jest.Mock).mockResolvedValue('newHash');
+      mockCryptoService.comparePassword.mockResolvedValue(true);
+      mockCryptoService.hashPassword.mockResolvedValue('newHash');
 
       await service.changePassword('123', {
         oldPassword: 'old123',
         newPassword: 'new123',
       } as never);
 
-      expect(bcrypt.hash).toHaveBeenCalledWith('new123', 10);
+      expect(mockCryptoService.hashPassword).toHaveBeenCalledWith('new123');
       expect(user.passwordHash).toBe('newHash');
       expect(save).toHaveBeenCalled();
     });
