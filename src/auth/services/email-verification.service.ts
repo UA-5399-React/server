@@ -120,10 +120,10 @@ export class EmailVerificationService {
     );
 
     if (existingToken?.createdAt) {
-      const cooldownMs = 60 * 1000;
+      const cooldownSeconds = 60 * 1000;
       const diff = Date.now() - new Date(existingToken.createdAt).getTime();
 
-      if (diff < cooldownMs) {
+      if (diff < cooldownSeconds) {
         throw new HttpException(
           'Please wait before requesting another confirmation email.',
           HttpStatus.TOO_MANY_REQUESTS,
