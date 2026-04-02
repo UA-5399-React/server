@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 
 import { Product, ProductSchema } from '@/products/entities/product.schema';
+import { ProductsModule } from '@/products/products.module';
 
 import { CategoryController } from './category.controller';
 import { CategoryResolver } from './category.resolver';
@@ -10,6 +11,7 @@ import { Category, CategorySchema } from './entities/categories.schema';
 
 @Module({
   imports: [
+    ProductsModule,
     MongooseModule.forFeature([
       { name: Category.name, schema: CategorySchema },
       { name: Product.name, schema: ProductSchema },

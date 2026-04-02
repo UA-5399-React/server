@@ -4,6 +4,7 @@ import { CategoryResolver } from '@/categories/category.resolver';
 import { CategoryService } from '@/categories/category.service';
 import { CategoriesQueryArgs } from '@/categories/graphql/category-query.args';
 import { AppLogger } from '@/logger/app-logger.service';
+import { ProductsService } from '@/products/products.service';
 
 const ID = '67ca4f63c89e9c1a5d9f5f10';
 const mockCategory = {
@@ -35,6 +36,10 @@ const mockCategoryService = {
 describe('CategoryResolver', () => {
   let resolver: CategoryResolver;
 
+  const mockProductsService = {
+    findAll: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -42,6 +47,10 @@ describe('CategoryResolver', () => {
         {
           provide: CategoryService,
           useValue: mockCategoryService,
+        },
+        {
+          provide: ProductsService,
+          useValue: mockProductsService,
         },
         {
           provide: AppLogger,

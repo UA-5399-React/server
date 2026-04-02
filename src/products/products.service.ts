@@ -55,7 +55,22 @@ export class ProductsService {
           ? [filterInput.category]
           : []
     )
-      .map((c) => c.trim())
+      .map((c: unknown): string => {
+        if (typeof c === 'string') {
+          return c.trim();
+        }
+
+        if (c !== null && typeof c === 'object') {
+          if ('id' in c && typeof (c as { id: unknown }).id === 'string') {
+            return (c as { id: string }).id;
+          }
+          if ('_id' in c) {
+            return String((c as { _id: unknown })._id);
+          }
+        }
+
+        return '';
+      })
       .filter(Boolean);
     if (categories?.length) {
       filter.$expr = await this.buildCategoryFilter(categories);
