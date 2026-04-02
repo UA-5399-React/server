@@ -6,7 +6,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import * as bcrypt from 'bcrypt';
 import { Model, Types } from 'mongoose';
 
 import { CryptoService } from '@/auth/crypto/crypto.service';
@@ -98,7 +97,11 @@ export class UsersService {
     if (!user.passwordHash) {
       throw new ForbiddenException('Password is not set for this account');
     }
-    const isOldPasswordValid = await bcrypt.compare(dto.oldPassword, user.passwordHash);
+
+    const isOldPasswordValid = await this.cryptoService.comparePassword(
+      dto.oldPassword,
+      user.passwordHash,
+    );
 
     if (!isOldPasswordValid) {
       throw new BadRequestException('Old password is incorrect');
@@ -108,7 +111,7 @@ export class UsersService {
       throw new BadRequestException('New password must be different from old password');
     }
 
-    const newPasswordHash = await bcrypt.hash(dto.newPassword, 10);
+    const newPasswordHash = await this.cryptoService.hashPassword(dto.newPassword);
 
     user.passwordHash = newPasswordHash;
     await user.save();
