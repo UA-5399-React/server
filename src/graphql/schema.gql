@@ -17,6 +17,7 @@ type CategoryType {
   description: String
   imageUrl: String
   parent: String
+  products: [ProductType!]
   title: String!
   updatedAt: DateTime!
 }
