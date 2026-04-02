@@ -1,13 +1,14 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { ROUTES } from '@/auth/constants';
 import { CryptoService } from '@/auth/crypto/crypto.service';
 import { TokenType } from '@/auth/tokens/token.schema';
 import { TokensService } from '@/auth/tokens/tokens.service';
 import { MailService } from '@/mailer/mailer.service';
 import { UserDocument } from '@/users/entities/user.schema';
 import { UsersService } from '@/users/users.service';
+
+const EMAIL_CONFIRMATION_FRONTEND_ROUTE = '/email-confirmation';
 
 @Injectable()
 export class EmailVerificationService {
@@ -108,6 +109,13 @@ export class EmailVerificationService {
   }
 
   buildEmailVerificationUrl(token: string): string {
-    return `${this.configService.getOrThrow<string>('BACKEND_URL')}${ROUTES.AUTH.CONFIRM_EMAIL}?token=${token}`;
+    const verificationUrl = new URL(
+      EMAIL_CONFIRMATION_FRONTEND_ROUTE,
+      this.configService.getOrThrow<string>('CLIENT_URL'),
+    );
+
+    verificationUrl.searchParams.set('token', token);
+
+    return verificationUrl.toString();
   }
 }
