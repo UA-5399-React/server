@@ -116,7 +116,7 @@ export class UsersController {
     @UploadedFile(createImageFileParsePipe())
     file: UploadedImageFile,
   ): Promise<UserResponseDto> {
-    const uploaded = await this.cloudinaryService.uploadAvatar(file);
+    const uploaded = await this.cloudinaryService.uploadAvatar(file, req.user.id);
 
     const user = await this.usersService.updateAvatar(
       req.user.id,
