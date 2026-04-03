@@ -2,6 +2,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { redisStore } from 'cache-manager-redis-yet';
 
 import { AuthModule } from '@/auth/auth.module';
@@ -56,6 +57,12 @@ import { UploadsModule } from './uploads/uploads.module';
     MailModule,
     PaymentsModule,
     NewsletterModule,
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60_000,
+        limit: 10,
+      },
+    ]),
   ],
   controllers: [AppController],
   providers: [

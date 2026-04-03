@@ -16,7 +16,7 @@ export class TokensService {
     type: TokenType;
     tokenHash: string;
     expiresAt: Date;
-  }): Promise<Token> {
+  }): Promise<TokenDocument> {
     return this.tokenModel.create(params);
   }
 
@@ -36,5 +36,21 @@ export class TokensService {
 
   async deleteByUserAndType(userId: string, type: TokenType): Promise<void> {
     await this.tokenModel.deleteMany({ userId, type });
+  }
+
+  async findActiveByUserAndType(userId: string, type: TokenType): Promise<TokenDocument | null> {
+    return this.tokenModel
+      .findOne({
+        userId,
+        type,
+        usedAt: null,
+        expiresAt: { $gt: new Date() },
+      })
+      .sort({ createdAt: -1 })
+      .exec();
+  }
+
+  async deleteById(id: string): Promise<void> {
+    await this.tokenModel.findByIdAndDelete(id).exec();
   }
 }

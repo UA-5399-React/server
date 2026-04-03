@@ -1,7 +1,12 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
 
-export type TokenDocument = HydratedDocument<Token>;
+export type TokenDocument = HydratedDocument<
+  Token & {
+    createdAt: Date;
+    updatedAt: Date;
+  }
+>;
 
 export enum TokenType {
   EMAIL_VERIFICATION = 'email_verification',
