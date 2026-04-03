@@ -1,4 +1,3 @@
-import { ConflictException, InternalServerErrorException } from '@nestjs/common';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -11,7 +10,7 @@ const mockSubscriber = (overrides = {}) => ({
   _id: 'some-id',
   email: 'test@gmail.com',
   isActive: true,
-  save: jest.fn(),
+  save: jest.fn().mockResolvedValue(this),
   ...overrides,
 });
 
@@ -57,13 +56,12 @@ describe('NewsletterService', () => {
       expect(result).toEqual({ message: 'Successfully subscribed' });
     });
 
-    it('should throw ConflictException if subscriber is already active', async () => {
+    it('should return message if subscriber is already active', async () => {
       mockSubscriberModel.findOne.mockResolvedValue(mockSubscriber({ isActive: true }));
 
-      await expect(service.subscribe({ email: 'test@gmail.com' })).rejects.toThrow(
-        ConflictException,
-      );
+      const result = await service.subscribe({ email: 'test@gmail.com' });
 
+      expect(result).toEqual({ message: 'This email is already subscribed' });
       expect(mockSubscriberModel.create).not.toHaveBeenCalled();
     });
 
@@ -79,28 +77,26 @@ describe('NewsletterService', () => {
       expect(result).toEqual({ message: 'Successfully re-subscribed' });
     });
 
-    it('should rollback created record if confirmation email fails', async () => {
+    it('should rollback and return failure message if confirmation email fails', async () => {
       const subscriber = mockSubscriber();
       mockSubscriberModel.findOne.mockResolvedValue(null);
       mockSubscriberModel.create.mockResolvedValue(subscriber);
       mockMailService.sendNewsletterConfirmation.mockRejectedValue(new Error('SMTP error'));
 
-      await expect(service.subscribe({ email: 'test@gmail.com' })).rejects.toThrow(
-        InternalServerErrorException,
-      );
+      const result = await service.subscribe({ email: 'test@gmail.com' });
 
+      expect(result).toEqual({ message: 'Failed to send confirmation email' });
       expect(mockSubscriberModel.deleteOne).toHaveBeenCalledWith({ _id: subscriber._id });
     });
 
-    it('should rollback isActive to false if confirmation email fails on reactivation', async () => {
+    it('should rollback isActive to false and return message if reactivation email fails', async () => {
       const subscriber = mockSubscriber({ isActive: false });
       mockSubscriberModel.findOne.mockResolvedValue(subscriber);
       mockMailService.sendNewsletterConfirmation.mockRejectedValue(new Error('SMTP error'));
 
-      await expect(service.subscribe({ email: 'test@gmail.com' })).rejects.toThrow(
-        InternalServerErrorException,
-      );
+      const result = await service.subscribe({ email: 'test@gmail.com' });
 
+      expect(result).toEqual({ message: 'Failed to send confirmation email' });
       expect(subscriber.isActive).toBe(false);
       expect(subscriber.save).toHaveBeenCalledTimes(2);
     });
@@ -128,15 +124,14 @@ describe('NewsletterService', () => {
       expect(mockMailService.sendUnsubscribeConfirmation).not.toHaveBeenCalled();
     });
 
-    it('should rollback isActive to true if unsubscribe confirmation email fails', async () => {
+    it('should rollback isActive to true and return failure message if email fails', async () => {
       const subscriber = mockSubscriber({ isActive: true });
       mockSubscriberModel.findOne.mockResolvedValue(subscriber);
       mockMailService.sendUnsubscribeConfirmation.mockRejectedValue(new Error('SMTP error'));
 
-      await expect(service.unsubscribe('test@gmail.com')).rejects.toThrow(
-        InternalServerErrorException,
-      );
+      const result = await service.unsubscribe('test@gmail.com');
 
+      expect(result).toEqual({ message: 'Failed to send confirmation email' });
       expect(subscriber.isActive).toBe(true);
       expect(subscriber.save).toHaveBeenCalledTimes(2);
     });
