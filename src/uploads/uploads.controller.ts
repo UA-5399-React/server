@@ -2,7 +2,6 @@ import {
   Controller,
   HttpCode,
   HttpStatus,
-  ParseFilePipeBuilder,
   Post,
   UploadedFile,
   UseInterceptors,
@@ -13,6 +12,7 @@ import { ApiBody, ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestj
 import { CloudinaryService } from './cloudinary.service';
 import { UploadImageResponseDto } from './dto/upload-image.response.dto';
 import { UploadProductImageBodyDto } from './dto/upload-product-image-body.dto';
+import { createImageFileParsePipe } from './image-file.validation';
 import type { UploadedImageFile } from './types/uploaded-image-file.type';
 
 @ApiTags('Uploads')
@@ -35,12 +35,7 @@ export class UploadsController {
   @ApiResponse({ status: 500, description: 'Cloudinary configuration is missing' })
   @ApiResponse({ status: 502, description: 'Cloudinary upload failed' })
   uploadProductImage(
-    @UploadedFile(
-      new ParseFilePipeBuilder()
-        .addFileTypeValidator({ fileType: /^(image\/jpeg|image\/png|image\/webp)$/ })
-        .addMaxSizeValidator({ maxSize: 5 * 1024 * 1024 })
-        .build({ fileIsRequired: true, errorHttpStatusCode: HttpStatus.BAD_REQUEST }),
-    )
+    @UploadedFile(createImageFileParsePipe())
     file: UploadedImageFile,
   ): Promise<UploadImageResponseDto> {
     return this.cloudinaryService.uploadProductImage(file);

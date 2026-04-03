@@ -4,7 +4,6 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  ParseFilePipeBuilder,
   Patch,
   Query,
   Req,
@@ -27,6 +26,7 @@ import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@/auth/guards/roles.guard';
 import type { AuthRequest } from '@/auth/types/auth-request.type';
 import { CloudinaryService } from '@/uploads/cloudinary.service';
+import { createImageFileParsePipe } from '@/uploads/image-file.validation';
 import type { UploadedImageFile } from '@/uploads/types/uploaded-image-file.type';
 import { Role } from '@/users/enums/role.enum';
 
@@ -113,22 +113,10 @@ export class UsersController {
   @UseInterceptors(FileInterceptor('file'))
   async uploadAvatar(
     @Req() req: AuthRequest,
-    @UploadedFile(
-      new ParseFilePipeBuilder()
-        .addFileTypeValidator({
-          fileType: /^(image\/jpeg|image\/png|image\/webp)$/,
-        })
-        .addMaxSizeValidator({
-          maxSize: 5 * 1024 * 1024,
-        })
-        .build({
-          fileIsRequired: true,
-          errorHttpStatusCode: HttpStatus.BAD_REQUEST,
-        }),
-    )
+    @UploadedFile(createImageFileParsePipe())
     file: UploadedImageFile,
   ): Promise<UserResponseDto> {
-    const uploaded = await this.cloudinaryService.uploadAvatar(file);
+    const uploaded = await this.cloudinaryService.uploadAvatar(file, req.user.id);
 
     const user = await this.usersService.updateAvatar(
       req.user.id,
