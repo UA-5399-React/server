@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { CryptoService } from '@/auth/crypto/crypto.service';
@@ -23,7 +23,7 @@ export class EmailVerificationService {
   async createAndSendVerification(user: UserDocument) {
     const { rawToken, tokenHash, expiresAt } = this.createEmailVerificationData();
 
-    await this.tokensService.createToken({
+    const token = await this.tokensService.createToken({
       userId: user.id,
       type: TokenType.EMAIL_VERIFICATION,
       tokenHash,
@@ -32,7 +32,16 @@ export class EmailVerificationService {
 
     const verifyUrl = this.buildEmailVerificationUrl(rawToken);
 
-    await this.mailService.sendEmailVerification(user.email, verifyUrl);
+    try {
+      await this.mailService.sendEmailVerification(user.email, verifyUrl);
+    } catch (error) {
+      try {
+        await this.tokensService.deleteById(token._id.toString());
+      } catch {
+        // ignore cleanup error
+      }
+      throw error;
+    }
   }
 
   async confirmEmail(token: string) {
@@ -67,29 +76,22 @@ export class EmailVerificationService {
   }
 
   async resendConfirmation(email: string) {
+    const neutralMessage = {
+      message:
+        'If the account exists and is not yet confirmed, a confirmation email has been sent.',
+    };
+
     const user = await this.userService.findByEmail(email);
 
-    if (!user) {
-      return { message: 'If this email exists, a confirmation link was sent.' };
+    if (!user || user.isEmailConfirmed) {
+      return neutralMessage;
     }
-    if (user.isEmailConfirmed) {
-      return { message: 'Email is already confirmed.' };
-    }
+
+    await this.ensureConfirmationCooldown(user);
 
     await this.tokensService.deleteByUserAndType(user.id, TokenType.EMAIL_VERIFICATION);
 
-    const { rawToken, tokenHash, expiresAt } = this.createEmailVerificationData();
-
-    await this.tokensService.createToken({
-      userId: user.id,
-      type: TokenType.EMAIL_VERIFICATION,
-      tokenHash,
-      expiresAt,
-    });
-
-    const verifyUrl = this.buildEmailVerificationUrl(rawToken);
-
-    await this.mailService.sendEmailVerification(user.email, verifyUrl);
+    await this.createAndSendVerification(user);
 
     return {
       message: 'Confirmation email sent.',
@@ -117,5 +119,24 @@ export class EmailVerificationService {
     verificationUrl.searchParams.set('token', token);
 
     return verificationUrl.toString();
+  }
+
+  private async ensureConfirmationCooldown(user: UserDocument) {
+    const existingToken = await this.tokensService.findActiveByUserAndType(
+      user.id,
+      TokenType.EMAIL_VERIFICATION,
+    );
+
+    if (existingToken?.createdAt) {
+      const cooldownSeconds = 60 * 1000;
+      const diff = Date.now() - new Date(existingToken.createdAt).getTime();
+
+      if (diff < cooldownSeconds) {
+        throw new HttpException(
+          'Please wait before requesting another confirmation email.',
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+    }
   }
 }

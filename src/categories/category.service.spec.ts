@@ -36,6 +36,7 @@ const parentExecMock = jest.fn();
 const parentLimitMock = jest.fn();
 const parentSkipMock = jest.fn();
 const parentSortMock = jest.fn();
+const matchingChildrenExecMock = jest.fn();
 const findAllExecMock = jest.fn();
 const findByIdExecMock = jest.fn();
 const childExecMock = jest.fn();
@@ -84,6 +85,7 @@ describe('CategoryService', () => {
     parentSortMock.mockReturnValue({ skip: parentSkipMock });
     parentSkipMock.mockReturnValue({ limit: parentLimitMock });
     parentLimitMock.mockReturnValue({ exec: parentExecMock });
+    matchingChildrenExecMock.mockReset();
     childSortMock.mockReturnValue({ exec: childExecMock });
     mockCategoryModel.countDocuments.mockReturnValue({ exec: countExecMock });
     mockProductModel.updateMany.mockReturnValue({ exec: updateManyExecMock });
@@ -168,8 +170,10 @@ describe('CategoryService', () => {
 
     it('should apply search filter to parent categories only', async () => {
       mockCategoryModel.find
+        .mockReturnValueOnce({ exec: matchingChildrenExecMock })
         .mockReturnValueOnce({ sort: parentSortMock })
         .mockReturnValueOnce({ sort: childSortMock });
+      matchingChildrenExecMock.mockResolvedValue([]);
       parentExecMock.mockResolvedValue([mockParentCategory]);
       childExecMock.mockResolvedValue([]);
       countExecMock.mockResolvedValue(1);
@@ -181,6 +185,13 @@ describe('CategoryService', () => {
       });
 
       expect(mockCategoryModel.find).toHaveBeenNthCalledWith(1, {
+        depth: 2,
+        $or: [
+          { title: { $regex: 'Electro', $options: 'i' } },
+          { description: { $regex: 'Electro', $options: 'i' } },
+        ],
+      });
+      expect(mockCategoryModel.find).toHaveBeenNthCalledWith(2, {
         depth: 1,
         $or: [
           { title: { $regex: 'Electro', $options: 'i' } },
@@ -192,6 +203,63 @@ describe('CategoryService', () => {
         $or: [
           { title: { $regex: 'Electro', $options: 'i' } },
           { description: { $regex: 'Electro', $options: 'i' } },
+        ],
+      });
+    });
+
+    it('should include parents of matching subcategories and return only matching children', async () => {
+      mockCategoryModel.find
+        .mockReturnValueOnce({ exec: matchingChildrenExecMock })
+        .mockReturnValueOnce({ sort: parentSortMock })
+        .mockReturnValueOnce({ sort: childSortMock });
+      matchingChildrenExecMock.mockResolvedValue([mockChildCategory]);
+      parentExecMock.mockResolvedValue([mockParentCategory]);
+      childExecMock.mockResolvedValue([mockChildCategory]);
+      countExecMock.mockResolvedValue(1);
+
+      const result = await service.findPage({
+        page: 1,
+        limit: 10,
+        search: 'Laptop',
+      });
+
+      expect(result).toEqual({
+        items: [mockParentCategory, mockChildCategory],
+        total: 1,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
+      });
+      expect(mockCategoryModel.find).toHaveBeenNthCalledWith(1, {
+        depth: 2,
+        $or: [
+          { title: { $regex: 'Laptop', $options: 'i' } },
+          { description: { $regex: 'Laptop', $options: 'i' } },
+        ],
+      });
+      expect(mockCategoryModel.find).toHaveBeenNthCalledWith(2, {
+        depth: 1,
+        $or: [
+          { title: { $regex: 'Laptop', $options: 'i' } },
+          { description: { $regex: 'Laptop', $options: 'i' } },
+          { _id: { $in: [expect.any(Types.ObjectId)] } },
+        ],
+      });
+      expect(mockCategoryModel.find).toHaveBeenNthCalledWith(3, {
+        $expr: {
+          $in: [{ $toString: '$parent' }, [ROOT_ID]],
+        },
+        $or: [
+          { title: { $regex: 'Laptop', $options: 'i' } },
+          { description: { $regex: 'Laptop', $options: 'i' } },
+        ],
+      });
+      expect(mockCategoryModel.countDocuments).toHaveBeenCalledWith({
+        depth: 1,
+        $or: [
+          { title: { $regex: 'Laptop', $options: 'i' } },
+          { description: { $regex: 'Laptop', $options: 'i' } },
+          { _id: { $in: [expect.any(Types.ObjectId)] } },
         ],
       });
     });

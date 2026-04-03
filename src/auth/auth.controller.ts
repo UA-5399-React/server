@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBody, ApiCreatedResponse } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 
 import { AuthService } from '@/auth/auth.service';
@@ -38,6 +39,7 @@ export class AuthController {
   @ApiBody({ type: LoginDto })
   @Post('login')
   @UseGuards(LocalAuthGuard)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   async login(
     @Body() _credentials: LoginDto,
     @Req() req: AuthRequest,
@@ -62,6 +64,7 @@ export class AuthController {
 
   @UseGuards(JwtRefreshAuthGuard)
   @Post('refresh')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   async refresh(@Res({ passthrough: true }) res: Response, @Req() req: AuthRequest) {
     const { accessToken, refreshToken } = await this.authService.generateTokens(req.user);
     this.cookiesService.setAuthCookies(res, accessToken, refreshToken);
@@ -71,6 +74,7 @@ export class AuthController {
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   @ApiCreatedResponse({ type: RegisterResponseDto })
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
   register(@Body() signupDTO: SignUpDto) {
     return this.authService.register(signupDTO);
   }
@@ -81,10 +85,12 @@ export class AuthController {
   }
 
   @Post('resend-confirmation')
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
   resendConfirmation(@Body('email') email: string) {
     return this.emailVerificationService.resendConfirmation(email);
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Get('google')
   @UseGuards(GoogleOauthGuard)
   googleLogin() {}
@@ -102,6 +108,7 @@ export class AuthController {
     );
   }
 
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Get('google/connect')
   @UseGuards(JwtAuthGuard)
   async googleConnect(@Req() req: AuthRequest, @Res({ passthrough: true }) res: Response) {
