@@ -143,9 +143,21 @@ export class UsersService {
 
   async ensureEmailNotTaken(email: string): Promise<void> {
     const existingUser = await this.findByEmail(email);
-    if (existingUser) {
-      throw new ConflictException('Email already in use');
+    if (!existingUser) {
+      return;
     }
+
+    if (!existingUser.isEmailConfirmed) {
+      throw new ConflictException({
+        message: 'Email is already registered but not confirmed',
+        code: 'EMAIL_NOT_CONFIRMED',
+      });
+    }
+
+    throw new ConflictException({
+      message: 'Email already in use',
+      code: 'EMAIL_ALREADY_IN_USE',
+    });
   }
 
   async findById(id: string): Promise<UserDocument> {
@@ -247,7 +259,7 @@ export class UsersService {
         email: input.email,
         passwordHash,
         role: input.role,
-        firstName: input.firstName?.trim(),
+        firstName: input.firstName.trim(),
         lastName: input.lastName?.trim(),
         phone: input.phone?.trim(),
         avatarUrl: input.avatarUrl?.trim(),
@@ -336,7 +348,7 @@ export class UsersService {
     if (!user) {
       const createdUser = new this.userModel({
         email,
-        firstName,
+        firstName: firstName ?? email.split('@')[0],
         lastName,
         googleId,
         avatarUrl,

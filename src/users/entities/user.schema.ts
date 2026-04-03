@@ -21,8 +21,8 @@ export class User {
   role!: Role;
 
   @ApiProperty({ example: 'John' })
-  @Prop({ trim: true })
-  firstName?: string;
+  @Prop({ required: true, trim: true })
+  firstName!: string;
 
   @ApiProperty({ example: 'Doe' })
   @Prop({ trim: true })
