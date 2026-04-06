@@ -80,12 +80,12 @@ describe('EmailVerificationService', () => {
 
       cryptoServiceMock.generateRandomToken.mockReturnValueOnce('token');
       cryptoServiceMock.generateSha256HashBase64.mockReturnValueOnce('tokenHash');
-      configServiceMock.getOrThrow.mockReturnValueOnce('http://localhost:3000');
+      configServiceMock.getOrThrow.mockReturnValueOnce('http://localhost:5173');
 
       await service.createAndSendVerification(user);
 
       expect(tokensServiceMock.createToken).toHaveBeenCalledTimes(1);
-      expect(configServiceMock.getOrThrow).toHaveBeenCalledWith('BACKEND_URL');
+      expect(configServiceMock.getOrThrow).toHaveBeenCalledWith('CLIENT_URL');
 
       expect(tokensServiceMock.createToken).toHaveBeenCalledWith({
         userId: user.id,
@@ -96,7 +96,7 @@ describe('EmailVerificationService', () => {
 
       expect(mailServiceMock.sendEmailVerification).toHaveBeenCalledWith(
         user.email,
-        'http://localhost:3000/auth/confirm-email?token=token',
+        'http://localhost:5173/email-confirmation?token=token',
       );
     });
   });
@@ -199,7 +199,7 @@ describe('EmailVerificationService', () => {
       usersServiceMock.findByEmail.mockResolvedValue(user);
       cryptoServiceMock.generateRandomToken.mockReturnValue('new-raw-token');
       cryptoServiceMock.generateSha256HashBase64.mockReturnValue('new-hashed-token');
-      configServiceMock.getOrThrow.mockReturnValueOnce('http://localhost:3000');
+      configServiceMock.getOrThrow.mockReturnValueOnce('http://localhost:5173');
 
       const result = await service.resendConfirmation(user.email);
 
@@ -215,7 +215,7 @@ describe('EmailVerificationService', () => {
 
       expect(tokensServiceMock.createToken).toHaveBeenCalledTimes(1);
 
-      expect(configServiceMock.getOrThrow).toHaveBeenCalledWith('BACKEND_URL');
+      expect(configServiceMock.getOrThrow).toHaveBeenCalledWith('CLIENT_URL');
 
       expect(tokensServiceMock.createToken).toHaveBeenCalledWith({
         userId: user.id,
@@ -226,7 +226,7 @@ describe('EmailVerificationService', () => {
 
       expect(mailServiceMock.sendEmailVerification).toHaveBeenCalledWith(
         user.email,
-        'http://localhost:3000/auth/confirm-email?token=new-raw-token',
+        'http://localhost:5173/email-confirmation?token=new-raw-token',
       );
 
       expect(result).toEqual({

@@ -1,5 +1,3 @@
-import { BadRequestException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Response } from 'express';
 
@@ -51,24 +49,6 @@ const mockRequest = {
   cookies: {},
 } as AuthRequest;
 
-const mockConfigService = {
-  get: jest.fn((key: string) => {
-    if (key === 'CLIENT_URL') {
-      return 'http://localhost:5173';
-    }
-
-    return undefined;
-  }),
-  getOrThrow: jest.fn((key: string) => {
-    if (key === 'CLIENT_URL') {
-      return 'http://localhost:5173';
-    }
-
-    throw new Error(`Missing config key: ${key}`);
-  }),
-};
-
-const redirectMock = jest.fn();
 describe('AuthController', () => {
   let controller: AuthController;
 
@@ -80,10 +60,6 @@ describe('AuthController', () => {
         { provide: AuthCookiesService, useValue: cookiesServiceMock },
         { provide: EmailVerificationService, useValue: emailVerificationServiceMock },
         { provide: GoogleAuthFacade, useValue: googleAuthFacadeMock },
-        {
-          provide: ConfigService,
-          useValue: mockConfigService,
-        },
       ],
     }).compile();
 
@@ -186,35 +162,15 @@ describe('AuthController', () => {
   });
 
   describe('confirmEmail', () => {
-    it('should redirect to frontend success page when confirmation succeeds', async () => {
-      const res = {
-        redirect: redirectMock,
-      } as unknown as Response;
+    it('should call emailVerificationService.confirmEmail and return result', async () => {
+      emailVerificationServiceMock.confirmEmail.mockResolvedValue({
+        message: 'Email confirmed successfully',
+      });
 
-      emailVerificationServiceMock.confirmEmail.mockResolvedValue(undefined);
-
-      await controller.confirmEmail('valid-token', res);
+      const result = await controller.confirmEmail('valid-token');
 
       expect(emailVerificationServiceMock.confirmEmail).toHaveBeenCalledWith('valid-token');
-      expect(redirectMock).toHaveBeenCalledWith(
-        'http://localhost:5173/email-confirmation?status=success&message=Email+confirmed+successfully',
-      );
-    });
-
-    it('should redirect to frontend error page when confirmation fails', async () => {
-      const res = {
-        redirect: redirectMock,
-      } as unknown as Response;
-
-      emailVerificationServiceMock.confirmEmail.mockRejectedValue(
-        new BadRequestException('Token expired'),
-      );
-
-      await controller.confirmEmail('expired-token', res);
-
-      expect(redirectMock).toHaveBeenCalledWith(
-        'http://localhost:5173/email-confirmation?status=error&message=Token+expired',
-      );
+      expect(result).toEqual({ message: 'Email confirmed successfully' });
     });
   });
 
