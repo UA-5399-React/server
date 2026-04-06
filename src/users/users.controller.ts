@@ -36,7 +36,7 @@ import { UploadAvatarBodyDto } from './dto/upload-avatar-body.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { UsersListResponseDto } from './dto/users-list-response.dto';
 import { UsersQueryDto } from './dto/users-query.dto';
-import { toUserResponseDto } from './users.mapper';
+import { toUserListResponseDto, toUserResponseDto } from './users.mapper';
 import { UsersService } from './users.service';
 
 @ApiTags('Users')
@@ -73,7 +73,7 @@ export class UsersController {
 
     return {
       ...result,
-      items: result.items.map(toUserResponseDto),
+      items: result.items.map(toUserListResponseDto),
     };
   }
 

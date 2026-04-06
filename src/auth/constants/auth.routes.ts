@@ -5,6 +5,6 @@ export const ROUTES = {
     GOOGLE: '/auth/google',
   },
   USERS: {
-    PROFILE: '/users/profile',
+    PROFILE: '/profile',
   },
 } as const;
