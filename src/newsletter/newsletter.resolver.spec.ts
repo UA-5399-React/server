@@ -1,5 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
+import { GqlAuthGuard } from '@/auth/guards/gql-auth.guard';
+import { RolesGuard } from '@/auth/guards/roles.guard';
+
 import { NewsletterResolver } from './newsletter.resolver';
 import { NewsletterAdminService } from './newsletter-admin.service';
 
@@ -19,7 +22,12 @@ describe('NewsletterResolver', () => {
         NewsletterResolver,
         { provide: NewsletterAdminService, useValue: mockNewsletterAdminService },
       ],
-    }).compile();
+    })
+      .overrideGuard(GqlAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     resolver = module.get<NewsletterResolver>(NewsletterResolver);
   });
