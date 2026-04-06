@@ -93,4 +93,20 @@ export class MailService {
 
     return this.sendEmail(to, subject, text);
   }
+
+  async sendResetPasswordToken(to: string, link: string) {
+    const subject = 'Reset Password Request';
+    const text = `Hello,
+
+      We received a request to reset your password. To proceed, please click the link below:
+
+      ${link}
+
+      If you did not request a password reset, please ignore this email. Your account will remain secure.
+
+      Best regards,  
+      Techno World Team`;
+
+    return this.sendEmail(to, subject, text);
+  }
 }

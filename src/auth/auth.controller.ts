@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Query,
   Req,
   Res,
   UseGuards,
@@ -21,10 +22,12 @@ import { LocalAuthGuard } from '@/auth/guards/local-auth.guard';
 import { AuthCookiesService } from '@/auth/services/auth-cookies.service';
 import { EmailVerificationService } from '@/auth/services/email-verification.service';
 import { GoogleAuthFacade } from '@/auth/services/google-auth.facade';
+import { PasswordResetService } from '@/auth/services/password-reset.service';
 import type { AuthRequest } from '@/auth/types/auth-request.type';
 import { GoogleAuthUser } from '@/auth/types/google-auth-user.type';
 import { LoginDto } from '@/users/dto/login.dto';
 import { RegisterResponseDto } from '@/users/dto/register-resp.dto';
+import { ResetPasswordDto } from '@/users/dto/reset-password.dto';
 import { SignUpDto } from '@/users/dto/sign-up.dto';
 
 @Controller('auth')
@@ -34,6 +37,7 @@ export class AuthController {
     private readonly cookiesService: AuthCookiesService,
     private readonly emailVerificationService: EmailVerificationService,
     private readonly googleAuthFacade: GoogleAuthFacade,
+    private readonly passwordResetService: PasswordResetService,
   ) {}
 
   @ApiBody({ type: LoginDto })
@@ -119,5 +123,18 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async googleDisconnect(@Req() req: AuthRequest) {
     return this.googleAuthFacade.disconnect(req.user);
+  }
+
+  @Post('reset-password/request')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  async requestPasswordReset(@Body('email') email: string) {
+    return await this.passwordResetService.requestPasswordReset(email);
+  }
+
+  @Post('reset-password/confirm')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @ApiCreatedResponse({ type: ResetPasswordDto })
+  async resetPassword(@Query('token') token: string, @Body() resetPasswordDto: ResetPasswordDto) {
+    return await this.passwordResetService.resetPassword(token, resetPasswordDto.password);
   }
 }
