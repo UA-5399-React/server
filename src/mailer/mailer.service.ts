@@ -61,4 +61,36 @@ export class MailService {
 
     return this.sendEmail(to, subject, text);
   }
+
+  async sendNewsletterConfirmation(to: string) {
+    const subject = 'You are subscribed to Techno World newsletter!';
+    const text = `Hello,
+
+    Thank you for subscribing to our newsletter!
+    You will now receive the latest news and updates from Techno World.
+
+    If you wish to unsubscribe, visit:
+    ${process.env.CLIENT_URL}/newsletter/unsubscribe?email=${encodeURIComponent(to)}
+
+    Best regards,
+    Techno World Team`;
+
+    return this.sendEmail(to, subject, text);
+  }
+
+  async sendUnsubscribeConfirmation(to: string) {
+    const subject = 'You have unsubscribed from Techno World newsletter';
+    const text = `Hello,
+
+      You have successfully unsubscribed from the Techno World newsletter.
+      You will no longer receive emails from us.
+
+      If this was a mistake, you can re-subscribe at:
+      ${process.env.CLIENT_URL}/newsletter/subscribe
+
+      Best regards,
+      Techno World Team`;
+
+    return this.sendEmail(to, subject, text);
+  }
 }
