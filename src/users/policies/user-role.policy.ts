@@ -72,3 +72,17 @@ export function validateRoleCreation(targetRole: Role, currentUserRole: Role): v
     throw new BadRequestException('You are not allowed to create users');
   }
 }
+
+export function validateUserDeletion(
+  currentUserRole: Role,
+  targetUser: UserDocument,
+  currentUser: AuthUser,
+): void {
+  if (currentUserRole !== Role.SUPER_ADMIN) {
+    throw new ForbiddenException('Only super admins can delete users');
+  }
+
+  if (currentUser.id === targetUser.id) {
+    throw new ForbiddenException('You cannot delete yourself');
+  }
+}

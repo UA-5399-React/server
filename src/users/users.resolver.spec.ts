@@ -15,6 +15,7 @@ describe('UsersResolver', () => {
     findById: jest.fn(),
     createByAdmin: jest.fn(),
     updateByAdmin: jest.fn(),
+    deleteByAdmin: jest.fn(),
     getStats: jest.fn(),
   };
 
@@ -117,6 +118,24 @@ describe('UsersResolver', () => {
 
       expect(actual).toEqual(updatedUser);
       expect(usersService.updateByAdmin).toHaveBeenCalledWith(input, currentUser);
+    });
+  });
+
+  describe('deleteUser', () => {
+    it('should call deleteByAdmin and return boolean', async () => {
+      const targetId = '1';
+      const currentUser = {
+        id: 'admin-id',
+        role: Role.SUPER_ADMIN,
+        email: 'admin@test.com',
+      };
+
+      usersService.deleteByAdmin.mockResolvedValue(true as never);
+
+      const actual = await resolver.deleteUser(targetId, currentUser as never);
+
+      expect(actual).toBe(true);
+      expect(usersService.deleteByAdmin).toHaveBeenCalledWith(targetId, currentUser);
     });
   });
 

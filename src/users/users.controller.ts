@@ -1,9 +1,11 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Patch,
   Query,
   Req,
@@ -125,5 +127,15 @@ export class UsersController {
     );
 
     return toUserResponseDto(user);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.SUPER_ADMIN)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiNoContentResponse({ description: 'User deleted successfully' })
+  @Delete(':id')
+  async deleteUser(@Param('id') id: string, @Req() req: AuthRequest): Promise<void> {
+    await this.usersService.deleteByAdmin(id, req.user);
   }
 }

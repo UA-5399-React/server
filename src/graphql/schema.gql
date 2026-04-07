@@ -98,6 +98,7 @@ type Mutation {
   deleteCategory(id: ID!): CategoryType!
   deleteOrder(orderId: String!): Boolean!
   deleteProduct(id: ID!): Boolean!
+  deleteUser(id: ID!): Boolean!
   deleteSubscriber(email: String!): Boolean!
   duplicateProduct(id: ID!): ProductType!
   sendNewsletter(input: SendNewsletterInput!): SendNewsletterResultModel!

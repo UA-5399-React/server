@@ -53,4 +53,8 @@ export class TokensService {
   async deleteById(id: string): Promise<void> {
     await this.tokenModel.findByIdAndDelete(id).exec();
   }
+
+  async deleteAllForUser(userId: string): Promise<void> {
+    await this.tokenModel.deleteMany({ userId }).exec();
+  }
 }
