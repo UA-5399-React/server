@@ -35,6 +35,7 @@ input CreateOrderInput {
   message: String
   paymentMethod: PaymentMethod!
   shippingAddress: CreateOrderShippingAddressInput!
+  status: OrderStatus!
   user: CreateOrderUserInput!
 }
 

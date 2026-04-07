@@ -69,7 +69,11 @@ export class OrdersResolver {
     @Args('input') input: CreateOrderInput,
     @CurrentUser() user: JwtPayload,
   ): Promise<OrderType> {
-    const order = await this.ordersService.create(input, new Types.ObjectId(user.sub));
+    const order = await this.ordersService.create(
+      input,
+      new Types.ObjectId(user.sub),
+      input.status,
+    );
 
     const plain = (order as any).toObject();
 
