@@ -98,5 +98,7 @@ export class TokensService {
         );
       }
     }
+  async deleteAllForUser(userId: string): Promise<void> {
+    await this.tokenModel.deleteMany({ userId }).exec();
   }
 }

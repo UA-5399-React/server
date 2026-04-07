@@ -4,6 +4,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Types } from 'mongoose';
 
 import { CryptoService } from '@/auth/crypto/crypto.service';
+import { TokensService } from '@/auth/tokens/tokens.service';
+import { CartService } from '@/cart/cart.service';
 import { AppLogger } from '@/logger/app-logger.service';
 import { CloudinaryService } from '@/uploads/cloudinary.service';
 import { User } from '@/users/entities/user.schema';
@@ -18,6 +20,7 @@ describe('UsersService', () => {
     findOne: jest.fn(),
     findById: jest.fn(),
     findByIdAndUpdate: jest.fn(),
+    findByIdAndDelete: jest.fn(),
     find: jest.fn(),
     countDocuments: jest.fn(),
   };
@@ -32,6 +35,14 @@ describe('UsersService', () => {
     deleteImage: jest.fn(),
   };
 
+  const mockTokensService = {
+    deleteAllForUser: jest.fn(),
+  };
+
+  const mockCartService = {
+    clearCart: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -43,6 +54,14 @@ describe('UsersService', () => {
         {
           provide: CryptoService,
           useValue: mockCryptoService,
+        },
+        {
+          provide: TokensService,
+          useValue: mockTokensService,
+        },
+        {
+          provide: CartService,
+          useValue: mockCartService,
         },
         {
           provide: CloudinaryService,
@@ -276,6 +295,25 @@ describe('UsersService', () => {
           email: 'admin@test.com',
         }),
       ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('deleteByAdmin', () => {
+    it('should delete user by super admin', async () => {
+      const targetUserId = 'target-id';
+      const currentUser = { id: 'super-id', role: Role.SUPER_ADMIN, email: 'super@test.com' };
+
+      jest
+        .spyOn(service, 'findById')
+        .mockResolvedValue({ id: targetUserId, role: Role.CUSTOMER } as never);
+      mockUserModel.findByIdAndDelete.mockReturnValue({ exec: jest.fn().mockResolvedValue(true) });
+
+      const result = await service.deleteByAdmin(targetUserId, currentUser);
+
+      expect(result).toBe(true);
+      expect(mockTokensService.deleteAllForUser).toHaveBeenCalledWith(targetUserId);
+      expect(mockCartService.clearCart).toHaveBeenCalledWith(targetUserId);
+      expect(mockUserModel.findByIdAndDelete).toHaveBeenCalledWith(targetUserId);
     });
   });
 

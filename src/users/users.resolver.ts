@@ -65,6 +65,14 @@ export class UsersResolver {
     return await this.usersService.updateByAdmin(input, currentUser);
   }
 
+  @Mutation(() => Boolean)
+  async deleteUser(
+    @Args('id', { type: () => ID }) id: string,
+    @CurrentUser() currentUser: AuthUser,
+  ): Promise<boolean> {
+    return await this.usersService.deleteByAdmin(id, currentUser);
+  }
+
   @ResolveField(() => UserType, { nullable: true })
   async createdBy(
     @Parent() user: UserDocument,

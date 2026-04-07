@@ -9,8 +9,10 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
 import { CryptoService } from '@/auth/crypto/crypto.service';
+import { TokensService } from '@/auth/tokens/tokens.service';
 import { AuthUser } from '@/auth/types/auth-user.type';
 import { GoogleAuthUser } from '@/auth/types/google-auth-user.type';
+import { CartService } from '@/cart/cart.service';
 import { PaginatedResult } from '@/common/types/paginated-result.type';
 import { buildDateFilter } from '@/common/utils/date.utils';
 import { buildPaginatedResult, getPagination } from '@/common/utils/pagination.util';
@@ -26,7 +28,11 @@ import { UsersSortField } from '@/users/enums/users-sort-field.enum';
 import { CreateUserInput } from '@/users/graphql/inputs/create-user.input';
 import { UpdateUserInput } from '@/users/graphql/inputs/update-user.input';
 import { FindUsersQuery } from '@/users/graphql/types/find-users-query.type';
-import { buildAdminUpdateData, validateRoleCreation } from '@/users/policies/user-role.policy';
+import {
+  buildAdminUpdateData,
+  validateRoleCreation,
+  validateUserDeletion,
+} from '@/users/policies/user-role.policy';
 import { UserListItem } from '@/users/types/user-list-item.type';
 import { buildUpdateData } from '@/users/utils/build-update-data';
 
@@ -41,6 +47,8 @@ export class UsersService {
     private readonly cryptoService: CryptoService,
     private readonly logger: AppLogger,
     private readonly cloudinaryService: CloudinaryService,
+    private readonly tokensService: TokensService,
+    private readonly cartService: CartService,
   ) {}
 
   async findByEmail(userEmail: string): Promise<UserDocument | null> {
@@ -295,6 +303,20 @@ export class UsersService {
     }
 
     return updatedUser;
+  }
+
+  async deleteByAdmin(id: string, currentUser: AuthUser): Promise<boolean> {
+    const targetUser = await this.findById(id);
+
+    validateUserDeletion(currentUser.role, targetUser, currentUser);
+
+    await this.tokensService.deleteAllForUser(id);
+    await this.cartService.clearCart(id);
+
+    // Only hard delete the underlying target user. Related artifacts like Orders are kept as per requirements.
+    await this.userModel.findByIdAndDelete(id).exec();
+
+    return true;
   }
 
   async getStats(): Promise<UserStatsType> {
