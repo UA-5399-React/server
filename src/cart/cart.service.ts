@@ -124,4 +124,9 @@ export class CartService {
       total,
     };
   }
+
+  async clearCart(userId: string): Promise<void> {
+    const userObjectId = new Types.ObjectId(userId);
+    await this.cartModel.deleteOne({ userId: userObjectId }).exec();
+  }
 }
