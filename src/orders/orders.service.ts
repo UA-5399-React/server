@@ -47,7 +47,7 @@ export class OrdersService {
 
   // ─── Customer ──────────────────────────────────────────────────────────────
 
-  async create(dto: CreateOrderDto, userId: Types.ObjectId): Promise<Order> {
+  async create(dto: CreateOrderDto, userId: Types.ObjectId, status?: OrderStatus): Promise<Order> {
     const productIds = dto.items.map((item) => new Types.ObjectId(item.product));
 
     const products = await this.productModel
@@ -79,6 +79,7 @@ export class OrdersService {
       items,
       amount,
       totalPrice: amount,
+      status: status ?? OrderStatus.NEW,
       shippingAddress: dto.shippingAddress,
       user: dto.user,
       payment: {

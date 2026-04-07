@@ -8,7 +8,9 @@ import {
   NewsletterSubscriberSchema,
 } from './entities/newsletter-subscriber.entity';
 import { NewsletterController } from './newsletter.controller';
+import { NewsletterResolver } from './newsletter.resolver';
 import { NewsletterService } from './newsletter.service';
+import { NewsletterAdminService } from './newsletter-admin.service';
 
 @Module({
   imports: [
@@ -18,6 +20,6 @@ import { NewsletterService } from './newsletter.service';
     MailModule,
   ],
   controllers: [NewsletterController],
-  providers: [NewsletterService],
+  providers: [NewsletterService, NewsletterResolver, NewsletterAdminService],
 })
 export class NewsletterModule {}

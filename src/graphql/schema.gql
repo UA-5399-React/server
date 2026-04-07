@@ -35,6 +35,7 @@ input CreateOrderInput {
   message: String
   paymentMethod: PaymentMethod!
   shippingAddress: CreateOrderShippingAddressInput!
+  status: OrderStatus!
   user: CreateOrderUserInput!
 }
 
@@ -85,6 +86,10 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 """
 scalar DateTime
 
+input GetSubscribersInput {
+  isActive: Boolean
+}
+
 type Mutation {
   createCategory(createCategoryInput: CreateCategoryInput!): CategoryType!
   createOrder(input: CreateOrderInput!): OrderType!
@@ -94,7 +99,9 @@ type Mutation {
   deleteOrder(orderId: String!): Boolean!
   deleteProduct(id: ID!): Boolean!
   deleteUser(id: ID!): Boolean!
+  deleteSubscriber(email: String!): Boolean!
   duplicateProduct(id: ID!): ProductType!
+  sendNewsletter(input: SendNewsletterInput!): SendNewsletterResultModel!
   updateCategory(updateCategoryInput: UpdateCategoryInput!): CategoryType!
   updateOrder(input: UpdateOrderInput!): OrderType!
   updateOrderItems(input: UpdateOrderProductsInput!): OrderType!
@@ -103,6 +110,12 @@ type Mutation {
   updateOrderUserInfo(input: UpdateOrderUserInput!): OrderType!
   updateProduct(id: ID!, input: UpdateProductInput!): ProductType!
   updateUser(input: UpdateUserInput!): UserType!
+}
+
+type NewsletterStatsModel {
+  active: Int!
+  inactive: Int!
+  total: Int!
 }
 
 enum OrderDateFilterField {
@@ -280,6 +293,8 @@ type Query {
   category(id: ID!): CategoryType!
   getOrder(orderId: String!): OrderType!
   getProductInOrders(productId: ID!): OrderProductStatsType!
+  getSubscriberStats: NewsletterStatsModel!
+  getSubscribers(input: GetSubscribersInput): [SubscriberModel!]!
   order(id: ID!): OrderType!
   orderStats: OrderStatsType!
   orders(filter: OrdersFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: OrdersSortField! = createdAt): OrdersPage!
@@ -294,6 +309,16 @@ enum Role {
   ADMIN
   CUSTOMER
   SUPER_ADMIN
+}
+
+input SendNewsletterInput {
+  subject: String!
+  text: String!
+}
+
+type SendNewsletterResultModel {
+  failed: Int!
+  sent: Int!
 }
 
 type ShippingAddressType {
@@ -311,6 +336,12 @@ enum ShippingCarrier {
 enum SortOrder {
   asc
   desc
+}
+
+type SubscriberModel {
+  email: String!
+  id: ID!
+  isActive: Boolean!
 }
 
 input UpdateCategoryInput {

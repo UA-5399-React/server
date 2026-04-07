@@ -2,7 +2,7 @@ import { Field, ID, InputType, Int } from '@nestjs/graphql';
 import { Type } from 'class-transformer';
 import { IsEnum, IsNumber, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 
-import { PaymentMethod, ShippingCarrier } from '@/orders/enums';
+import { OrderStatus, PaymentMethod, ShippingCarrier } from '@/orders/enums';
 
 @InputType()
 export class CreateOrderItemInput {
@@ -70,6 +70,10 @@ export class CreateOrderInput {
   @Field(() => PaymentMethod)
   @IsEnum(PaymentMethod)
   paymentMethod!: PaymentMethod;
+
+  @Field(() => OrderStatus)
+  @IsEnum(OrderStatus)
+  status!: OrderStatus;
 
   @Field(() => String, { nullable: true })
   @IsString()
