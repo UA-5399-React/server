@@ -94,7 +94,7 @@ export class ProductsImportService {
     let headers: string[] = [];
 
     sheet.eachRow((row, rowNumber) => {
-      const values = (row.values as (ExcelJS.CellValue | undefined)[]).slice(1); // ExcelJS is 1-indexed
+      const values = (row.values as unknown[]).slice(1); // ExcelJS is 1-indexed
 
       if (rowNumber === 1) {
         headers = values.map((v) => (typeof v === 'string' ? v : '').trim().toLowerCase());
