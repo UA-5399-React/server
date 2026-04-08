@@ -1,2 +1,2 @@
 # Send the commit message file path to the verification script
-node scripts/verify-commit.mjs $1
+node scripts/verify-commit.mjs "$1"
