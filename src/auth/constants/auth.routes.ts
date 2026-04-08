@@ -6,6 +6,6 @@ export const ROUTES = {
     RESET_PASSWORD: '/reset-password',
   },
   USERS: {
-    PROFILE: '/users/profile',
+    PROFILE: '/profile',
   },
 } as const;
