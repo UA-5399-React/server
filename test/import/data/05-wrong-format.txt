@@ -1,0 +1,2 @@
+title,price,status
+Widget,10.00,active
