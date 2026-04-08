@@ -1,6 +1,0 @@
-title,price,status,description
-,10.00,active,No title
-Product A,,active,No price
-Product B,abc,active,Bad price
-Product C,10.00,,No status
-Product D,10.00,unknown,Bad status
