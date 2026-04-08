@@ -53,6 +53,7 @@
     "cookie-parser": "^1.4.7",
     "crypto": "^1.0.1",
     "dataloader": "^2.2.3",
+    "exceljs": "^4.4.0",
     "graphql": "^16.13.0",
     "mongodb": "^7.1.0",
     "mongoose": "^9.2.2",
