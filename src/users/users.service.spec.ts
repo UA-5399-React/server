@@ -5,6 +5,7 @@ import { Types } from 'mongoose';
 
 import { CryptoService } from '@/auth/crypto/crypto.service';
 import { AppLogger } from '@/logger/app-logger.service';
+import { MailService } from '@/mailer/mailer.service';
 import { CloudinaryService } from '@/uploads/cloudinary.service';
 import { User } from '@/users/entities/user.schema';
 import { Role } from '@/users/enums/role.enum';
@@ -32,6 +33,10 @@ describe('UsersService', () => {
     deleteImage: jest.fn(),
   };
 
+  const mailServiceMock = {
+    sendTempPassword: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -55,6 +60,10 @@ describe('UsersService', () => {
             warn: jest.fn(),
             error: jest.fn(),
           },
+        },
+        {
+          provide: MailService,
+          useValue: mailServiceMock,
         },
       ],
     }).compile();
@@ -255,10 +264,7 @@ describe('UsersService', () => {
         },
       );
 
-      expect(result).toEqual({
-        user: { id: '1', email: 'new@test.com' },
-        tempPassword: null,
-      });
+      expect(result).toEqual({ id: '1', email: 'new@test.com' });
     });
   });
 

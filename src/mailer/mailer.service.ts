@@ -93,4 +93,21 @@ export class MailService {
 
     return this.sendEmail(to, subject, text);
   }
+
+  async sendTempPassword(to: string, tempPassword: string) {
+    const subject = 'Your account created';
+    const text = `Hello,
+
+      Your account has been successfully created. To access it, please use the following temporary password:.
+      Password: ${tempPassword}
+      
+      For your security we strongly recommend that you log in and change it to a new permanent password as soon as possible.
+
+      If you did not request this account, please contact our support team immediately.
+
+      Best regards,
+      Techno World Team`;
+
+    return this.sendEmail(to, subject, text);
+  }
 }
