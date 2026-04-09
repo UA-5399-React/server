@@ -651,7 +651,7 @@ export class OrdersService {
 
       const sectionTitle = (title: string) => {
         doc.moveDown(0.8);
-        doc.font('DejaVu-Bold').fontSize(11).fillColor('#1a1a2e').text(title, L); // ← явний L
+        doc.font('DejaVu-Bold').fontSize(11).fillColor('#1a1a2e').text(title, L);
         doc
           .moveTo(L, doc.y + 2)
           .lineTo(L + W, doc.y + 2)
