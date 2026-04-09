@@ -5,6 +5,7 @@ import { Types } from 'mongoose';
 
 import { Category } from '@/categories/entities/categories.schema';
 import { SortOrder } from '@/common/enums/sort-order.enum';
+import { Order } from '@/orders/entities/order.schema';
 import { Product } from '@/products/entities/product.schema';
 import { ProductSortField } from '@/products/enums/product-sort-field.enum';
 import { ProductStatus } from '@/products/enums/product-status.enum';
@@ -29,10 +30,7 @@ const mockProduct = {
   updatedAt: new Date('2026-03-01T10:00:00.000Z'),
 };
 
-const execMock = jest.fn();
-const sortMock = jest.fn();
-const skipMock = jest.fn();
-const limitMock = jest.fn();
+const aggregateExecMock = jest.fn();
 const countExecMock = jest.fn();
 
 const saveMock = jest.fn();
@@ -48,6 +46,7 @@ type MockProductModelType = jest.Mock & {
   countDocuments: jest.Mock;
   create: jest.Mock;
   distinct: jest.Mock;
+  aggregate: jest.Mock;
 };
 
 const mockProductModel: MockProductModelType = Object.assign(
@@ -64,6 +63,7 @@ const mockProductModel: MockProductModelType = Object.assign(
     countDocuments: jest.fn(),
     create: jest.fn(),
     distinct: jest.fn(),
+    aggregate: jest.fn(),
   },
 );
 
@@ -71,15 +71,17 @@ const mockCategoryModel = {
   find: jest.fn(),
 };
 
+const mockOrderModel = {
+  collection: {
+    name: 'orders',
+  },
+};
+
 describe('ProductsService', () => {
   let service: ProductsService;
 
   beforeEach(async () => {
-    sortMock.mockReturnValue({ skip: skipMock });
-    skipMock.mockReturnValue({ limit: limitMock });
-    limitMock.mockReturnValue({ exec: execMock });
-
-    mockProductModel.find.mockReturnValue({ sort: sortMock });
+    mockProductModel.aggregate.mockReturnValue({ exec: aggregateExecMock });
     mockProductModel.countDocuments.mockReturnValue({ exec: countExecMock });
     categorySelectMock.mockReturnValue({ lean: categoryLeanMock });
     mockCategoryModel.find.mockReturnValue({ select: categorySelectMock });
@@ -95,6 +97,10 @@ describe('ProductsService', () => {
           provide: getModelToken(Category.name),
           useValue: mockCategoryModel,
         },
+        {
+          provide: getModelToken(Order.name),
+          useValue: mockOrderModel,
+        },
       ],
     }).compile();
 
@@ -107,8 +113,8 @@ describe('ProductsService', () => {
 
   describe('findAll', () => {
     it('should return paginated products', async () => {
-      const items = [mockProduct];
-      execMock.mockResolvedValue(items);
+      const items = [{ ...mockProduct, purchaseCount: 5 }];
+      aggregateExecMock.mockResolvedValue(items);
       countExecMock.mockResolvedValue(1);
 
       const result = await service.findAll({
@@ -125,17 +131,23 @@ describe('ProductsService', () => {
         totalPages: 1,
       });
 
-      expect(mockProductModel.find).toHaveBeenCalledWith({
-        $or: [
-          { title: { $regex: 'Laptop', $options: 'i' } },
-          { description: { $regex: 'Laptop', $options: 'i' } },
-          { productCode: 'Laptop' },
-        ],
-        status: 'active',
+      const pipeline = mockProductModel.aggregate.mock.calls[0][0];
+
+      expect(pipeline[0]).toEqual({
+        $match: {
+          $or: [
+            { title: { $regex: 'Laptop', $options: 'i' } },
+            { description: { $regex: 'Laptop', $options: 'i' } },
+            { productCode: 'Laptop' },
+          ],
+          status: 'active',
+        },
       });
-      expect(sortMock).toHaveBeenCalledWith({ updatedAt: -1 });
-      expect(skipMock).toHaveBeenCalledWith(0);
-      expect(limitMock).toHaveBeenCalledWith(10);
+
+      expect(pipeline).toContainEqual({ $sort: { updatedAt: -1 } });
+      expect(pipeline).toContainEqual({ $skip: 0 });
+      expect(pipeline).toContainEqual({ $limit: 10 });
+
       expect(mockProductModel.countDocuments).toHaveBeenCalledWith({
         $or: [
           { title: { $regex: 'Laptop', $options: 'i' } },
@@ -147,8 +159,9 @@ describe('ProductsService', () => {
     });
 
     it('should apply filters and sorting', async () => {
-      execMock.mockResolvedValue([mockProduct]);
+      aggregateExecMock.mockResolvedValue([{ ...mockProduct, purchaseCount: 3 }]);
       countExecMock.mockResolvedValue(1);
+
       categoryLeanMock.mockResolvedValue([
         {
           _id: new Types.ObjectId('507f1f77bcf86cd799439011'),
@@ -181,7 +194,8 @@ describe('ProductsService', () => {
 
       await service.findAll(query);
 
-      const filter = mockProductModel.find.mock.calls[0][0];
+      const pipeline = mockProductModel.aggregate.mock.calls[0][0];
+      const filter = pipeline[0].$match;
 
       expect(filter.price).toEqual({ $gte: 100, $lte: 500 });
       expect(filter.status).toBe(ProductStatus.ACTIVE);
@@ -211,6 +225,7 @@ describe('ProductsService', () => {
           },
         ],
       });
+
       expect(filter.$expr).toEqual({
         $gt: [
           {
@@ -237,9 +252,10 @@ describe('ProductsService', () => {
           0,
         ],
       });
-      expect(sortMock).toHaveBeenCalledWith({ price: -1 });
-      expect(skipMock).toHaveBeenCalledWith(0);
-      expect(limitMock).toHaveBeenCalledWith(10);
+
+      expect(pipeline).toContainEqual({ $sort: { price: -1 } });
+      expect(pipeline).toContainEqual({ $skip: 0 });
+      expect(pipeline).toContainEqual({ $limit: 10 });
     });
 
     it('should throw on invalid price range', async () => {
@@ -286,6 +302,7 @@ describe('ProductsService', () => {
         new BadRequestException(`Invalid product id: "${INVALID_ID}"`),
       );
     });
+
     it('should throw if product not found', async () => {
       mockProductModel.findById.mockReturnValue({
         exec: jest.fn().mockResolvedValue(null),
@@ -370,10 +387,12 @@ describe('ProductsService', () => {
       mockProductModel.findByIdAndUpdate.mockReturnValue({
         exec: jest.fn().mockResolvedValue(updatedProduct),
       });
+
       const input = {
         title: 'Phone',
         status: ProductStatus.ACTIVE,
       };
+
       const result = await service.update(VALID_ID, input);
 
       expect(result).toEqual(updatedProduct);
@@ -390,10 +409,6 @@ describe('ProductsService', () => {
 
     it('should throw if product not found during update', async () => {
       mockProductModel.findById.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockProduct),
-      });
-
-      mockProductModel.findById.mockReturnValue({
         exec: jest.fn().mockResolvedValue(null),
       });
 
@@ -407,6 +422,7 @@ describe('ProductsService', () => {
         ...mockProduct,
         status: ProductStatus.ACTIVE,
       };
+
       mockProductModel.findById.mockReturnValue({
         exec: jest.fn().mockResolvedValue(activeProduct),
       });
@@ -416,6 +432,7 @@ describe('ProductsService', () => {
       );
     });
   });
+
   describe('duplicate', () => {
     it('should duplicate product as draft', async () => {
       mockProductModel.findById.mockReturnValue({
@@ -426,6 +443,7 @@ describe('ProductsService', () => {
           select: jest.fn().mockResolvedValue({ productCode: '0000009' }),
         }),
       });
+
       const duplicatedProduct = {
         imageUrl: mockProduct.imageUrl,
         imagePublicId: mockProduct.imagePublicId,
@@ -455,6 +473,7 @@ describe('ProductsService', () => {
       expect(saveMock).toHaveBeenCalledTimes(1);
       expect(result).toEqual(duplicatedProduct);
     });
+
     it('should throw if source product not found', async () => {
       mockProductModel.findById.mockReturnValue({
         exec: jest.fn().mockResolvedValue(null),
@@ -465,6 +484,7 @@ describe('ProductsService', () => {
       );
     });
   });
+
   describe('remove', () => {
     it('should remove draft product', async () => {
       mockProductModel.findById.mockReturnValue({
@@ -485,6 +505,7 @@ describe('ProductsService', () => {
       mockProductModel.findById.mockReturnValue({
         exec: jest.fn().mockResolvedValue(null),
       });
+
       await expect(service.remove(VALID_ID)).rejects.toThrow(
         new NotFoundException(`Product with id "${VALID_ID}" not found`),
       );
@@ -495,14 +516,17 @@ describe('ProductsService', () => {
         ...mockProduct,
         status: ProductStatus.ACTIVE,
       };
+
       mockProductModel.findById.mockReturnValue({
         exec: jest.fn().mockResolvedValue(activeProduct),
       });
+
       await expect(service.remove(VALID_ID)).rejects.toThrow(
         'Cannot delete product with status "active". Only draft products can be deleted.',
       );
     });
   });
+
   /*describe('create', () => {
     it('should ', async () => {
       mockProductModel.distinct.mockResolvedValue([' electronics ', 'laptop', '', '  ', 'apple']);

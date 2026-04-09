@@ -5,6 +5,7 @@ export enum ProductSortField {
   updatedAt = 'updatedAt',
   price = 'price',
   title = 'title',
+  purchaseCount = 'purchaseCount',
 }
 
 registerEnumType(ProductSortField, { name: 'ProductSortField' });
