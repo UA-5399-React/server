@@ -44,6 +44,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message: string | string[] = 'Internal server error';
     let error = 'InternalServerError';
+    let code: string | undefined;
 
     // Handle known HTTP exceptions
     if (exception instanceof HttpException) {
@@ -51,6 +52,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       status = extracted.status;
       message = extracted.message;
       error = extracted.error;
+      code = extracted.code;
     } else {
       // Handle unexpected errors (non-HTTP exceptions)
       this.logger.error(
@@ -60,13 +62,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     }
 
     // Send unified error response to the client
-    return res.status(status).json(this.buildErrorResponse(status, error, message, req.url));
+    return res.status(status).json(this.buildErrorResponse(status, error, message, req.url, code));
   }
 
   private extractHttpException(exception: HttpException): {
     status: number;
     message: string | string[];
     error: string;
+    code?: string;
   } {
     const status = exception.getStatus();
     const body = exception.getResponse();
@@ -82,11 +85,12 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     // Case 2: response body is an object
     if (body !== null && typeof body === 'object') {
-      const b = body as { message?: string | string[]; error?: string };
+      const b = body as { message?: string | string[]; error?: string; code?: string };
       return {
         status,
         message: b.message ?? exception.message,
         error: b.error ?? exception.name,
+        code: b.code,
       };
     }
 
@@ -143,12 +147,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     error: string,
     message: string | string[],
     path: string,
+    code?: string,
   ) {
     return {
       success: false,
       statusCode,
       error,
       message,
+      ...(code ? { code } : {}),
       path,
       timestamp: new Date().toISOString(),
     };

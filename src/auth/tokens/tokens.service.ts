@@ -93,7 +93,7 @@ export class TokensService {
 
       if (diff < cooldownMs) {
         throw new HttpException(
-          'Please wait before requesting requesting another action.',
+          'Please wait before requesting another action.',
           HttpStatus.TOO_MANY_REQUESTS,
         );
       }
@@ -101,5 +101,5 @@ export class TokensService {
   }
   async deleteAllForUser(userId: string): Promise<void> {
     await this.tokenModel.deleteMany({ userId }).exec();
-}
+  }
 }
