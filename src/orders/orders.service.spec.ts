@@ -84,6 +84,7 @@ const mockOrderModel = {
   find: jest.fn(),
   findOne: jest.fn(),
   findOneAndUpdate: jest.fn(),
+  countDocuments: jest.fn(),
 };
 
 const mockProductModel = {
@@ -476,5 +477,121 @@ describe('OrdersService', () => {
         );
       },
     );
+  });
+
+  // ─── findAllOrders ────────────────────────────────────────────────────────
+
+  describe('findAllOrders', () => {
+    function makeChain(items = [mockOrder]) {
+      const chain = {
+        sort: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(items),
+      };
+      mockOrderModel.find.mockReturnValue(chain);
+      mockOrderModel.countDocuments.mockReturnValue({ exec: jest.fn().mockResolvedValue(1) });
+      return chain;
+    }
+
+    it('should sort by createdAt desc by default', async () => {
+      const chain = makeChain();
+
+      await service.findAllOrders({ page: 1, limit: 10 });
+
+      expect(chain.sort).toHaveBeenCalledWith({ createdAt: -1 });
+    });
+
+    it('should sort by orderId asc', async () => {
+      const chain = makeChain();
+
+      await service.findAllOrders({
+        page: 1,
+        limit: 10,
+        sort: 'orderId' as any,
+        order: 'asc' as any,
+      });
+
+      expect(chain.sort).toHaveBeenCalledWith({ orderId: 1 });
+    });
+
+    it('should sort by orderId desc', async () => {
+      const chain = makeChain();
+
+      await service.findAllOrders({
+        page: 1,
+        limit: 10,
+        sort: 'orderId' as any,
+        order: 'desc' as any,
+      });
+
+      expect(chain.sort).toHaveBeenCalledWith({ orderId: -1 });
+    });
+
+    it('should sort by status asc', async () => {
+      const chain = makeChain();
+
+      await service.findAllOrders({
+        page: 1,
+        limit: 10,
+        sort: 'status' as any,
+        order: 'asc' as any,
+      });
+
+      expect(chain.sort).toHaveBeenCalledWith({ status: 1 });
+    });
+
+    it('should sort by status desc', async () => {
+      const chain = makeChain();
+
+      await service.findAllOrders({
+        page: 1,
+        limit: 10,
+        sort: 'status' as any,
+        order: 'desc' as any,
+      });
+
+      expect(chain.sort).toHaveBeenCalledWith({ status: -1 });
+    });
+
+    it('should sort by customerName asc using user.firstName and user.lastName', async () => {
+      const chain = makeChain();
+
+      await service.findAllOrders({
+        page: 1,
+        limit: 10,
+        sort: 'customerName' as any,
+        order: 'asc' as any,
+      });
+
+      expect(chain.sort).toHaveBeenCalledWith({ 'user.firstName': 1, 'user.lastName': 1 });
+    });
+
+    it('should sort by customerName desc using user.firstName and user.lastName', async () => {
+      const chain = makeChain();
+
+      await service.findAllOrders({
+        page: 1,
+        limit: 10,
+        sort: 'customerName' as any,
+        order: 'desc' as any,
+      });
+
+      expect(chain.sort).toHaveBeenCalledWith({ 'user.firstName': -1, 'user.lastName': -1 });
+    });
+
+    it('should sort by totalPrice desc', async () => {
+      const chain = makeChain();
+
+      await service.findAllOrders({
+        page: 1,
+        limit: 10,
+        sort: 'totalPrice' as any,
+        order: 'desc' as any,
+      });
+
+      expect(chain.sort).toHaveBeenCalledWith({ totalPrice: -1 });
+    });
   });
 });

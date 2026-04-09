@@ -7,6 +7,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
+import { SortOrder } from '@/common/enums/sort-order.enum';
 import { PaginatedResult } from '@/common/types/paginated-result.type';
 import { buildDateFilter } from '@/common/utils/date.utils';
 import { buildPaginatedResult, getPagination } from '@/common/utils/pagination.util';
@@ -530,7 +531,7 @@ export class OrdersService {
       ...this.buildOrdersFilter(args),
       ...buildDateFilter(f?.dateFrom, f?.dateTo, f?.dateType, OrderDateFilterField.createdAt),
     };
-    const sort = buildSort(args.sort, args.order, OrdersSortField.createdAt);
+    const sort = this.buildOrdersSort(args.sort, args.order);
 
     const [items, total] = await Promise.all([
       this.orderModel.find(filter).sort(sort).skip(skip).limit(limit).lean().exec(),
@@ -538,6 +539,19 @@ export class OrdersService {
     ]);
 
     return buildPaginatedResult(items, total, page, limit);
+  }
+
+  private buildOrdersSort(
+    sortField: OrdersSortField | undefined,
+    order: SortOrder | undefined,
+  ): Record<string, 1 | -1> {
+    const direction = order === SortOrder.asc ? 1 : -1;
+
+    if (sortField === OrdersSortField.customerName) {
+      return { 'user.firstName': direction, 'user.lastName': direction };
+    }
+
+    return buildSort(sortField, order, OrdersSortField.createdAt);
   }
 
   private buildSearchFilter(search?: string): Record<string, unknown> {
