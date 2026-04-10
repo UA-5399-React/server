@@ -38,6 +38,7 @@ import { UserListItem } from '@/users/types/user-list-item.type';
 import { buildUpdateData } from '@/users/utils/build-update-data';
 
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { UserRegistrationTimeseriesType } from './graphql/types/user-registration-timeseries.type';
 import { UserStatsType } from './graphql/types/user-stats.type';
 
 @Injectable()
@@ -331,6 +332,33 @@ export class UsersService {
     ]);
     const blockedUsers = totalUsers - activeUsers;
     return { totalUsers, activeUsers, blockedUsers };
+  }
+
+  async getRegistrationTimeseries(
+    dateFrom?: Date,
+    dateTo?: Date,
+  ): Promise<UserRegistrationTimeseriesType> {
+    const match: Record<string, unknown> = {};
+
+    if (dateFrom || dateTo) {
+      match['createdAt'] = {
+        ...(dateFrom ? { $gte: dateFrom } : {}),
+        ...(dateTo ? { $lte: dateTo } : {}),
+      };
+    }
+
+    const result = await this.userModel.aggregate<{ _id: string; count: number }>([
+      { $match: match },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+
+    return { data: result.map(({ _id, count }) => ({ month: _id, count })) };
   }
 
   async updateById(id: string, data: Partial<User>): Promise<UserDocument> {
