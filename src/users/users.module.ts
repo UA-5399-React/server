@@ -2,6 +2,9 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 
 import { CryptoModule } from '@/auth/crypto/crypto.module';
+import { TokensModule } from '@/auth/tokens/tokens.module';
+import { CartModule } from '@/cart/cart.module';
+import { MailModule } from '@/mailer/mailer.module';
 import { UploadsModule } from '@/uploads/uploads.module';
 import { User, UserSchema } from '@/users/entities/user.schema';
 import { UsersController } from '@/users/users.controller';
@@ -13,6 +16,9 @@ import { UsersService } from '@/users/users.service';
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     CryptoModule,
     UploadsModule,
+    TokensModule,
+    CartModule,
+    MailModule,
   ],
   controllers: [UsersController],
   providers: [UsersService, UsersResolver],

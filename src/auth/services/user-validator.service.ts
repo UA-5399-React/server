@@ -37,7 +37,10 @@ export class UserValidatorService {
         id: user.id,
         email: user.email,
       });
-      throw new UnauthorizedException('Please confirm your email first');
+      throw new UnauthorizedException({
+        message: 'Please confirm your email first',
+        code: 'EMAIL_NOT_CONFIRMED',
+      });
     }
   }
 

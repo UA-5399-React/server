@@ -1,9 +1,12 @@
 import { UseGuards } from '@nestjs/common';
-import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { Args, ID, Mutation, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
 
 import { Roles } from '@/auth/decorators/Roles';
 import { GqlAuthGuard } from '@/auth/guards/gql-auth.guard';
 import { RolesGuard } from '@/auth/guards/roles.guard';
+import { ProductType } from '@/products/graphql/product.type';
+import { ProductsQueryArgs } from '@/products/graphql/product-query.args';
+import { ProductsService } from '@/products/products.service';
 import { Role } from '@/users/enums/role.enum';
 
 import { CategoryService } from './category.service';
@@ -17,7 +20,10 @@ import { UpdateCategoryInput } from './graphql/update-category.input';
 @Roles(Role.ADMIN, Role.SUPER_ADMIN)
 @Resolver(() => CategoryType)
 export class CategoryResolver {
-  constructor(private readonly categoryService: CategoryService) {}
+  constructor(
+    private readonly categoryService: CategoryService,
+    private readonly productsService: ProductsService,
+  ) {}
 
   @Query(() => [CategoryType], { name: 'categoriesList' })
   findAllCategories() {
@@ -32,6 +38,20 @@ export class CategoryResolver {
   @Query(() => CategoryType, { name: 'category' })
   findOneCategory(@Args('id', { type: () => ID }) id: string) {
     return this.categoryService.findOne(id);
+  }
+
+  @ResolveField(() => [ProductType])
+  async products(@Parent() category: CategoryType) {
+    const categoryId = category._id.toString();
+
+    const args: Partial<ProductsQueryArgs> = {
+      filter: {
+        category: [categoryId],
+      },
+    };
+
+    const result = await this.productsService.findAll(args as ProductsQueryArgs);
+    return result.items || [];
   }
 
   @Mutation(() => CategoryType)

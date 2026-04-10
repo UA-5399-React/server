@@ -64,13 +64,24 @@ export class AuthService {
       email: dto.email,
       passwordHash,
       role: Role.CUSTOMER,
+      firstName: dto.firstName,
+      ...(dto.lastName && { lastName: dto.lastName }),
     });
 
-    await this.emailVerificationService.createAndSendVerification(createdUser);
+    try {
+      await this.emailVerificationService.createAndSendVerification(createdUser);
+    } catch (error) {
+      this.logger.error('Failed to send verification email', error);
+      return {
+        status: 'pending_verification',
+        message:
+          'User created successfully, but verification email could not be sent. Please request a new verification email.',
+      };
+    }
 
     return {
       status: 'success',
-      message: 'User created successfully.',
+      message: 'User created successfully. Please check your email to verify your account.',
     };
   }
 

@@ -21,9 +21,8 @@ export class CloudinaryService {
     return this.uploadImage(file, folder);
   }
 
-  async uploadAvatar(file: UploadedImageFile): Promise<UploadImageResponseDto> {
-    const folder = this.configService.get<string>('CLOUDINARY_AVATARS_FOLDER') || 'avatars';
-
+  async uploadAvatar(file: UploadedImageFile, userId: string): Promise<UploadImageResponseDto> {
+    const folder = `avatars/${userId}`;
     return this.uploadImage(file, folder);
   }
 

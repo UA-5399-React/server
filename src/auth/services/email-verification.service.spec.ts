@@ -25,6 +25,11 @@ const tokensServiceMock = {
   createToken: jest.fn(),
   markAsUsed: jest.fn(),
   deleteByUserAndType: jest.fn(),
+  findActiveByUserAndType: jest.fn(),
+  deleteById: jest.fn(),
+  createTokenData: jest.fn(),
+  findValidTokenOrThrow: jest.fn(),
+  ensureCooldownOrThrow: jest.fn(),
 };
 const mailServiceMock = {
   sendEmailVerification: jest.fn(),
@@ -76,14 +81,17 @@ describe('EmailVerificationService', () => {
     it('should create and send verification', async () => {
       const user = createMockUser();
 
-      cryptoServiceMock.generateRandomToken.mockReturnValueOnce('token');
-      cryptoServiceMock.generateSha256HashBase64.mockReturnValueOnce('tokenHash');
+      tokensServiceMock.createTokenData.mockReturnValue({
+        rawToken: 'token',
+        tokenHash: 'tokenHash',
+        expiresAt: new Date(),
+      });
+      tokensServiceMock.createToken.mockResolvedValue({
+        _id: 'tokenId',
+      });
       configServiceMock.getOrThrow.mockReturnValueOnce('http://localhost:3000');
 
       await service.createAndSendVerification(user);
-
-      expect(tokensServiceMock.createToken).toHaveBeenCalledTimes(1);
-      expect(configServiceMock.getOrThrow).toHaveBeenCalledWith('CLIENT_URL');
 
       expect(tokensServiceMock.createToken).toHaveBeenCalledWith({
         userId: user.id,
@@ -94,7 +102,7 @@ describe('EmailVerificationService', () => {
 
       expect(mailServiceMock.sendEmailVerification).toHaveBeenCalledWith(
         user.email,
-        'http://localhost:3000/auth/confirm-email?token=token',
+        'http://localhost:3000/email-confirmation?token=token',
       );
     });
   });
@@ -104,16 +112,18 @@ describe('EmailVerificationService', () => {
       const user = createMockUser({ isEmailConfirmed: false });
       const saveSpy = jest.spyOn(user, 'save');
 
-      cryptoServiceMock.generateSha256HashBase64.mockReturnValue('hashed-token');
-      tokensServiceMock.findByTokenHash.mockResolvedValue({
+      tokensServiceMock.findValidTokenOrThrow.mockResolvedValue({
         id: 'token-id',
         userId: { toString: () => 'user-id' },
-        expiresAt: new Date(Date.now() + 60_000),
       });
+
       usersServiceMock.findById.mockResolvedValue(user);
 
       const result = await service.confirmEmail('raw-token');
-
+      expect(tokensServiceMock.findValidTokenOrThrow).toHaveBeenCalledWith(
+        'raw-token',
+        TokenType.EMAIL_VERIFICATION,
+      );
       expect(usersServiceMock.findById).toHaveBeenCalledWith('user-id');
       expect(user.isEmailConfirmed).toBe(true);
       expect(saveSpy).toHaveBeenCalled();
@@ -124,66 +134,47 @@ describe('EmailVerificationService', () => {
       });
     });
 
-    it('should throw BadRequestException when token is null', async () => {
-      await expect(service.confirmEmail('')).rejects.toThrow(
-        new BadRequestException('Token is required'),
+    it('should throw if token is invalid or expired', async () => {
+      tokensServiceMock.findValidTokenOrThrow.mockRejectedValue(
+        new BadRequestException('Invalid or expired token'),
       );
-    });
-
-    it('should throw if token document is not found', async () => {
-      cryptoServiceMock.generateSha256HashBase64.mockReturnValueOnce('hashed-token');
-      tokensServiceMock.findByTokenHash.mockResolvedValue(null);
 
       await expect(service.confirmEmail('raw-token')).rejects.toThrow(
         new BadRequestException('Invalid or expired token'),
       );
 
-      expect(cryptoServiceMock.generateSha256HashBase64).toHaveBeenCalledWith('raw-token');
-      expect(tokensServiceMock.findByTokenHash).toHaveBeenCalledWith(
-        'hashed-token',
+      expect(tokensServiceMock.findValidTokenOrThrow).toHaveBeenCalledWith(
+        'raw-token',
         TokenType.EMAIL_VERIFICATION,
-      );
-    });
-
-    it('should throw if token expired', async () => {
-      cryptoServiceMock.generateSha256HashBase64.mockReturnValue('hashed-token');
-      tokensServiceMock.findByTokenHash.mockResolvedValue({
-        id: 'token-id',
-        userId: { toString: () => 'user-id' },
-        expiresAt: new Date(Date.now() - 60_000),
-      });
-
-      await expect(service.confirmEmail('raw-token')).rejects.toThrow(
-        new BadRequestException('Token expired'),
       );
     });
   });
 
   describe('resendConfirmation', () => {
+    const neutralMessage = {
+      message:
+        'If the account exists and is not yet confirmed, a confirmation email has been sent.',
+    };
     it('should return generic message if user does not exist', async () => {
       usersServiceMock.findByEmail.mockResolvedValue(null);
 
       const result = await service.resendConfirmation('missing@example.com');
 
-      expect(result).toEqual({
-        message: 'If this email exists, a confirmation link was sent.',
-      });
-
+      expect(result).toEqual(neutralMessage);
+      expect(tokensServiceMock.ensureCooldownOrThrow).not.toHaveBeenCalled();
       expect(tokensServiceMock.deleteByUserAndType).not.toHaveBeenCalled();
       expect(tokensServiceMock.createToken).not.toHaveBeenCalled();
       expect(mailServiceMock.sendEmailVerification).not.toHaveBeenCalled();
     });
 
-    it('should return message if email is already confirmed', async () => {
+    it('should return generic message if email is already confirmed', async () => {
       const user = createMockUser({ isEmailConfirmed: true });
       usersServiceMock.findByEmail.mockResolvedValue(user);
 
       const result = await service.resendConfirmation(user.email);
 
-      expect(result).toEqual({
-        message: 'Email is already confirmed.',
-      });
-
+      expect(result).toEqual(neutralMessage);
+      expect(tokensServiceMock.ensureCooldownOrThrow).not.toHaveBeenCalled();
       expect(tokensServiceMock.deleteByUserAndType).not.toHaveBeenCalled();
       expect(tokensServiceMock.createToken).not.toHaveBeenCalled();
       expect(mailServiceMock.sendEmailVerification).not.toHaveBeenCalled();
@@ -193,20 +184,30 @@ describe('EmailVerificationService', () => {
       const user = createMockUser({ isEmailConfirmed: false });
 
       usersServiceMock.findByEmail.mockResolvedValue(user);
-      cryptoServiceMock.generateRandomToken.mockReturnValue('new-raw-token');
-      cryptoServiceMock.generateSha256HashBase64.mockReturnValue('new-hashed-token');
+      tokensServiceMock.ensureCooldownOrThrow.mockResolvedValue(undefined);
+      tokensServiceMock.deleteByUserAndType.mockResolvedValue(undefined);
+      tokensServiceMock.createTokenData.mockReturnValue({
+        rawToken: 'new-raw-token',
+        tokenHash: 'new-hashed-token',
+        expiresAt: new Date(),
+      });
+      tokensServiceMock.createToken.mockResolvedValue({
+        _id: { toString: () => 'token-id' },
+      });
       configServiceMock.getOrThrow.mockReturnValueOnce('http://localhost:3000');
 
       const result = await service.resendConfirmation(user.email);
+
+      expect(tokensServiceMock.ensureCooldownOrThrow).toHaveBeenCalledWith(
+        user.id,
+        TokenType.EMAIL_VERIFICATION,
+        60 * 1000,
+      );
 
       expect(tokensServiceMock.deleteByUserAndType).toHaveBeenCalledWith(
         user.id,
         TokenType.EMAIL_VERIFICATION,
       );
-
-      expect(tokensServiceMock.createToken).toHaveBeenCalledTimes(1);
-
-      expect(configServiceMock.getOrThrow).toHaveBeenCalledWith('CLIENT_URL');
 
       expect(tokensServiceMock.createToken).toHaveBeenCalledWith({
         userId: user.id,
@@ -215,14 +216,14 @@ describe('EmailVerificationService', () => {
         expiresAt: expect.any(Date) as Date,
       });
 
+      expect(configServiceMock.getOrThrow).toHaveBeenCalledWith('CLIENT_URL');
+
       expect(mailServiceMock.sendEmailVerification).toHaveBeenCalledWith(
         user.email,
-        'http://localhost:3000/auth/confirm-email?token=new-raw-token',
+        'http://localhost:3000/email-confirmation?token=new-raw-token',
       );
 
-      expect(result).toEqual({
-        message: 'Confirmation email sent.',
-      });
+      expect(result).toEqual({ message: 'Confirmation email sent.' });
     });
   });
 });

@@ -6,7 +6,10 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import * as path from 'path';
+import PdfTable from 'pdfkit-table';
 
+import { SortOrder } from '@/common/enums/sort-order.enum';
 import { PaginatedResult } from '@/common/types/paginated-result.type';
 import { buildDateFilter } from '@/common/utils/date.utils';
 import { buildPaginatedResult, getPagination } from '@/common/utils/pagination.util';
@@ -27,6 +30,7 @@ import { GetOrdersQueryDto } from './dto/get-orders-query.dto';
 import { UpdateShippingAddressDto } from './dto/update-shipping-address.dto';
 import { Order, OrderDocument } from './entities';
 import { PaymentStatus } from './enums/payment-status.enum';
+import { UpdateOrderInput } from './graphql/inputs/update-order.input';
 import { UpdateOrderProductsInput } from './graphql/inputs/update-order-items.input';
 import { UpdateOrderShippingAddressInput } from './graphql/inputs/update-order-shipping.input';
 import { UpdateOrderUserInput } from './graphql/inputs/update-order-user.input';
@@ -46,7 +50,7 @@ export class OrdersService {
 
   // ─── Customer ──────────────────────────────────────────────────────────────
 
-  async create(dto: CreateOrderDto, userId: Types.ObjectId): Promise<Order> {
+  async create(dto: CreateOrderDto, userId: Types.ObjectId, status?: OrderStatus): Promise<Order> {
     const productIds = dto.items.map((item) => new Types.ObjectId(item.product));
 
     const products = await this.productModel
@@ -78,6 +82,7 @@ export class OrdersService {
       items,
       amount,
       totalPrice: amount,
+      status: status ?? OrderStatus.NEW,
       shippingAddress: dto.shippingAddress,
       user: dto.user,
       payment: {
@@ -248,29 +253,24 @@ export class OrdersService {
   }
 
   async updateOrderStatus(orderId: string, status: OrderStatus, role: Role): Promise<Order> {
-    const order = await this.orderModel.findOne({ orderId }).lean();
+    const order = await this.orderModel.findOne({ orderId });
     if (!order) {
       throw new NotFoundException('Order not found');
     }
-    if (role !== Role.SUPER_ADMIN) {
-      const allowed = ADMIN_ALLOWED_FLOW[order.status] ?? [];
-      if (!allowed.includes(status)) {
-        throw new BadRequestException(
-          `Transition from '${order.status}' to '${status}' is not allowed`,
-        );
-      }
+
+    const wasUpdated = this.applyOrderStatusUpdate(order, status, role);
+    if (!wasUpdated) {
+      return order;
     }
 
-    const updated = await this.orderModel
-      .findOneAndUpdate({ orderId }, { status }, { returnDocument: 'after' })
-      .lean();
+    await order.save();
 
-    if (updated?.user?.email) {
+    if (wasUpdated && order.user?.email) {
       this.mailService
-        .sendOrderStatusEmail(updated.user.email, updated.orderId, status)
+        .sendOrderStatusEmail(order.user.email, order.orderId, order.status)
         .catch((err) => console.error('Failed to send email', err));
     }
-    return updated!;
+    return order;
   }
 
   async getOrderStats(): Promise<OrderStatsType> {
@@ -301,10 +301,111 @@ export class OrdersService {
     };
   }
 
-  async updateOrderItems(input: UpdateOrderProductsInput): Promise<OrderType> {
+  async updateOrderItems(input: UpdateOrderProductsInput, role: Role): Promise<OrderType> {
+    return this.updateOrder(
+      {
+        orderId: input.orderId,
+        items: input.items,
+      },
+      role,
+    );
+  }
+
+  async updateOrderUserInfo(input: UpdateOrderUserInput, role: Role): Promise<OrderType> {
+    return this.updateOrder(
+      {
+        orderId: input.orderId,
+        user: input.user,
+      },
+      role,
+    );
+  }
+
+  async updateOrderShippingAddress(
+    input: UpdateOrderShippingAddressInput,
+    role: Role,
+  ): Promise<OrderType> {
+    return this.updateOrder(
+      {
+        orderId: input.orderId,
+        shippingAddress: input.shippingAddress,
+      },
+      role,
+    );
+  }
+
+  async updateOrder(input: UpdateOrderInput, role: Role): Promise<OrderType> {
     const order = await this.orderModel.findOne({ orderId: input.orderId });
     if (!order) throw new NotFoundException('Order not found');
 
+    const hasChanges =
+      input.status !== undefined ||
+      input.items !== undefined ||
+      input.user !== undefined ||
+      input.shippingAddress !== undefined;
+
+    if (!hasChanges) {
+      throw new BadRequestException(
+        'At least one update field is required: status, items, user, or shippingAddress.',
+      );
+    }
+
+    let statusWasUpdated = false;
+    if (input.status !== undefined) {
+      statusWasUpdated = this.applyOrderStatusUpdate(order, input.status, role);
+    }
+
+    if (input.items !== undefined) {
+      await this.applyOrderItemsUpdate(order, {
+        orderId: input.orderId,
+        items: input.items,
+      });
+    }
+
+    if (input.user !== undefined) {
+      this.applyOrderUserInfoUpdate(order, {
+        orderId: input.orderId,
+        user: input.user,
+      });
+    }
+
+    if (input.shippingAddress !== undefined) {
+      this.applyOrderShippingAddressUpdate(order, {
+        orderId: input.orderId,
+        shippingAddress: input.shippingAddress,
+      });
+    }
+
+    await order.save();
+
+    if (statusWasUpdated && order.user?.email) {
+      this.mailService
+        .sendOrderStatusEmail(order.user.email, order.orderId, order.status)
+        .catch((err) => console.error('Failed to send email', err));
+    }
+
+    return this.mapOrderDocumentToGraphQL(order);
+  }
+
+  async remove(orderId: string): Promise<void> {
+    const deleted = await this.orderModel.findOneAndDelete({ orderId }).exec();
+
+    if (!deleted) {
+      throw new NotFoundException('Order not found');
+    }
+  }
+  // ─── Private ───────────────────────────────────────────────────────────────
+
+  private assertCancellable(status: OrderStatus): void {
+    if (NON_CANCELLABLE_STATUSES.includes(status)) {
+      throw new BadRequestException(`Order with status "${status}" can no longer be cancelled.`);
+    }
+  }
+
+  private async applyOrderItemsUpdate(
+    order: OrderDocument,
+    input: UpdateOrderProductsInput,
+  ): Promise<void> {
     if (!input.items || input.items.length === 0) {
       throw new BadRequestException('Items array is required');
     }
@@ -338,64 +439,65 @@ export class OrdersService {
 
     order.totalPrice = order.items.reduce((sum, i) => sum + i.unitPrice * i.amount, 0);
     order.markModified('items');
-    await order.save();
-
-    const orderObj = order.toObject();
-    return {
-      ...orderObj,
-      id: orderObj._id.toString(),
-    } as unknown as OrderType;
   }
 
-  async updateOrderUserInfo(input: UpdateOrderUserInput): Promise<OrderType> {
-    const order = await this.orderModel.findOne({ orderId: input.orderId });
-    if (!order) throw new NotFoundException('Order not found');
-
+  private applyOrderUserInfoUpdate(order: OrderDocument, input: UpdateOrderUserInput): void {
     order.user = {
       ...order.user,
       ...Object.fromEntries(Object.entries(input.user).filter(([, v]) => v !== undefined)),
     };
-
-    await order.save();
-    const orderObj = order.toObject();
-    return {
-      ...orderObj,
-      id: orderObj._id.toString(),
-    } as unknown as OrderType;
   }
 
-  async updateOrderShippingAddress(input: UpdateOrderShippingAddressInput): Promise<OrderType> {
-    const order = await this.orderModel.findOne({ orderId: input.orderId });
-    if (!order) throw new NotFoundException('Order not found');
-
+  private applyOrderShippingAddressUpdate(
+    order: OrderDocument,
+    input: UpdateOrderShippingAddressInput,
+  ): void {
     order.shippingAddress = {
       ...order.shippingAddress,
       ...Object.fromEntries(
         Object.entries(input.shippingAddress).filter(([, v]) => v !== undefined),
       ),
     };
+  }
 
-    await order.save();
+  private applyOrderStatusUpdate(
+    order: OrderDocument,
+    nextStatus: OrderStatus,
+    role: Role,
+  ): boolean {
+    this.assertStatusTransitionAllowed(order.status, nextStatus, role);
+
+    if (order.status === nextStatus) {
+      return false;
+    }
+
+    order.status = nextStatus;
+    return true;
+  }
+
+  private assertStatusTransitionAllowed(
+    currentStatus: OrderStatus,
+    nextStatus: OrderStatus,
+    role: Role,
+  ): void {
+    if (role === Role.SUPER_ADMIN) {
+      return;
+    }
+
+    const allowed = ADMIN_ALLOWED_FLOW[currentStatus] ?? [];
+    if (!allowed.includes(nextStatus)) {
+      throw new BadRequestException(
+        `Transition from '${currentStatus}' to '${nextStatus}' is not allowed`,
+      );
+    }
+  }
+
+  private mapOrderDocumentToGraphQL(order: OrderDocument): OrderType {
     const orderObj = order.toObject();
     return {
       ...orderObj,
       id: orderObj._id.toString(),
     } as unknown as OrderType;
-  }
-
-  async remove(orderId: string): Promise<void> {
-    const deleted = await this.orderModel.findOneAndDelete({ orderId }).exec();
-
-    if (!deleted) {
-      throw new NotFoundException('Order not found');
-    }
-  }
-  // ─── Private ───────────────────────────────────────────────────────────────
-
-  private assertCancellable(status: OrderStatus): void {
-    if (NON_CANCELLABLE_STATUSES.includes(status)) {
-      throw new BadRequestException(`Order with status "${status}" can no longer be cancelled.`);
-    }
   }
 
   private buildRestOrdersFilter(query: GetOrdersQueryDto): Record<string, unknown> {
@@ -431,7 +533,7 @@ export class OrdersService {
       ...this.buildOrdersFilter(args),
       ...buildDateFilter(f?.dateFrom, f?.dateTo, f?.dateType, OrderDateFilterField.createdAt),
     };
-    const sort = buildSort(args.sort, args.order, OrdersSortField.createdAt);
+    const sort = this.buildOrdersSort(args.sort, args.order);
 
     const [items, total] = await Promise.all([
       this.orderModel.find(filter).sort(sort).skip(skip).limit(limit).lean().exec(),
@@ -439,6 +541,19 @@ export class OrdersService {
     ]);
 
     return buildPaginatedResult(items, total, page, limit);
+  }
+
+  private buildOrdersSort(
+    sortField: OrdersSortField | undefined,
+    order: SortOrder | undefined,
+  ): Record<string, 1 | -1> {
+    const direction = order === SortOrder.asc ? 1 : -1;
+
+    if (sortField === OrdersSortField.customerName) {
+      return { 'user.firstName': direction, 'user.lastName': direction };
+    }
+
+    return buildSort(sortField, order, OrdersSortField.createdAt);
   }
 
   private buildSearchFilter(search?: string): Record<string, unknown> {
@@ -514,5 +629,161 @@ export class OrdersService {
 
   private isActiveOrder(status: OrderStatus): boolean {
     return [OrderStatus.PROCESSING, OrderStatus.SHIPPING, OrderStatus.NEW].includes(status);
+  }
+
+  async generateOrderPdf(orderId: string): Promise<Buffer> {
+    const order = await this.findOrderById(orderId);
+    const fontPath = path.join(__dirname, '..', 'assets', 'fonts', 'DejaVuSans.ttf');
+    const fontBoldPath = path.join(__dirname, '..', 'assets', 'fonts', 'DejaVuSans-Bold.ttf');
+
+    return new Promise((resolve, reject) => {
+      const doc = new PdfTable({ margin: 50 });
+      const chunks: Buffer[] = [];
+
+      doc.on('data', (chunk) => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', (err: Error) => reject(err));
+
+      doc.registerFont('DejaVu', fontPath);
+      doc.registerFont('DejaVu-Bold', fontBoldPath);
+
+      const L = 50;
+      const W = doc.page.width - 100;
+
+      doc.rect(0, 0, doc.page.width, 90).fill('#1a1a2e');
+      doc
+        .font('DejaVu-Bold')
+        .fontSize(20)
+        .fillColor('#ffffff')
+        .text(`Order ${order.orderId}`, L, 22, { width: W, align: 'center' });
+      doc
+        .font('DejaVu')
+        .fontSize(10)
+        .fillColor('#9999bb')
+        .text(new Date(order.createdAt).toLocaleString('uk'), L, 54, { width: W, align: 'center' });
+      doc.moveDown(3).fillColor('#000000');
+
+      const sectionTitle = (title: string) => {
+        doc.moveDown(0.8);
+        doc.font('DejaVu-Bold').fontSize(11).fillColor('#1a1a2e').text(title, L);
+        doc
+          .moveTo(L, doc.y + 2)
+          .lineTo(L + W, doc.y + 2)
+          .lineWidth(0.8)
+          .strokeColor('#1a1a2e')
+          .stroke();
+        doc.moveDown(0.6);
+        doc.font('DejaVu').fontSize(10).fillColor('#333333');
+      };
+
+      const field = (label: string, value: string, valueColor = '#111111') => {
+        const y = doc.y;
+        doc.font('DejaVu-Bold').fontSize(10).fillColor('#666666').text(label, L, y, { width: 130 });
+        doc
+          .font('DejaVu')
+          .fontSize(10)
+          .fillColor(valueColor)
+          .text(value, L + 130, y);
+      };
+
+      sectionTitle('Customer');
+      const user = order.user;
+      if (user) {
+        field('Name:', `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim());
+        if (user.email) field('Email:', user.email);
+        if (user.phone) field('Phone:', user.phone);
+      }
+
+      sectionTitle('Delivery');
+      const address = order.shippingAddress;
+      if (address) {
+        field('Carrier:', address.carrier);
+        field('City:', address.city);
+        field('Branch:', `#${address.branchNumber}`);
+      }
+
+      sectionTitle('Order Info');
+      const statusColors: Record<string, string> = {
+        new: '#2563eb',
+        processing: '#d97706',
+        completed: '#16a34a',
+        cancelled: '#dc2626',
+      };
+      field('Status:', order.status.toUpperCase(), statusColors[order.status] ?? '#333333');
+      if (order.payment) {
+        field('Payment method:', order.payment.method);
+        field('Payment status:', order.payment.status);
+      }
+
+      sectionTitle('Items');
+
+      doc
+        .table(
+          {
+            headers: [
+              { label: 'Product', property: 'title', width: 240 },
+              { label: 'Qty', property: 'qty', width: 50, align: 'center' },
+              { label: 'Unit price', property: 'unitPrice', width: 100, align: 'right' },
+              { label: 'Total', property: 'total', width: 100, align: 'right' },
+            ],
+            datas: order.items.map((item) => ({
+              title: item.title,
+              qty: String(item.amount),
+              unitPrice: `$${item.unitPrice.toFixed(2)}`,
+              total: `$${(item.unitPrice * item.amount).toFixed(2)}`,
+            })),
+          },
+          {
+            x: L,
+            y: doc.y,
+            prepareHeader: () => doc.font('DejaVu-Bold').fontSize(11),
+            prepareRow: () => doc.font('DejaVu').fontSize(11),
+          },
+        )
+        .then(() => doc.end())
+        .catch((err: Error) => reject(err));
+
+      if (order.message) {
+        sectionTitle('Note');
+        doc.font('DejaVu').fontSize(10).fillColor('#444444').text(order.message);
+      }
+
+      doc.moveDown();
+      const totalY = doc.y;
+      const totalBlockH = order.amount !== order.totalPrice ? 56 : 34;
+      doc.rect(L, totalY, W, totalBlockH).fill('#1a1a2e');
+
+      if (order.amount !== order.totalPrice) {
+        doc
+          .font('DejaVu')
+          .fontSize(10)
+          .fillColor('#9999bb')
+          .text(`Subtotal: $${order.amount.toFixed(2)}`, L, totalY + 8, {
+            width: W - 12,
+            align: 'right',
+          });
+        doc.text(`Discount: -$${(order.amount - order.totalPrice).toFixed(2)}`, L, totalY + 24, {
+          width: W - 12,
+          align: 'right',
+        });
+        doc
+          .font('DejaVu-Bold')
+          .fontSize(13)
+          .fillColor('#ffffff')
+          .text(`TOTAL: $${order.totalPrice.toFixed(2)}`, L, totalY + 40, {
+            width: W - 12,
+            align: 'right',
+          });
+      } else {
+        doc
+          .font('DejaVu-Bold')
+          .fontSize(13)
+          .fillColor('#ffffff')
+          .text(`TOTAL: $${order.totalPrice.toFixed(2)}`, L, totalY + 10, {
+            width: W - 12,
+            align: 'right',
+          });
+      }
+    });
   }
 }

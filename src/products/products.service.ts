@@ -7,6 +7,8 @@ import { PaginatedResult } from '@/common/types/paginated-result.type';
 import { buildDateFilter } from '@/common/utils/date.utils';
 import { buildPaginatedResult, getPagination } from '@/common/utils/pagination.util';
 import { buildSort } from '@/common/utils/sorting.util';
+import { Order, OrderDocument } from '@/orders/entities/order.schema';
+import { OrderStatus } from '@/orders/enums';
 import { ProductSortField } from '@/products/enums/product-sort-field.enum';
 import { ProductsQueryArgs } from '@/products/graphql/product-query.args';
 import { GqlFilters } from '@/products/graphql/products-filter.type';
@@ -14,6 +16,7 @@ import { UpdateProductInput } from '@/products/graphql/update-product.input';
 
 import { CreateProductDto } from './dto/create-product.dto';
 import { GetProductsQueryDto } from './dto/get-products.query.dto';
+import { ProductListItemDto } from './dto/product-list-item.dto';
 import { Product, ProductDocument } from './entities/product.schema';
 import { ProductStatus } from './enums/product-status.enum';
 
@@ -22,11 +25,12 @@ export class ProductsService {
   constructor(
     @InjectModel(Product.name) private readonly productModel: Model<ProductDocument>,
     @InjectModel(Category.name) private readonly categoryModel: Model<CategoryDocument>,
+    @InjectModel(Order.name) private readonly orderModel: Model<OrderDocument>,
   ) {}
 
   async findAll(
     query: GetProductsQueryDto | ProductsQueryArgs,
-  ): Promise<PaginatedResult<ProductDocument>> {
+  ): Promise<PaginatedResult<ProductListItemDto>> {
     const { page, limit, skip } = getPagination(query.page, query.limit);
 
     const q = query as GetProductsQueryDto & Partial<ProductsQueryArgs>;
@@ -55,7 +59,22 @@ export class ProductsService {
           ? [filterInput.category]
           : []
     )
-      .map((c) => c.trim())
+      .map((c: unknown): string => {
+        if (typeof c === 'string') {
+          return c.trim();
+        }
+
+        if (c !== null && typeof c === 'object') {
+          if ('id' in c && typeof (c as { id: unknown }).id === 'string') {
+            return (c as { id: string }).id;
+          }
+          if ('_id' in c) {
+            return String((c as { _id: unknown })._id);
+          }
+        }
+
+        return '';
+      })
       .filter(Boolean);
     if (categories?.length) {
       filter.$expr = await this.buildCategoryFilter(categories);
@@ -98,19 +117,59 @@ export class ProductsService {
     // -------------------- sorting --------------------
     const sortOption = buildSort(query.sort, query.order, ProductSortField.updatedAt);
 
-    // 1) Get paginated items
-    // 2) Count total matching documents
+    const pipeline = [
+      { $match: filter },
+      {
+        $lookup: {
+          from: this.orderModel.collection.name,
+          let: { productId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                status: { $ne: OrderStatus.CANCELLED },
+              },
+            },
+            { $unwind: '$items' },
+            {
+              $match: {
+                $expr: {
+                  $eq: ['$items.product', '$$productId'],
+                },
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                purchaseCount: { $sum: '$items.amount' },
+              },
+            },
+          ],
+          as: 'purchaseStats',
+        },
+      },
+      {
+        $addFields: {
+          purchaseCount: {
+            $ifNull: [{ $arrayElemAt: ['$purchaseStats.purchaseCount', 0] }, 0],
+          },
+          id: { $toString: '$_id' },
+        },
+      },
+      {
+        $project: {
+          purchaseStats: 0,
+        },
+      },
+      { $sort: sortOption },
+      { $skip: skip },
+      { $limit: limit },
+    ];
+
     const [items, total] = await Promise.all([
-      this.productModel
-        .find(filter)
-        .sort(sortOption) // Sort docs if necessary
-        .skip(skip)
-        .limit(limit)
-        .exec(),
+      this.productModel.aggregate<ProductListItemDto>(pipeline).exec(),
       this.productModel.countDocuments(filter).exec(),
     ]);
 
-    // Return structured paginated response
     return buildPaginatedResult(items, total, page, limit);
   }
 

@@ -16,6 +16,7 @@ import { Role } from '@/users/enums/role.enum';
 
 import { CreateOrderInput } from './graphql/inputs/create-order.input';
 import { UpdateOrderStatusInput } from './graphql/inputs/status-update.inputs';
+import { UpdateOrderInput } from './graphql/inputs/update-order.input';
 import { UpdateOrderProductsInput } from './graphql/inputs/update-order-items.input';
 import { UpdateOrderShippingAddressInput } from './graphql/inputs/update-order-shipping.input';
 import { UpdateOrderUserInput } from './graphql/inputs/update-order-user.input';
@@ -68,7 +69,11 @@ export class OrdersResolver {
     @Args('input') input: CreateOrderInput,
     @CurrentUser() user: JwtPayload,
   ): Promise<OrderType> {
-    const order = await this.ordersService.create(input, new Types.ObjectId(user.sub));
+    const order = await this.ordersService.create(
+      input,
+      new Types.ObjectId(user.sub),
+      input.status,
+    );
 
     const plain = (order as any).toObject();
 
@@ -94,20 +99,36 @@ export class OrdersResolver {
   }
 
   @Mutation(() => OrderType)
-  async updateOrderItems(@Args('input') input: UpdateOrderProductsInput): Promise<OrderType> {
-    return this.ordersService.updateOrderItems(input);
+  async updateOrderItems(
+    @Args('input') input: UpdateOrderProductsInput,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<OrderType> {
+    return this.ordersService.updateOrderItems(input, user.role);
   }
 
   @Mutation(() => OrderType)
-  async updateOrderUserInfo(@Args('input') input: UpdateOrderUserInput): Promise<OrderType> {
-    return this.ordersService.updateOrderUserInfo(input);
+  async updateOrderUserInfo(
+    @Args('input') input: UpdateOrderUserInput,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<OrderType> {
+    return this.ordersService.updateOrderUserInfo(input, user.role);
   }
 
   @Mutation(() => OrderType)
   async updateOrderShippingAddress(
     @Args('input') input: UpdateOrderShippingAddressInput,
+    @CurrentUser() user: JwtPayload,
   ): Promise<OrderType> {
-    return this.ordersService.updateOrderShippingAddress(input);
+    return this.ordersService.updateOrderShippingAddress(input, user.role);
+  }
+
+  @Mutation(() => OrderType)
+  async updateOrder(
+    @Args('input') input: UpdateOrderInput,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<OrderType> {
+    const order = await this.ordersService.updateOrder(input, user.role);
+    return order;
   }
 
   @Mutation(() => Boolean)

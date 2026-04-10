@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -7,6 +18,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import type { Response } from 'express';
 import { Types } from 'mongoose';
 
 import { CurrentUser } from '@/auth/decorators/current-user.decorator';
@@ -121,5 +133,28 @@ export class OrdersController {
     @Body() dto: UpdateOrderStatusDto,
   ): Promise<Order> {
     return this.ordersService.updateOrderStatus(orderId, dto.status, Role.ADMIN);
+  }
+
+  @Get(':orderId/export')
+  @ApiOperation({ summary: 'Export order as PDF' })
+  @ApiParam({ name: 'orderId', example: 'ORD-20240318-AB12C' })
+  @ApiQuery({ name: 'format', required: true, enum: ['pdf'] })
+  @ApiResponse({ status: 200, description: 'Return PDF file' })
+  @ApiResponse({ status: 404, description: 'Order not found' })
+  async exportOrder(
+    @Param('orderId') orderId: string,
+    @Query('format') format: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    if (format !== 'pdf') {
+      throw new BadRequestException('Only format ".pdf" is supported for export');
+    }
+    const pdfBuffer = await this.ordersService.generateOrderPdf(orderId);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="order-${orderId}.pdf"`,
+    });
+
+    res.end(pdfBuffer);
   }
 }

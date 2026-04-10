@@ -1,10 +1,11 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
-  //ParseFilePipeBuilder,
+  Param,
   Patch,
   Query,
   Req,
@@ -27,6 +28,7 @@ import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@/auth/guards/roles.guard';
 import type { AuthRequest } from '@/auth/types/auth-request.type';
 import { CloudinaryService } from '@/uploads/cloudinary.service';
+import { createImageFileParsePipe } from '@/uploads/image-file.validation';
 import type { UploadedImageFile } from '@/uploads/types/uploaded-image-file.type';
 import { Role } from '@/users/enums/role.enum';
 
@@ -36,8 +38,7 @@ import { UploadAvatarBodyDto } from './dto/upload-avatar-body.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { UsersListResponseDto } from './dto/users-list-response.dto';
 import { UsersQueryDto } from './dto/users-query.dto';
-import { UploadImageFilePipe } from './pipes/update-avatar.pipe';
-import { toUserResponseDto } from './users.mapper';
+import { toUserListResponseDto, toUserResponseDto } from './users.mapper';
 import { UsersService } from './users.service';
 
 @ApiTags('Users')
@@ -74,7 +75,7 @@ export class UsersController {
 
     return {
       ...result,
-      items: result.items.map(toUserResponseDto),
+      items: result.items.map(toUserListResponseDto),
     };
   }
 
@@ -114,10 +115,10 @@ export class UsersController {
   @UseInterceptors(FileInterceptor('file'))
   async uploadAvatar(
     @Req() req: AuthRequest,
-    @UploadedFile(new UploadImageFilePipe())
+    @UploadedFile(createImageFileParsePipe())
     file: UploadedImageFile,
   ): Promise<UserResponseDto> {
-    const uploaded = await this.cloudinaryService.uploadAvatar(file);
+    const uploaded = await this.cloudinaryService.uploadAvatar(file, req.user.id);
 
     const user = await this.usersService.updateAvatar(
       req.user.id,
@@ -126,5 +127,15 @@ export class UsersController {
     );
 
     return toUserResponseDto(user);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.SUPER_ADMIN)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiNoContentResponse({ description: 'User deleted successfully' })
+  @Delete(':id')
+  async deleteUser(@Param('id') id: string, @Req() req: AuthRequest): Promise<void> {
+    await this.usersService.deleteByAdmin(id, req.user);
   }
 }

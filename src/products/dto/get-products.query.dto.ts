@@ -36,7 +36,8 @@ export class GetProductsQueryDto {
 
   //Sorting field, could be sorted by title or price
   @ApiPropertyOptional({
-    description: 'By what field result be sorted: title, price, or createdAt',
+    description:
+      'By what field result be sorted: title, price, createdAt, updatedAt or purchaseCount',
     example: ProductSortField.title,
     enum: ProductSortField,
   })

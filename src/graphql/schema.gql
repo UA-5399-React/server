@@ -17,6 +17,7 @@ type CategoryType {
   description: String
   imageUrl: String
   parent: String
+  products: [ProductType!]
   title: String!
   updatedAt: DateTime!
 }
@@ -34,6 +35,7 @@ input CreateOrderInput {
   message: String
   paymentMethod: PaymentMethod!
   shippingAddress: CreateOrderShippingAddressInput!
+  status: OrderStatus!
   user: CreateOrderUserInput!
 }
 
@@ -84,6 +86,10 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 """
 scalar DateTime
 
+input GetSubscribersInput {
+  isActive: Boolean
+}
+
 type Mutation {
   createCategory(createCategoryInput: CreateCategoryInput!): CategoryType!
   createOrder(input: CreateOrderInput!): OrderType!
@@ -92,14 +98,24 @@ type Mutation {
   deleteCategory(id: ID!): CategoryType!
   deleteOrder(orderId: String!): Boolean!
   deleteProduct(id: ID!): Boolean!
+  deleteSubscriber(email: String!): Boolean!
+  deleteUser(id: ID!): Boolean!
   duplicateProduct(id: ID!): ProductType!
+  sendNewsletter(input: SendNewsletterInput!): SendNewsletterResultModel!
   updateCategory(updateCategoryInput: UpdateCategoryInput!): CategoryType!
+  updateOrder(input: UpdateOrderInput!): OrderType!
   updateOrderItems(input: UpdateOrderProductsInput!): OrderType!
   updateOrderShippingAddress(input: UpdateOrderShippingAddressInput!): OrderType!
   updateOrderStatus(input: UpdateOrderStatusInput!): OrderType!
   updateOrderUserInfo(input: UpdateOrderUserInput!): OrderType!
   updateProduct(id: ID!, input: UpdateProductInput!): ProductType!
   updateUser(input: UpdateUserInput!): UserType!
+}
+
+type NewsletterStatsModel {
+  active: Int!
+  inactive: Int!
+  total: Int!
 }
 
 enum OrderDateFilterField {
@@ -196,6 +212,9 @@ type OrdersPage {
 
 enum OrdersSortField {
   createdAt
+  customerName
+  orderId
+  status
   totalPrice
   updatedAt
 }
@@ -221,6 +240,7 @@ enum PaymentStatus {
 enum ProductSortField {
   createdAt
   price
+  purchaseCount
   title
   updatedAt
 }
@@ -241,6 +261,7 @@ type ProductType {
   imageUrl: String
   price: Float!
   productCode: String!
+  purchaseCount: Int
   status: ProductStatus!
   title: String!
   updatedAt: DateTime!
@@ -277,6 +298,8 @@ type Query {
   category(id: ID!): CategoryType!
   getOrder(orderId: String!): OrderType!
   getProductInOrders(productId: ID!): OrderProductStatsType!
+  getSubscriberStats: NewsletterStatsModel!
+  getSubscribers(input: GetSubscribersInput): [SubscriberModel!]!
   order(id: ID!): OrderType!
   orderStats: OrderStatsType!
   orders(filter: OrdersFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: OrdersSortField! = createdAt): OrdersPage!
@@ -291,6 +314,16 @@ enum Role {
   ADMIN
   CUSTOMER
   SUPER_ADMIN
+}
+
+input SendNewsletterInput {
+  subject: String!
+  text: String!
+}
+
+type SendNewsletterResultModel {
+  failed: Int!
+  sent: Int!
 }
 
 type ShippingAddressType {
@@ -310,6 +343,12 @@ enum SortOrder {
   desc
 }
 
+type SubscriberModel {
+  email: String!
+  id: ID!
+  isActive: Boolean!
+}
+
 input UpdateCategoryInput {
   _id: ID!
   depth: Int
@@ -317,6 +356,14 @@ input UpdateCategoryInput {
   imageUrl: String
   parent: String
   title: String
+}
+
+input UpdateOrderInput {
+  items: [UpdateOrderItemInput!]
+  orderId: String!
+  shippingAddress: OrderShippingAddressInput
+  status: OrderStatus
+  user: OrderUserInput
 }
 
 input UpdateOrderItemInput {

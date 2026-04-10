@@ -28,8 +28,11 @@ export class CategoryService {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
     const skip = (page - 1) * limit;
-
-    const parentFilter = this.buildParentFilter(query.search);
+    const normalizedSearch = query.search?.trim();
+    const matchingChildParentIds = normalizedSearch
+      ? await this.findMatchingChildParentIds(normalizedSearch)
+      : [];
+    const parentFilter = this.buildParentFilter(normalizedSearch, matchingChildParentIds);
 
     const [parents, total] = await Promise.all([
       this.categoryModel.find(parentFilter).sort({ updatedAt: -1 }).skip(skip).limit(limit).exec(),
@@ -40,7 +43,7 @@ export class CategoryService {
     const children =
       parentIds.length > 0
         ? await this.categoryModel
-            .find(this.buildChildrenFilter(parentIds))
+            .find(this.buildChildrenFilter(parentIds, normalizedSearch))
             .sort({ updatedAt: -1 })
             .exec()
         : [];
@@ -114,27 +117,69 @@ export class CategoryService {
     return deletedCategory;
   }
 
-  private buildParentFilter(search?: string): Record<string, unknown> {
-    const normalizedSearch = search?.trim();
+  private async findMatchingChildParentIds(search: string): Promise<Types.ObjectId[]> {
+    const matchingChildren = await this.categoryModel
+      .find({
+        depth: 2,
+        ...this.buildTextSearchFilter(search),
+      })
+      .exec();
 
-    if (!normalizedSearch) {
+    const uniqueParentIds = new Map<string, Types.ObjectId>();
+
+    matchingChildren.forEach((childCategory) => {
+      if (!childCategory.parent) return;
+
+      const parentId = new Types.ObjectId(childCategory.parent);
+      uniqueParentIds.set(parentId.toString(), parentId);
+    });
+
+    return Array.from(uniqueParentIds.values());
+  }
+
+  private buildParentFilter(
+    search?: string,
+    matchingChildParentIds: Types.ObjectId[] = [],
+  ): Record<string, unknown> {
+    if (!search) {
       return { depth: 1 };
+    }
+
+    const searchConditions: Record<string, unknown>[] = [...this.buildTextSearchFilter(search).$or];
+
+    if (matchingChildParentIds.length > 0) {
+      searchConditions.push({ _id: { $in: matchingChildParentIds } });
     }
 
     return {
       depth: 1,
-      $or: [
-        { title: { $regex: normalizedSearch, $options: 'i' } },
-        { description: { $regex: normalizedSearch, $options: 'i' } },
-      ],
+      $or: searchConditions,
     };
   }
 
-  private buildChildrenFilter(parentIds: string[]): Record<string, unknown> {
-    return {
+  private buildChildrenFilter(parentIds: string[], search?: string): Record<string, unknown> {
+    const filter: Record<string, unknown> = {
       $expr: {
         $in: [{ $toString: '$parent' }, parentIds],
       },
+    };
+
+    if (search) {
+      return {
+        ...filter,
+        ...this.buildTextSearchFilter(search),
+      };
+    }
+
+    return filter;
+  }
+
+  private buildTextSearchFilter(search: string) {
+    return {
+      $or: [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+      ],
     };
   }
 

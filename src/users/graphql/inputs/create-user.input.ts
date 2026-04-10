@@ -25,7 +25,7 @@ export class CreateUserInput {
   @IsOptional()
   @Trim()
   @IsString()
-  firstName?: string;
+  firstName!: string;
 
   @Field({ nullable: true })
   @IsOptional()

@@ -1,26 +1,18 @@
-import {
-  BadRequestException,
-  ConflictException,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
-import * as bcrypt from 'bcrypt';
 import { Types } from 'mongoose';
 
 import { CryptoService } from '@/auth/crypto/crypto.service';
+import { TokensService } from '@/auth/tokens/tokens.service';
+import { CartService } from '@/cart/cart.service';
 import { AppLogger } from '@/logger/app-logger.service';
+import { MailService } from '@/mailer/mailer.service';
 import { CloudinaryService } from '@/uploads/cloudinary.service';
 import { User } from '@/users/entities/user.schema';
 import { Role } from '@/users/enums/role.enum';
 
 import { UsersService } from './users.service';
-
-jest.mock('bcrypt', () => ({
-  compare: jest.fn(),
-  hash: jest.fn(),
-}));
 
 describe('UsersService', () => {
   let service: UsersService;
@@ -29,16 +21,30 @@ describe('UsersService', () => {
     findOne: jest.fn(),
     findById: jest.fn(),
     findByIdAndUpdate: jest.fn(),
+    findByIdAndDelete: jest.fn(),
     find: jest.fn(),
     countDocuments: jest.fn(),
   };
 
   const mockCryptoService = {
     preparePassword: jest.fn(),
+    comparePassword: jest.fn(),
+    hashPassword: jest.fn(),
   };
 
   const mockCloudinaryService = {
     deleteImage: jest.fn(),
+  };
+
+  const mailServiceMock = {
+    sendTempPassword: jest.fn(),
+  };
+  const mockTokensService = {
+    deleteAllForUser: jest.fn(),
+  };
+
+  const mockCartService = {
+    clearCart: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -54,6 +60,14 @@ describe('UsersService', () => {
           useValue: mockCryptoService,
         },
         {
+          provide: TokensService,
+          useValue: mockTokensService,
+        },
+        {
+          provide: CartService,
+          useValue: mockCartService,
+        },
+        {
           provide: CloudinaryService,
           useValue: mockCloudinaryService,
         },
@@ -64,6 +78,10 @@ describe('UsersService', () => {
             warn: jest.fn(),
             error: jest.fn(),
           },
+        },
+        {
+          provide: MailService,
+          useValue: mailServiceMock,
         },
       ],
     }).compile();
@@ -168,14 +186,14 @@ describe('UsersService', () => {
         }),
       });
 
-      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+      mockCryptoService.comparePassword.mockResolvedValue(false);
 
       await expect(
         service.changePassword('123', {
           oldPassword: 'wrong',
           newPassword: 'new123',
         } as never),
-      ).rejects.toThrow(UnauthorizedException);
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException if new password equals old password', async () => {
@@ -187,7 +205,7 @@ describe('UsersService', () => {
         }),
       });
 
-      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+      mockCryptoService.comparePassword.mockResolvedValue(true);
 
       await expect(
         service.changePassword('123', {
@@ -207,15 +225,15 @@ describe('UsersService', () => {
         }),
       });
 
-      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
-      (bcrypt.hash as jest.Mock).mockResolvedValue('newHash');
+      mockCryptoService.comparePassword.mockResolvedValue(true);
+      mockCryptoService.hashPassword.mockResolvedValue('newHash');
 
       await service.changePassword('123', {
         oldPassword: 'old123',
         newPassword: 'new123',
       } as never);
 
-      expect(bcrypt.hash).toHaveBeenCalledWith('new123', 10);
+      expect(mockCryptoService.hashPassword).toHaveBeenCalledWith('new123');
       expect(user.passwordHash).toBe('newHash');
       expect(save).toHaveBeenCalled();
     });
@@ -264,10 +282,7 @@ describe('UsersService', () => {
         },
       );
 
-      expect(result).toEqual({
-        user: { id: '1', email: 'new@test.com' },
-        tempPassword: null,
-      });
+      expect(result).toEqual({ id: '1', email: 'new@test.com' });
     });
   });
 
@@ -285,6 +300,25 @@ describe('UsersService', () => {
           email: 'admin@test.com',
         }),
       ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('deleteByAdmin', () => {
+    it('should delete user by super admin', async () => {
+      const targetUserId = 'target-id';
+      const currentUser = { id: 'super-id', role: Role.SUPER_ADMIN, email: 'super@test.com' };
+
+      jest
+        .spyOn(service, 'findById')
+        .mockResolvedValue({ id: targetUserId, role: Role.CUSTOMER } as never);
+      mockUserModel.findByIdAndDelete.mockReturnValue({ exec: jest.fn().mockResolvedValue(true) });
+
+      const result = await service.deleteByAdmin(targetUserId, currentUser);
+
+      expect(result).toBe(true);
+      expect(mockTokensService.deleteAllForUser).toHaveBeenCalledWith(targetUserId);
+      expect(mockCartService.clearCart).toHaveBeenCalledWith(targetUserId);
+      expect(mockUserModel.findByIdAndDelete).toHaveBeenCalledWith(targetUserId);
     });
   });
 

@@ -7,13 +7,11 @@ import {
   Headers,
   HttpCode,
   HttpStatus,
-  Logger,
   Param,
   Post,
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -32,12 +30,7 @@ import { PaymentsService } from './payments.service';
 @ApiTags('Payments')
 @Controller('payments')
 export class PaymentsController {
-  private readonly logger = new Logger(PaymentsController.name);
-
-  constructor(
-    private readonly paymentsService: PaymentsService,
-    private readonly configService: ConfigService,
-  ) {}
+  constructor(private readonly paymentsService: PaymentsService) {}
 
   @Post('create-checkout-session')
   @UseGuards(JwtAuthGuard)
@@ -59,18 +52,7 @@ export class PaymentsController {
   async createCheckoutSession(
     @Body() dto: CreateCheckoutSessionDto,
   ): Promise<{ sessionId: string; sessionUrl: string }> {
-    const successUrl =
-      this.configService.get<string>('STRIPE_SUCCESS_URL') ||
-      'http://localhost:5173/order-confirmation';
-    const cancelUrl =
-      this.configService.get<string>('STRIPE_CANCEL_URL') || 'http://localhost:5173/cart';
-
-    return this.paymentsService.createCheckoutSession(
-      dto.items,
-      successUrl,
-      cancelUrl,
-      dto.orderId,
-    );
+    return this.paymentsService.createCheckoutSession(dto.items, dto.orderId);
   }
 
   @Get('session/:sessionId')

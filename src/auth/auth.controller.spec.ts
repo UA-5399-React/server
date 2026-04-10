@@ -1,5 +1,3 @@
-import { BadRequestException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Response } from 'express';
 
@@ -8,6 +6,7 @@ import { AuthService } from '@/auth/auth.service';
 import { AuthCookiesService } from '@/auth/services/auth-cookies.service';
 import { EmailVerificationService } from '@/auth/services/email-verification.service';
 import { GoogleAuthFacade } from '@/auth/services/google-auth.facade';
+import { PasswordResetService } from '@/auth/services/password-reset.service';
 import { AuthRequest } from '@/auth/types/auth-request.type';
 import { Role } from '@/users/enums/role.enum';
 
@@ -51,24 +50,11 @@ const mockRequest = {
   cookies: {},
 } as AuthRequest;
 
-const mockConfigService = {
-  get: jest.fn((key: string) => {
-    if (key === 'CLIENT_URL') {
-      return 'http://localhost:5173';
-    }
-
-    return undefined;
-  }),
-  getOrThrow: jest.fn((key: string) => {
-    if (key === 'CLIENT_URL') {
-      return 'http://localhost:5173';
-    }
-
-    throw new Error(`Missing config key: ${key}`);
-  }),
+const passwordResetServiceMock = {
+  requestPasswordReset: jest.fn(),
+  resetPassword: jest.fn(),
 };
 
-const redirectMock = jest.fn();
 describe('AuthController', () => {
   let controller: AuthController;
 
@@ -80,10 +66,7 @@ describe('AuthController', () => {
         { provide: AuthCookiesService, useValue: cookiesServiceMock },
         { provide: EmailVerificationService, useValue: emailVerificationServiceMock },
         { provide: GoogleAuthFacade, useValue: googleAuthFacadeMock },
-        {
-          provide: ConfigService,
-          useValue: mockConfigService,
-        },
+        { provide: PasswordResetService, useValue: passwordResetServiceMock },
       ],
     }).compile();
 
@@ -186,35 +169,15 @@ describe('AuthController', () => {
   });
 
   describe('confirmEmail', () => {
-    it('should redirect to frontend success page when confirmation succeeds', async () => {
-      const res = {
-        redirect: redirectMock,
-      } as unknown as Response;
+    it('should call emailVerificationService.confirmEmail and return result', async () => {
+      emailVerificationServiceMock.confirmEmail.mockResolvedValue({
+        message: 'Email confirmed successfully',
+      });
 
-      emailVerificationServiceMock.confirmEmail.mockResolvedValue(undefined);
-
-      await controller.confirmEmail('valid-token', res);
+      const result = await controller.confirmEmail('valid-token');
 
       expect(emailVerificationServiceMock.confirmEmail).toHaveBeenCalledWith('valid-token');
-      expect(redirectMock).toHaveBeenCalledWith(
-        'http://localhost:5173/email-confirmation?status=success&message=Email+confirmed+successfully',
-      );
-    });
-
-    it('should redirect to frontend error page when confirmation fails', async () => {
-      const res = {
-        redirect: redirectMock,
-      } as unknown as Response;
-
-      emailVerificationServiceMock.confirmEmail.mockRejectedValue(
-        new BadRequestException('Token expired'),
-      );
-
-      await controller.confirmEmail('expired-token', res);
-
-      expect(redirectMock).toHaveBeenCalledWith(
-        'http://localhost:5173/email-confirmation?status=error&message=Token+expired',
-      );
+      expect(result).toEqual({ message: 'Email confirmed successfully' });
     });
   });
 
@@ -287,6 +250,41 @@ describe('AuthController', () => {
 
       expect(googleAuthFacadeMock.disconnect).toHaveBeenCalledWith(mockAuthUser);
       expect(result).toEqual({ success: true });
+    });
+  });
+
+  describe('requestResetPassword', () => {
+    it('should call passwordResetService.requestPasswordReset and return result', async () => {
+      passwordResetServiceMock.requestPasswordReset.mockResolvedValue({
+        message: 'Please check your email, a reset link has been sent',
+      });
+
+      const result = await controller.requestPasswordReset('email');
+
+      expect(passwordResetServiceMock.requestPasswordReset).toHaveBeenCalledWith('email');
+      expect(result).toEqual({
+        message: 'Please check your email, a reset link has been sent',
+      });
+    });
+  });
+
+  describe('resetPassword', () => {
+    it('should call passwordResetService.resetPasswordReset and return result', async () => {
+      passwordResetServiceMock.resetPassword.mockResolvedValue({
+        message: 'Password changed successfully',
+      });
+      const dto = {
+        password: 'new-password',
+        passwordConfirmation: 'new-password',
+      };
+
+      const result = await controller.resetPassword('valid-token', dto);
+
+      expect(passwordResetServiceMock.resetPassword).toHaveBeenCalledWith(
+        'valid-token',
+        'new-password',
+      );
+      expect(result).toEqual({ message: 'Password changed successfully' });
     });
   });
 });
