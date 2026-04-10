@@ -261,6 +261,7 @@ type ProductType {
   imageUrl: String
   price: Float!
   productCode: String!
+  purchaseCount: Int
   status: ProductStatus!
   title: String!
   updatedAt: DateTime!
