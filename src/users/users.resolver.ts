@@ -48,13 +48,8 @@ export class UsersResolver {
   async createUser(
     @Args('input') input: CreateUserInput,
     @CurrentUser() currentUser: AuthUser,
-  ): Promise<CreateUserPayload> {
-    const result = await this.usersService.createByAdmin(input, currentUser);
-
-    return {
-      user: result.user,
-      tempPassword: result.tempPassword,
-    };
+  ): Promise<UserType | { message: string }> {
+    return await this.usersService.createByAdmin(input, currentUser);
   }
 
   @Mutation(() => UserType)
