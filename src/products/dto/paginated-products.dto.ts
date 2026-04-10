@@ -1,11 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-import { Product } from '../entities/product.schema';
+import { ProductListItemDto } from './product-list-item.dto';
 
 export class PaginatedProductsDto {
   // List of products for the current page
-  @ApiProperty({ type: [Product] })
-  items: Product[];
+  @ApiProperty({ type: [ProductListItemDto] })
+  items: ProductListItemDto[];
 
   // Total number of products matching the search/filter
   @ApiProperty({ example: 125 })

@@ -32,4 +32,7 @@ export class UserResponseDto {
 
   @ApiProperty()
   isEmailConfirmed!: boolean;
+
+  @ApiProperty({ required: false })
+  isGoogleConnected?: boolean;
 }

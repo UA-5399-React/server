@@ -3,7 +3,6 @@ import {
   Controller,
   Get,
   HttpCode,
-  HttpException,
   HttpStatus,
   Post,
   Query,
@@ -11,7 +10,6 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { ApiBody, ApiCreatedResponse } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
@@ -24,10 +22,12 @@ import { LocalAuthGuard } from '@/auth/guards/local-auth.guard';
 import { AuthCookiesService } from '@/auth/services/auth-cookies.service';
 import { EmailVerificationService } from '@/auth/services/email-verification.service';
 import { GoogleAuthFacade } from '@/auth/services/google-auth.facade';
+import { PasswordResetService } from '@/auth/services/password-reset.service';
 import type { AuthRequest } from '@/auth/types/auth-request.type';
 import { GoogleAuthUser } from '@/auth/types/google-auth-user.type';
 import { LoginDto } from '@/users/dto/login.dto';
 import { RegisterResponseDto } from '@/users/dto/register-resp.dto';
+import { ResetPasswordDto } from '@/users/dto/reset-password.dto';
 import { SignUpDto } from '@/users/dto/sign-up.dto';
 
 @Controller('auth')
@@ -37,7 +37,7 @@ export class AuthController {
     private readonly cookiesService: AuthCookiesService,
     private readonly emailVerificationService: EmailVerificationService,
     private readonly googleAuthFacade: GoogleAuthFacade,
-    private readonly configService: ConfigService,
+    private readonly passwordResetService: PasswordResetService,
   ) {}
 
   @ApiBody({ type: LoginDto })
@@ -83,20 +83,9 @@ export class AuthController {
     return this.authService.register(signupDTO);
   }
 
-  @Get('confirm-email')
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  async confirmEmail(@Query('token') token: string, @Res() res: Response) {
-    try {
-      await this.emailVerificationService.confirmEmail(token);
-
-      return res.redirect(
-        this.buildEmailConfirmationRedirectUrl('success', 'Email confirmed successfully'),
-      );
-    } catch (error: unknown) {
-      return res.redirect(
-        this.buildEmailConfirmationRedirectUrl('error', this.extractErrorMessage(error)),
-      );
-    }
+  @Post('confirm-email')
+  confirmEmail(@Body('token') token: string) {
+    return this.emailVerificationService.confirmEmail(token);
   }
 
   @Post('resend-confirmation')
@@ -136,39 +125,16 @@ export class AuthController {
     return this.googleAuthFacade.disconnect(req.user);
   }
 
-  private buildEmailConfirmationRedirectUrl(status: 'success' | 'error', message: string) {
-    const clientUrl = this.configService.get<string>('CLIENT_URL') ?? 'http://localhost:5173';
-    const redirectUrl = new URL('/email-confirmation', clientUrl);
-
-    redirectUrl.searchParams.set('status', status);
-    redirectUrl.searchParams.set('message', message);
-
-    return redirectUrl.toString();
+  @Post('reset-password/request')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  async requestPasswordReset(@Body('email') email: string) {
+    return await this.passwordResetService.requestPasswordReset(email);
   }
 
-  private extractErrorMessage(error: unknown) {
-    if (error instanceof HttpException) {
-      const response = error.getResponse();
-
-      if (typeof response === 'string') {
-        return response;
-      }
-
-      if (response !== null && typeof response === 'object' && 'message' in response) {
-        const message = response.message;
-
-        if (Array.isArray(message)) {
-          return message[0] ?? 'Email confirmation failed';
-        }
-
-        if (typeof message === 'string') {
-          return message;
-        }
-      }
-
-      return error.message;
-    }
-
-    return 'Email confirmation failed';
+  @Post('reset-password/confirm')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @ApiCreatedResponse({ type: ResetPasswordDto })
+  async resetPassword(@Query('token') token: string, @Body() resetPasswordDto: ResetPasswordDto) {
+    return await this.passwordResetService.resetPassword(token, resetPasswordDto.password);
   }
 }

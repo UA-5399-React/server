@@ -10,13 +10,14 @@ import { AuthCookiesService } from '@/auth/services/auth-cookies.service';
 import { EmailVerificationService } from '@/auth/services/email-verification.service';
 import { GoogleAccountService } from '@/auth/services/google-account.service';
 import { GoogleAuthFacade } from '@/auth/services/google-auth.facade';
+import { PasswordResetService } from '@/auth/services/password-reset.service';
 import { UserValidatorService } from '@/auth/services/user-validator.service';
 import { GoogleStrategy } from '@/auth/strategies/google.strategy';
 import { JwtStrategy } from '@/auth/strategies/jwt.strategy';
 import { JwtRefreshStrategy } from '@/auth/strategies/jwt-refresh.strategy';
 import { LocalStrategy } from '@/auth/strategies/local.strategy';
 import { TokensModule } from '@/auth/tokens/tokens.module';
-import { MailService } from '@/mailer/mailer.service';
+import { MailModule } from '@/mailer/mailer.module';
 import { UsersModule } from '@/users/users.module';
 
 @Module({
@@ -30,20 +31,21 @@ import { UsersModule } from '@/users/users.module';
     }),
     UsersModule,
     TokensModule,
+    MailModule,
   ],
-  exports: [AuthService, AuthCookiesService],
+  exports: [AuthService],
   providers: [
     AuthService,
     JwtStrategy,
     LocalStrategy,
     JwtRefreshStrategy,
     GoogleStrategy,
-    MailService,
     GoogleAccountService,
     EmailVerificationService,
     UserValidatorService,
     AuthCookiesService,
     GoogleAuthFacade,
+    PasswordResetService,
   ],
   controllers: [AuthController],
 })

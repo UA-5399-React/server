@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString, IsStrongPassword } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsStrongPassword,
+  Length,
+} from 'class-validator';
 
 import { Trim } from '@/common/decorators/trim.decorator';
 import { Match } from '@/users/decorators/match.decorator';
@@ -34,4 +41,19 @@ export class SignUpDto {
   @IsNotEmpty()
   @Match('password', { message: 'Passwords do not match' })
   passwordConfirmation!: string;
+
+  @ApiProperty({ example: 'John' })
+  @IsString()
+  @IsNotEmpty()
+  @Length(1, 50)
+  @Trim()
+  firstName!: string;
+
+  @ApiProperty({ example: 'Doe' })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @Length(1, 50)
+  @Trim()
+  lastName?: string;
 }

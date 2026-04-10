@@ -48,13 +48,8 @@ export class UsersResolver {
   async createUser(
     @Args('input') input: CreateUserInput,
     @CurrentUser() currentUser: AuthUser,
-  ): Promise<CreateUserPayload> {
-    const result = await this.usersService.createByAdmin(input, currentUser);
-
-    return {
-      user: result.user,
-      tempPassword: result.tempPassword,
-    };
+  ): Promise<UserType | { message: string }> {
+    return await this.usersService.createByAdmin(input, currentUser);
   }
 
   @Mutation(() => UserType)
@@ -63,6 +58,14 @@ export class UsersResolver {
     @CurrentUser() currentUser: AuthUser,
   ): Promise<UserType> {
     return await this.usersService.updateByAdmin(input, currentUser);
+  }
+
+  @Mutation(() => Boolean)
+  async deleteUser(
+    @Args('id', { type: () => ID }) id: string,
+    @CurrentUser() currentUser: AuthUser,
+  ): Promise<boolean> {
+    return await this.usersService.deleteByAdmin(id, currentUser);
   }
 
   @ResolveField(() => UserType, { nullable: true })

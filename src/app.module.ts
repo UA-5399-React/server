@@ -15,8 +15,11 @@ import { AppService } from './app.service';
 import { CategoryModule } from './categories/category.module';
 import { RequestLoggingInterceptor } from './common/request-logging.interceptor';
 import { DatabaseModule } from './database/database.module';
+import { ExportModule } from './export/export.module';
+import { FeaturedProductsModule } from './featured-products/featured-products.module';
 import { LoggerModule } from './logger/logger.module';
 import { MailModule } from './mailer/mailer.module';
+import { NewsletterModule } from './newsletter/newsletter.module';
 import { OrdersModule } from './orders/orders.module';
 import { PaymentsModule } from './payments/payments.module';
 import { ProductsModule } from './products/products.module';
@@ -55,6 +58,9 @@ import { UploadsModule } from './uploads/uploads.module';
     CartModule,
     MailModule,
     PaymentsModule,
+    NewsletterModule,
+    ExportModule,
+    FeaturedProductsModule,
     ThrottlerModule.forRoot([
       {
         ttl: 60_000,

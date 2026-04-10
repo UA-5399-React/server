@@ -9,13 +9,16 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
 import { CryptoService } from '@/auth/crypto/crypto.service';
+import { TokensService } from '@/auth/tokens/tokens.service';
 import { AuthUser } from '@/auth/types/auth-user.type';
 import { GoogleAuthUser } from '@/auth/types/google-auth-user.type';
+import { CartService } from '@/cart/cart.service';
 import { PaginatedResult } from '@/common/types/paginated-result.type';
 import { buildDateFilter } from '@/common/utils/date.utils';
 import { buildPaginatedResult, getPagination } from '@/common/utils/pagination.util';
 import { buildSort } from '@/common/utils/sorting.util';
 import { AppLogger } from '@/logger/app-logger.service';
+import { MailService } from '@/mailer/mailer.service';
 import { CloudinaryService } from '@/uploads/cloudinary.service';
 import { CreateUserData } from '@/users/dto/create-user.type';
 import { GoogleUserUpdateData } from '@/users/dto/google-user-update-data.type';
@@ -26,7 +29,11 @@ import { UsersSortField } from '@/users/enums/users-sort-field.enum';
 import { CreateUserInput } from '@/users/graphql/inputs/create-user.input';
 import { UpdateUserInput } from '@/users/graphql/inputs/update-user.input';
 import { FindUsersQuery } from '@/users/graphql/types/find-users-query.type';
-import { buildAdminUpdateData, validateRoleCreation } from '@/users/policies/user-role.policy';
+import {
+  buildAdminUpdateData,
+  validateRoleCreation,
+  validateUserDeletion,
+} from '@/users/policies/user-role.policy';
 import { UserListItem } from '@/users/types/user-list-item.type';
 import { buildUpdateData } from '@/users/utils/build-update-data';
 
@@ -41,6 +48,9 @@ export class UsersService {
     private readonly cryptoService: CryptoService,
     private readonly logger: AppLogger,
     private readonly cloudinaryService: CloudinaryService,
+    private readonly mailService: MailService,
+    private readonly tokensService: TokensService,
+    private readonly cartService: CartService,
   ) {}
 
   async findByEmail(userEmail: string): Promise<UserDocument | null> {
@@ -143,9 +153,21 @@ export class UsersService {
 
   async ensureEmailNotTaken(email: string): Promise<void> {
     const existingUser = await this.findByEmail(email);
-    if (existingUser) {
-      throw new ConflictException('Email already in use');
+    if (!existingUser) {
+      return;
     }
+
+    if (!existingUser.isEmailConfirmed) {
+      throw new ConflictException({
+        message: 'Email is already registered but not confirmed',
+        code: 'EMAIL_NOT_CONFIRMED',
+      });
+    }
+
+    throw new ConflictException({
+      message: 'Email already in use',
+      code: 'EMAIL_ALREADY_IN_USE',
+    });
   }
 
   async findById(id: string): Promise<UserDocument> {
@@ -235,7 +257,7 @@ export class UsersService {
   async createByAdmin(
     input: CreateUserInput,
     currentUser: AuthUser,
-  ): Promise<{ user: UserListItem; tempPassword: string | null }> {
+  ): Promise<UserListItem | { message: string }> {
     await this.ensureEmailNotTaken(input.email);
 
     validateRoleCreation(input.role, currentUser.role);
@@ -247,7 +269,7 @@ export class UsersService {
         email: input.email,
         passwordHash,
         role: input.role,
-        firstName: input.firstName?.trim(),
+        firstName: input.firstName.trim(),
         lastName: input.lastName?.trim(),
         phone: input.phone?.trim(),
         avatarUrl: input.avatarUrl?.trim(),
@@ -257,10 +279,13 @@ export class UsersService {
       currentUser.id,
     );
 
-    return {
-      user,
-      tempPassword: input.password ? null : rawPassword,
-    };
+    try {
+      await this.mailService.sendTempPassword(input.email, rawPassword);
+    } catch {
+      return { message: 'Failed to send confirmation email' };
+    }
+
+    return user;
   }
 
   async updateByAdmin(input: UpdateUserInput, currentUser: AuthUser): Promise<UserListItem> {
@@ -283,6 +308,20 @@ export class UsersService {
     }
 
     return updatedUser;
+  }
+
+  async deleteByAdmin(id: string, currentUser: AuthUser): Promise<boolean> {
+    const targetUser = await this.findById(id);
+
+    validateUserDeletion(currentUser.role, targetUser, currentUser);
+
+    await this.tokensService.deleteAllForUser(id);
+    await this.cartService.clearCart(id);
+
+    // Only hard delete the underlying target user. Related artifacts like Orders are kept as per requirements.
+    await this.userModel.findByIdAndDelete(id).exec();
+
+    return true;
   }
 
   async getStats(): Promise<UserStatsType> {
@@ -336,7 +375,7 @@ export class UsersService {
     if (!user) {
       const createdUser = new this.userModel({
         email,
-        firstName,
+        firstName: firstName ?? email.split('@')[0],
         lastName,
         googleId,
         avatarUrl,

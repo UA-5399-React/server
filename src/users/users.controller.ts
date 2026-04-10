@@ -1,9 +1,11 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Patch,
   Query,
   Req,
@@ -36,7 +38,7 @@ import { UploadAvatarBodyDto } from './dto/upload-avatar-body.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { UsersListResponseDto } from './dto/users-list-response.dto';
 import { UsersQueryDto } from './dto/users-query.dto';
-import { toUserResponseDto } from './users.mapper';
+import { toUserListResponseDto, toUserResponseDto } from './users.mapper';
 import { UsersService } from './users.service';
 
 @ApiTags('Users')
@@ -73,7 +75,7 @@ export class UsersController {
 
     return {
       ...result,
-      items: result.items.map(toUserResponseDto),
+      items: result.items.map(toUserListResponseDto),
     };
   }
 
@@ -125,5 +127,15 @@ export class UsersController {
     );
 
     return toUserResponseDto(user);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.SUPER_ADMIN)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiNoContentResponse({ description: 'User deleted successfully' })
+  @Delete(':id')
+  async deleteUser(@Param('id') id: string, @Req() req: AuthRequest): Promise<void> {
+    await this.usersService.deleteByAdmin(id, req.user);
   }
 }

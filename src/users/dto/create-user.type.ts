@@ -7,7 +7,7 @@ export type CreateUserData = {
   passwordHash: string;
   role: Role;
 
-  firstName?: string;
+  firstName: string;
   lastName?: string;
   phone?: string;
   avatarUrl?: string;
