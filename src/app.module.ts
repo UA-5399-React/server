@@ -15,6 +15,7 @@ import { AppService } from './app.service';
 import { CategoryModule } from './categories/category.module';
 import { RequestLoggingInterceptor } from './common/request-logging.interceptor';
 import { DatabaseModule } from './database/database.module';
+import { ExportModule } from './export/export.module';
 import { FeaturedProductsModule } from './featured-products/featured-products.module';
 import { LoggerModule } from './logger/logger.module';
 import { MailModule } from './mailer/mailer.module';
@@ -58,6 +59,7 @@ import { UploadsModule } from './uploads/uploads.module';
     MailModule,
     PaymentsModule,
     NewsletterModule,
+    ExportModule,
     FeaturedProductsModule,
     ThrottlerModule.forRoot([
       {

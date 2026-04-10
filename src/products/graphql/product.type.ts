@@ -1,4 +1,4 @@
-import { Field, Float, GraphQLISODateTime, ID, ObjectType } from '@nestjs/graphql';
+import { Field, Float, GraphQLISODateTime, ID, Int, ObjectType } from '@nestjs/graphql';
 
 import { ProductStatus } from '@/products/enums/product-status.enum';
 
@@ -36,4 +36,7 @@ export class ProductType {
 
   @Field(() => GraphQLISODateTime)
   updatedAt: Date;
+
+  @Field(() => Int, { nullable: true })
+  purchaseCount?: number;
 }
