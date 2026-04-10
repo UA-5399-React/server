@@ -7,6 +7,7 @@ import { CryptoService } from '@/auth/crypto/crypto.service';
 import { TokensService } from '@/auth/tokens/tokens.service';
 import { CartService } from '@/cart/cart.service';
 import { AppLogger } from '@/logger/app-logger.service';
+import { MailService } from '@/mailer/mailer.service';
 import { CloudinaryService } from '@/uploads/cloudinary.service';
 import { User } from '@/users/entities/user.schema';
 import { Role } from '@/users/enums/role.enum';
@@ -35,6 +36,9 @@ describe('UsersService', () => {
     deleteImage: jest.fn(),
   };
 
+  const mailServiceMock = {
+    sendTempPassword: jest.fn(),
+  };
   const mockTokensService = {
     deleteAllForUser: jest.fn(),
   };
@@ -74,6 +78,10 @@ describe('UsersService', () => {
             warn: jest.fn(),
             error: jest.fn(),
           },
+        },
+        {
+          provide: MailService,
+          useValue: mailServiceMock,
         },
       ],
     }).compile();
@@ -274,10 +282,7 @@ describe('UsersService', () => {
         },
       );
 
-      expect(result).toEqual({
-        user: { id: '1', email: 'new@test.com' },
-        tempPassword: null,
-      });
+      expect(result).toEqual({ id: '1', email: 'new@test.com' });
     });
   });
 

@@ -212,6 +212,9 @@ type OrdersPage {
 
 enum OrdersSortField {
   createdAt
+  customerName
+  orderId
+  status
   totalPrice
   updatedAt
 }

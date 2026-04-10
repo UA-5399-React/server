@@ -18,6 +18,7 @@ import { buildDateFilter } from '@/common/utils/date.utils';
 import { buildPaginatedResult, getPagination } from '@/common/utils/pagination.util';
 import { buildSort } from '@/common/utils/sorting.util';
 import { AppLogger } from '@/logger/app-logger.service';
+import { MailService } from '@/mailer/mailer.service';
 import { CloudinaryService } from '@/uploads/cloudinary.service';
 import { CreateUserData } from '@/users/dto/create-user.type';
 import { GoogleUserUpdateData } from '@/users/dto/google-user-update-data.type';
@@ -47,6 +48,7 @@ export class UsersService {
     private readonly cryptoService: CryptoService,
     private readonly logger: AppLogger,
     private readonly cloudinaryService: CloudinaryService,
+    private readonly mailService: MailService,
     private readonly tokensService: TokensService,
     private readonly cartService: CartService,
   ) {}
@@ -255,7 +257,7 @@ export class UsersService {
   async createByAdmin(
     input: CreateUserInput,
     currentUser: AuthUser,
-  ): Promise<{ user: UserListItem; tempPassword: string | null }> {
+  ): Promise<UserListItem | { message: string }> {
     await this.ensureEmailNotTaken(input.email);
 
     validateRoleCreation(input.role, currentUser.role);
@@ -277,10 +279,13 @@ export class UsersService {
       currentUser.id,
     );
 
-    return {
-      user,
-      tempPassword: input.password ? null : rawPassword,
-    };
+    try {
+      await this.mailService.sendTempPassword(input.email, rawPassword);
+    } catch {
+      return { message: 'Failed to send confirmation email' };
+    }
+
+    return user;
   }
 
   async updateByAdmin(input: UpdateUserInput, currentUser: AuthUser): Promise<UserListItem> {
