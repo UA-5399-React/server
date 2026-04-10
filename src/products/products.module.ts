@@ -9,6 +9,8 @@ import { Product, ProductSchema } from './entities/product.schema';
 import { ValidateProductCategoriesPipe } from './pipes/validate-product-categories.pipe';
 import { ProductsResolver } from './products.resolver';
 import { ProductsService } from './products.service';
+import { ProductsAdminController } from './products-admin.controller';
+import { ProductsImportService } from './products-import.service';
 
 @Module({
   imports: [
@@ -18,8 +20,13 @@ import { ProductsService } from './products.service';
       { name: Order.name, schema: OrderSchema },
     ]),
   ],
-  providers: [ProductsService, ProductsResolver, ValidateProductCategoriesPipe],
+  providers: [
+    ProductsService,
+    ProductsResolver,
+    ValidateProductCategoriesPipe,
+    ProductsImportService,
+  ],
   exports: [ProductsService, MongooseModule],
-  controllers: [ProductsController],
+  controllers: [ProductsController, ProductsAdminController],
 })
 export class ProductsModule {}
