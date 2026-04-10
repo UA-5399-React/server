@@ -98,8 +98,8 @@ type Mutation {
   deleteCategory(id: ID!): CategoryType!
   deleteOrder(orderId: String!): Boolean!
   deleteProduct(id: ID!): Boolean!
-  deleteUser(id: ID!): Boolean!
   deleteSubscriber(email: String!): Boolean!
+  deleteUser(id: ID!): Boolean!
   duplicateProduct(id: ID!): ProductType!
   sendNewsletter(input: SendNewsletterInput!): SendNewsletterResultModel!
   updateCategory(updateCategoryInput: UpdateCategoryInput!): CategoryType!
@@ -212,6 +212,9 @@ type OrdersPage {
 
 enum OrdersSortField {
   createdAt
+  customerName
+  orderId
+  status
   totalPrice
   updatedAt
 }
@@ -237,6 +240,7 @@ enum PaymentStatus {
 enum ProductSortField {
   createdAt
   price
+  purchaseCount
   title
   updatedAt
 }
