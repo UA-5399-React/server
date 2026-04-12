@@ -27,6 +27,7 @@ import { Role } from '@/users/enums/role.enum';
 
 import { CreateOrderDto } from './dto/create-order.dto';
 import { GetOrdersQueryDto } from './dto/get-orders-query.dto';
+import { OrdersStatusStatsDto } from './dto/orders-status-stats.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { UpdateShippingAddressDto } from './dto/update-shipping-address.dto';
 import { Order } from './entities/order.schema';
@@ -83,6 +84,13 @@ export class OrdersController {
     @CurrentUser('_id') userId: Types.ObjectId,
   ): Promise<Order> {
     return this.ordersService.findMyOrderById(orderId, userId);
+  }
+
+  @Get('admin/status-stats')
+  @ApiOperation({ summary: 'Get orders status breakdown with percentages for dashboard chart' })
+  @ApiResponse({ status: 200, type: OrdersStatusStatsDto })
+  getOrdersStatusStats(): Promise<OrdersStatusStatsDto> {
+    return this.ordersService.getOrderStatusStats();
   }
 
   @Patch('my/:orderId/cancel')

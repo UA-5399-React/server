@@ -27,6 +27,7 @@ import { Role } from '@/users/enums/role.enum';
 import { ADMIN_ALLOWED_FLOW } from './constants/order-flow';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { GetOrdersQueryDto } from './dto/get-orders-query.dto';
+import { OrdersStatusStatsDto } from './dto/orders-status-stats.dto';
 import { UpdateShippingAddressDto } from './dto/update-shipping-address.dto';
 import { Order, OrderDocument } from './entities';
 import { PaymentStatus } from './enums/payment-status.enum';
@@ -631,6 +632,25 @@ export class OrdersService {
     return [OrderStatus.PROCESSING, OrderStatus.SHIPPING, OrderStatus.NEW].includes(status);
   }
 
+  async getOrderStatusStats(): Promise<OrdersStatusStatsDto> {
+    const allStatuses = Object.values(OrderStatus);
+
+    const aggregation = await this.orderModel.aggregate([
+      { $group: { _id: '$status', count: { $sum: 1 } } },
+    ]);
+
+    const countMap = new Map(aggregation.map((item) => [item._id, item.count]));
+    const total = [...countMap.values()].reduce((sum, c) => sum + c, 0);
+
+    const statuses = allStatuses.map((status) => {
+      const count = countMap.get(status) ?? 0;
+      const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
+      return { status, count, percentage };
+    });
+
+    const largestSegment = [...statuses].sort((a, b) => b.count - a.count)[0];
+
+    return { total, largestSegment, statuses };
   async generateOrderPdf(orderId: string): Promise<Buffer> {
     const order = await this.findOrderById(orderId);
     const fontPath = path.join(__dirname, '..', 'assets', 'fonts', 'DejaVuSans.ttf');
