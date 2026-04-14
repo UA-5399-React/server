@@ -10,12 +10,12 @@ export class MailService {
   constructor() {
     this.transporter = createTransporter();
   }
-  async sendEmail(to: string, subject: string, text: string) {
+  async sendEmail(to: string, subject: string, html: string) {
     return this.transporter.sendMail({
       from: `"Techno World" <${process.env.EMAIL_USER}>`,
       to,
       subject,
-      text,
+      html,
     });
   }
 
