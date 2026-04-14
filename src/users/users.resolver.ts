@@ -3,6 +3,7 @@ import {
   Args,
   Context,
   ID,
+  Int,
   Mutation,
   Parent,
   Query,
@@ -81,8 +82,11 @@ export class UsersResolver {
   }
 
   @Query(() => UserStatsType)
-  async userStats() {
-    return this.usersService.getStats();
+  async userStats(
+    @Args('year', { type: () => Int, nullable: true }) year?: number,
+    @Args('month', { type: () => Int, nullable: true }) month?: number,
+  ) {
+    return this.usersService.getStats(year, month);
   }
 
   @Query(() => UserRegistrationTimeseriesType)

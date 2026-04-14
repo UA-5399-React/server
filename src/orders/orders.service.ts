@@ -651,6 +651,7 @@ export class OrdersService {
     const largestSegment = [...statuses].sort((a, b) => b.count - a.count)[0];
 
     return { total, largestSegment, statuses };
+  }
   async generateOrderPdf(orderId: string): Promise<Buffer> {
     const order = await this.findOrderById(orderId);
     const fontPath = path.join(__dirname, '..', 'assets', 'fonts', 'DejaVuSans.ttf');
