@@ -90,6 +90,32 @@ input GetSubscribersInput {
   isActive: Boolean
 }
 
+enum GroupByEnum {
+  CATEGORY
+  DAY
+  PRODUCT
+}
+
+type GroupedByCategory implements SalesReportItemType {
+  category: String!
+  revenue: Float!
+  unitsSold: Int!
+}
+
+type GroupedByDay implements SalesReportItemType {
+  averageCheck: Float!
+  date: String!
+  ordersCount: Int!
+  revenue: Float!
+  unitsSold: Int!
+}
+
+type GroupedByProduct implements SalesReportItemType {
+  productName: String!
+  revenue: Float!
+  unitsSold: Int!
+}
+
 type Mutation {
   createCategory(createCategoryInput: CreateCategoryInput!): CategoryType!
   createOrder(input: CreateOrderInput!): OrderType!
@@ -308,6 +334,9 @@ type Query {
   category(id: ID!): CategoryType!
   getOrder(orderId: String!): OrderType!
   getProductInOrders(productId: ID!): OrderProductStatsType!
+  getSalesByCategory(categoryId: ID, dateFrom: DateTime!, dateTo: DateTime!, groupBy: GroupByEnum! = PRODUCT): [GroupedByCategory!]!
+  getSalesByDay(categoryId: ID, dateFrom: DateTime!, dateTo: DateTime!, groupBy: GroupByEnum! = PRODUCT): [GroupedByDay!]!
+  getSalesByProduct(categoryId: ID, dateFrom: DateTime!, dateTo: DateTime!, groupBy: GroupByEnum! = PRODUCT): [GroupedByProduct!]!
   getSubscriberStats: NewsletterStatsModel!
   getSubscribers(input: GetSubscribersInput): [SubscriberModel!]!
   order(id: ID!): OrderType!
@@ -346,6 +375,11 @@ enum Role {
   ADMIN
   CUSTOMER
   SUPER_ADMIN
+}
+
+interface SalesReportItemType {
+  revenue: Float!
+  unitsSold: Int!
 }
 
 input SendNewsletterInput {
