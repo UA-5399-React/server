@@ -8,6 +8,7 @@ import { redisStore } from 'cache-manager-redis-yet';
 import { AuthModule } from '@/auth/auth.module';
 import { CartModule } from '@/cart/cart.module';
 import { AppGraphQLModule } from '@/graphql/graphql.module';
+import { ReportsModule } from '@/reports/reports.module';
 import { UsersModule } from '@/users/users.module';
 
 import { AppController } from './app.controller';
@@ -67,6 +68,7 @@ import { UploadsModule } from './uploads/uploads.module';
         limit: 10,
       },
     ]),
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [
