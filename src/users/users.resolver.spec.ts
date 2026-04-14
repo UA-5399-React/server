@@ -178,6 +178,9 @@ describe('UsersResolver', () => {
         totalUsers: 10,
         activeUsers: 7,
         blockedUsers: 3,
+        registrationsYear: 2026,
+        registrationsMonth: 4,
+        registrationsByDay: [{ day: 1, date: '2026-04-01', count: 0 }],
       };
 
       usersService.getStats.mockResolvedValue(stats);
@@ -185,7 +188,7 @@ describe('UsersResolver', () => {
       const actual = await resolver.userStats();
 
       expect(actual).toEqual(stats);
-      expect(usersService.getStats).toHaveBeenCalled();
+      expect(usersService.getStats).toHaveBeenCalledWith(undefined, undefined);
     });
   });
 });

@@ -17,6 +17,8 @@ import { UsersService } from './users.service';
 describe('UsersService', () => {
   let service: UsersService;
 
+  const mockAggregateExec = jest.fn();
+
   const mockUserModel = {
     findOne: jest.fn(),
     findById: jest.fn(),
@@ -24,6 +26,7 @@ describe('UsersService', () => {
     findByIdAndDelete: jest.fn(),
     find: jest.fn(),
     countDocuments: jest.fn(),
+    aggregate: jest.fn().mockReturnValue({ exec: mockAggregateExec }),
   };
 
   const mockCryptoService = {
@@ -323,19 +326,66 @@ describe('UsersService', () => {
   });
 
   describe('getStats', () => {
-    it('should return total, active and blocked users', async () => {
+    it('should return totals and one entry per day for current UTC month', async () => {
+      jest.useFakeTimers({ now: new Date(Date.UTC(2026, 3, 11)) });
       mockUserModel.countDocuments.mockResolvedValueOnce(10).mockResolvedValueOnce(7);
+      mockAggregateExec.mockResolvedValue([]);
 
-      await expect(service.getStats()).resolves.toEqual({
-        totalUsers: 10,
-        activeUsers: 7,
-        blockedUsers: 3,
-      });
+      const result = await service.getStats();
 
-      expect(mockUserModel.countDocuments).toHaveBeenNthCalledWith(1);
+      expect(result.totalUsers).toBe(10);
+      expect(result.activeUsers).toBe(7);
+      expect(result.blockedUsers).toBe(3);
+      expect(result.registrationsYear).toBe(2026);
+      expect(result.registrationsMonth).toBe(4);
+      expect(result.registrationsByDay).toHaveLength(30);
+      expect(result.registrationsByDay[0]).toEqual({ day: 1, date: '2026-04-01', count: 0 });
+      expect(result.registrationsByDay[29]).toEqual({ day: 30, date: '2026-04-30', count: 0 });
+
+      expect(mockUserModel.countDocuments).toHaveBeenNthCalledWith(1, { role: Role.CUSTOMER });
       expect(mockUserModel.countDocuments).toHaveBeenNthCalledWith(2, {
+        role: Role.CUSTOMER,
         isActive: true,
       });
+      expect(mockUserModel.aggregate).toHaveBeenCalled();
+      const [[pipeline]] = mockUserModel.aggregate.mock.calls;
+      expect(pipeline[0]).toEqual({
+        $match: {
+          role: Role.CUSTOMER,
+          createdAt: { $gte: expect.any(Date), $lt: expect.any(Date) },
+        },
+      });
+
+      jest.useRealTimers();
+    });
+
+    it('should merge aggregation rows into registrationsByDay', async () => {
+      mockUserModel.countDocuments.mockResolvedValueOnce(10).mockResolvedValueOnce(7);
+      mockAggregateExec.mockResolvedValue([{ _id: '2026-04-05', count: 2 }]);
+
+      const result = await service.getStats(2026, 4);
+
+      expect(result.registrationsByDay[4]).toEqual({ day: 5, date: '2026-04-05', count: 2 });
+      expect(result.registrationsByDay[0].count).toBe(0);
+    });
+
+    it('should include 29 days for February on a leap year', async () => {
+      mockUserModel.countDocuments.mockResolvedValueOnce(0).mockResolvedValueOnce(0);
+      mockAggregateExec.mockResolvedValue([]);
+
+      const result = await service.getStats(2024, 2);
+
+      expect(result.registrationsByDay).toHaveLength(29);
+    });
+
+    it('should reject when only one of year or month is provided', async () => {
+      await expect(service.getStats(2026, undefined)).rejects.toThrow(BadRequestException);
+      await expect(service.getStats(undefined, 4)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should reject invalid month', async () => {
+      await expect(service.getStats(2026, 0)).rejects.toThrow(BadRequestException);
+      await expect(service.getStats(2026, 13)).rejects.toThrow(BadRequestException);
     });
   });
 });

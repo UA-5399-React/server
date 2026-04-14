@@ -3,6 +3,7 @@ import {
   Args,
   Context,
   ID,
+  Int,
   Mutation,
   Parent,
   Query,
@@ -26,6 +27,7 @@ import { UserType } from '@/users/graphql/types/user.type';
 import { UsersPage } from '@/users/graphql/types/users-page.type';
 import { UsersService } from '@/users/users.service';
 
+import { UserRegistrationTimeseriesType } from './graphql/types/user-registration-timeseries.type';
 import { UserStatsType } from './graphql/types/user-stats.type';
 
 @UseGuards(GqlAuthGuard, RolesGuard)
@@ -80,7 +82,18 @@ export class UsersResolver {
   }
 
   @Query(() => UserStatsType)
-  async userStats() {
-    return this.usersService.getStats();
+  async userStats(
+    @Args('year', { type: () => Int, nullable: true }) year?: number,
+    @Args('month', { type: () => Int, nullable: true }) month?: number,
+  ) {
+    return this.usersService.getStats(year, month);
+  }
+
+  @Query(() => UserRegistrationTimeseriesType)
+  async userRegistrationTimeseries(
+    @Args('dateFrom', { type: () => Date, nullable: true }) dateFrom?: Date,
+    @Args('dateTo', { type: () => Date, nullable: true }) dateTo?: Date,
+  ): Promise<UserRegistrationTimeseriesType> {
+    return this.usersService.getRegistrationTimeseries(dateFrom, dateTo);
   }
 }
