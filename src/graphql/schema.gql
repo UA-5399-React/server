@@ -306,6 +306,7 @@ type Query {
   product(id: ID!): ProductType!
   productsPage(filter: ProductsFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: ProductSortField! = updatedAt): ProductsPageType!
   user(id: ID!): UserType!
+  userRegistrationTimeseries(dateFrom: DateTime, dateTo: DateTime): UserRegistrationTimeseriesType!
   userStats: UserStatsType!
   users(filter: UsersFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: UserSortField! = createdAt): UsersPage!
 }
@@ -417,6 +418,15 @@ enum UserDateFilterField {
   createdAt
   lastLoginAt
   updatedAt
+}
+
+type UserRegistrationMonthType {
+  count: Int!
+  month: String!
+}
+
+type UserRegistrationTimeseriesType {
+  data: [UserRegistrationMonthType!]!
 }
 
 enum UserSortField {
