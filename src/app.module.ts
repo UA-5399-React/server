@@ -8,6 +8,7 @@ import { redisStore } from 'cache-manager-redis-yet';
 import { AuthModule } from '@/auth/auth.module';
 import { CartModule } from '@/cart/cart.module';
 import { AppGraphQLModule } from '@/graphql/graphql.module';
+import { ReportsModule } from '@/reports/reports.module';
 import { UsersModule } from '@/users/users.module';
 
 import { AppController } from './app.controller';
@@ -15,6 +16,8 @@ import { AppService } from './app.service';
 import { CategoryModule } from './categories/category.module';
 import { RequestLoggingInterceptor } from './common/request-logging.interceptor';
 import { DatabaseModule } from './database/database.module';
+import { ExportModule } from './export/export.module';
+import { FeaturedProductsModule } from './featured-products/featured-products.module';
 import { LoggerModule } from './logger/logger.module';
 import { MailModule } from './mailer/mailer.module';
 import { NewsletterModule } from './newsletter/newsletter.module';
@@ -57,12 +60,15 @@ import { UploadsModule } from './uploads/uploads.module';
     MailModule,
     PaymentsModule,
     NewsletterModule,
+    ExportModule,
+    FeaturedProductsModule,
     ThrottlerModule.forRoot([
       {
         ttl: 60_000,
         limit: 10,
       },
     ]),
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [

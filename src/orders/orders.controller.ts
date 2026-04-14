@@ -1,5 +1,24 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import type { Response } from 'express';
 import { Types } from 'mongoose';
 
 import { CurrentUser } from '@/auth/decorators/current-user.decorator';
@@ -8,6 +27,7 @@ import { Role } from '@/users/enums/role.enum';
 
 import { CreateOrderDto } from './dto/create-order.dto';
 import { GetOrdersQueryDto } from './dto/get-orders-query.dto';
+import { OrdersStatusStatsDto } from './dto/orders-status-stats.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { UpdateShippingAddressDto } from './dto/update-shipping-address.dto';
 import { Order } from './entities/order.schema';
@@ -66,6 +86,13 @@ export class OrdersController {
     return this.ordersService.findMyOrderById(orderId, userId);
   }
 
+  @Get('admin/status-stats')
+  @ApiOperation({ summary: 'Get orders status breakdown with percentages for dashboard chart' })
+  @ApiResponse({ status: 200, type: OrdersStatusStatsDto })
+  getOrdersStatusStats(): Promise<OrdersStatusStatsDto> {
+    return this.ordersService.getOrderStatusStats();
+  }
+
   @Patch('my/:orderId/cancel')
   @ApiOperation({
     summary: 'Cancel an order',
@@ -114,5 +141,28 @@ export class OrdersController {
     @Body() dto: UpdateOrderStatusDto,
   ): Promise<Order> {
     return this.ordersService.updateOrderStatus(orderId, dto.status, Role.ADMIN);
+  }
+
+  @Get(':orderId/export')
+  @ApiOperation({ summary: 'Export order as PDF' })
+  @ApiParam({ name: 'orderId', example: 'ORD-20240318-AB12C' })
+  @ApiQuery({ name: 'format', required: true, enum: ['pdf'] })
+  @ApiResponse({ status: 200, description: 'Return PDF file' })
+  @ApiResponse({ status: 404, description: 'Order not found' })
+  async exportOrder(
+    @Param('orderId') orderId: string,
+    @Query('format') format: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    if (format !== 'pdf') {
+      throw new BadRequestException('Only format ".pdf" is supported for export');
+    }
+    const pdfBuffer = await this.ordersService.generateOrderPdf(orderId);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="order-${orderId}.pdf"`,
+    });
+
+    res.end(pdfBuffer);
   }
 }

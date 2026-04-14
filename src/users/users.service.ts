@@ -18,11 +18,13 @@ import { buildDateFilter } from '@/common/utils/date.utils';
 import { buildPaginatedResult, getPagination } from '@/common/utils/pagination.util';
 import { buildSort } from '@/common/utils/sorting.util';
 import { AppLogger } from '@/logger/app-logger.service';
+import { MailService } from '@/mailer/mailer.service';
 import { CloudinaryService } from '@/uploads/cloudinary.service';
 import { CreateUserData } from '@/users/dto/create-user.type';
 import { GoogleUserUpdateData } from '@/users/dto/google-user-update-data.type';
 import { UpdateMeDto } from '@/users/dto/update-me.dto';
 import { User, UserDocument } from '@/users/entities/user.schema';
+import { Role } from '@/users/enums/role.enum';
 import { UserDateFilterField } from '@/users/enums/user-date-filter-field.enum';
 import { UsersSortField } from '@/users/enums/users-sort-field.enum';
 import { CreateUserInput } from '@/users/graphql/inputs/create-user.input';
@@ -37,6 +39,8 @@ import { UserListItem } from '@/users/types/user-list-item.type';
 import { buildUpdateData } from '@/users/utils/build-update-data';
 
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { UserRegistrationDayType } from './graphql/types/user-registration-day.type';
+import { UserRegistrationTimeseriesType } from './graphql/types/user-registration-timeseries.type';
 import { UserStatsType } from './graphql/types/user-stats.type';
 
 @Injectable()
@@ -47,6 +51,7 @@ export class UsersService {
     private readonly cryptoService: CryptoService,
     private readonly logger: AppLogger,
     private readonly cloudinaryService: CloudinaryService,
+    private readonly mailService: MailService,
     private readonly tokensService: TokensService,
     private readonly cartService: CartService,
   ) {}
@@ -255,7 +260,7 @@ export class UsersService {
   async createByAdmin(
     input: CreateUserInput,
     currentUser: AuthUser,
-  ): Promise<{ user: UserListItem; tempPassword: string | null }> {
+  ): Promise<UserListItem | { message: string }> {
     await this.ensureEmailNotTaken(input.email);
 
     validateRoleCreation(input.role, currentUser.role);
@@ -277,10 +282,13 @@ export class UsersService {
       currentUser.id,
     );
 
-    return {
-      user,
-      tempPassword: input.password ? null : rawPassword,
-    };
+    try {
+      await this.mailService.sendTempPassword(input.email, rawPassword);
+    } catch {
+      return { message: 'Failed to send confirmation email' };
+    }
+
+    return user;
   }
 
   async updateByAdmin(input: UpdateUserInput, currentUser: AuthUser): Promise<UserListItem> {
@@ -319,13 +327,117 @@ export class UsersService {
     return true;
   }
 
-  async getStats(): Promise<UserStatsType> {
-    const [totalUsers, activeUsers] = await Promise.all([
-      this.userModel.countDocuments(),
-      this.userModel.countDocuments({ isActive: true }),
+  async getStats(year?: number, month?: number): Promise<UserStatsType> {
+    const { y, m } = this.resolveRegistrationCalendarMonth(year, month);
+    const monthStart = new Date(Date.UTC(y, m - 1, 1));
+    const monthEndExclusive = new Date(Date.UTC(y, m, 1));
+
+    const [totalUsers, activeUsers, aggRows] = await Promise.all([
+      this.userModel.countDocuments({ role: Role.CUSTOMER }),
+      this.userModel.countDocuments({ role: Role.CUSTOMER, isActive: true }),
+      this.userModel
+        .aggregate<{ _id: string; count: number }>([
+          {
+            $match: {
+              role: Role.CUSTOMER,
+              createdAt: { $gte: monthStart, $lt: monthEndExclusive },
+            },
+          },
+          {
+            $group: {
+              _id: {
+                $dateToString: { format: '%Y-%m-%d', date: '$createdAt', timezone: 'UTC' },
+              },
+              count: { $sum: 1 },
+            },
+          },
+        ])
+        .exec(),
     ]);
+
     const blockedUsers = totalUsers - activeUsers;
-    return { totalUsers, activeUsers, blockedUsers };
+
+    return {
+      totalUsers,
+      activeUsers,
+      blockedUsers,
+      registrationsYear: y,
+      registrationsMonth: m,
+      registrationsByDay: this.buildRegistrationDaysUtc(y, m, aggRows),
+    };
+  }
+
+  private resolveRegistrationCalendarMonth(
+    year?: number,
+    month?: number,
+  ): { y: number; m: number } {
+    if (year === undefined && month === undefined) {
+      const now = new Date();
+      return { y: now.getUTCFullYear(), m: now.getUTCMonth() + 1 };
+    }
+
+    if (year === undefined || month === undefined) {
+      throw new BadRequestException('year and month must both be provided or both omitted');
+    }
+
+    if (!Number.isInteger(year) || !Number.isInteger(month)) {
+      throw new BadRequestException('year and month must be integers');
+    }
+
+    if (month < 1 || month > 12) {
+      throw new BadRequestException('month must be between 1 and 12');
+    }
+
+    if (year < 1970 || year > 2100) {
+      throw new BadRequestException('year is out of allowed range');
+    }
+
+    return { y: year, m: month };
+  }
+
+  private buildRegistrationDaysUtc(
+    year: number,
+    month: number,
+    rows: { _id: string; count: number }[],
+  ): UserRegistrationDayType[] {
+    const byDate = new Map(rows.map((r) => [r._id, r.count]));
+    const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    const ym = `${year}-${String(month).padStart(2, '0')}`;
+    const out: UserRegistrationDayType[] = [];
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = `${ym}-${String(day).padStart(2, '0')}`;
+      out.push({ day, date, count: byDate.get(date) ?? 0 });
+    }
+
+    return out;
+  }
+
+  async getRegistrationTimeseries(
+    dateFrom?: Date,
+    dateTo?: Date,
+  ): Promise<UserRegistrationTimeseriesType> {
+    const match: Record<string, unknown> = {};
+
+    if (dateFrom || dateTo) {
+      match['createdAt'] = {
+        ...(dateFrom ? { $gte: dateFrom } : {}),
+        ...(dateTo ? { $lte: dateTo } : {}),
+      };
+    }
+
+    const result = await this.userModel.aggregate<{ _id: string; count: number }>([
+      { $match: match },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+
+    return { data: result.map(({ _id, count }) => ({ month: _id, count })) };
   }
 
   async updateById(id: string, data: Partial<User>): Promise<UserDocument> {
