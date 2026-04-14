@@ -306,7 +306,7 @@ type Query {
   product(id: ID!): ProductType!
   productsPage(filter: ProductsFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: ProductSortField! = updatedAt): ProductsPageType!
   user(id: ID!): UserType!
-  userStats: UserStatsType!
+  userStats(month: Int, year: Int): UserStatsType!
   users(filter: UsersFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: UserSortField! = createdAt): UsersPage!
 }
 
@@ -419,6 +419,12 @@ enum UserDateFilterField {
   updatedAt
 }
 
+type UserRegistrationDayType {
+  count: Int!
+  date: String!
+  day: Int!
+}
+
 enum UserSortField {
   createdAt
   email
@@ -429,6 +435,9 @@ enum UserSortField {
 type UserStatsType {
   activeUsers: Int!
   blockedUsers: Int!
+  registrationsByDay: [UserRegistrationDayType!]!
+  registrationsMonth: Int!
+  registrationsYear: Int!
   totalUsers: Int!
 }
 
