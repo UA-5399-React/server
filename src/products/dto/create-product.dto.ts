@@ -1,12 +1,26 @@
-import { IsArray, IsNotEmpty, IsNumber, IsOptional, IsString, IsUrl, Min } from 'class-validator';
+import {
+  IsArray,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUrl,
+  Matches,
+  Min,
+} from 'class-validator';
+
+const NO_HTML_TAGS = /^[^<>]*$/;
+const NO_HTML_MESSAGE = { message: '$property must not contain HTML tags' };
 
 export class CreateProductDto {
   @IsString()
   @IsNotEmpty()
+  @Matches(NO_HTML_TAGS, NO_HTML_MESSAGE)
   title: string;
 
   @IsString()
   @IsOptional()
+  @Matches(NO_HTML_TAGS, NO_HTML_MESSAGE)
   description?: string;
 
   @IsOptional()
