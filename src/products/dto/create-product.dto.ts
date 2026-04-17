@@ -9,7 +9,7 @@ import {
   Min,
 } from 'class-validator';
 
-const NO_HTML_TAGS = /^[^<>]*$/;
+const NO_HTML_TAGS = /^(?!.*<\/?[a-zA-Z][^<>]*>)[\s\S]*$/;
 const NO_HTML_MESSAGE = { message: '$property must not contain HTML tags' };
 
 export class CreateProductDto {
