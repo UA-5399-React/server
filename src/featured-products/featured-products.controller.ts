@@ -67,6 +67,7 @@ export class FeaturedProductsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update featured products positions' })
   async reorder(@Body() dto: { productId: string; position: number }[]) {
-    return this.service.updatePositions(dto);
+    await this.service.updatePositions(dto);
+    return { success: true };
   }
 }
