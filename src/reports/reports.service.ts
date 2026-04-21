@@ -1,11 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, PipelineStage, Types } from 'mongoose';
 
 import { buildDateFilter } from '@/common/utils/date.utils';
 import { Order, OrderDocument } from '@/orders/entities';
 import { OrderStatus } from '@/orders/enums';
-import { GetSalesStatisticsArgs } from '@/reports/inputs/get-sales-statistics.args';
+import { GetAbcAnalysisStatisticsArgs } from '@/reports/args/get-abc-analysis-statistics.args';
+import { GetSalesStatisticsArgs } from '@/reports/args/get-sales-statistics.args';
+import { AbcMetricEnum } from '@/reports/enums/abc-metric.enum';
+import { AbcAnalysisType } from '@/reports/types/abc-analysis.type';
+import { AbcAnalysisResponse } from '@/reports/types/abc-analysis-response.type';
 import { GroupedByCategory } from '@/reports/types/grouped-by-category.type';
 import { GroupedByDay } from '@/reports/types/grouped-by-day.type';
 import { GroupedByProduct } from '@/reports/types/grouped-by-products.type';
@@ -326,5 +330,137 @@ export class ReportsService {
     }
 
     return stages;
+  }
+
+  async getAbcAnalysis(query: GetAbcAnalysisStatisticsArgs): Promise<AbcAnalysisResponse> {
+    const matchStage = this.buildMatchStage(query);
+
+    const aThreshold = query.aThreshold ?? 80;
+    const bThreshold = query.bThreshold ?? 95;
+
+    this.validateAbcThresholds(aThreshold, bThreshold);
+    const metricFieldName = query.metric === AbcMetricEnum.REVENUE ? 'revenue' : 'unitsSold';
+    const metricExpression =
+      query.metric === AbcMetricEnum.REVENUE
+        ? {
+            $sum: {
+              $multiply: ['$items.amount', '$items.unitPrice'],
+            },
+          }
+        : {
+            $sum: '$items.amount',
+          };
+
+    const items = await this.orderModel
+      .aggregate<AbcAnalysisType>([
+        { $match: matchStage },
+        { $unwind: '$items' },
+        ...this.buildCategoryFilterStages(query.categoryId),
+        {
+          $group: {
+            _id: '$items.product',
+            productName: { $first: '$items.title' },
+            [metricFieldName]: metricExpression,
+          },
+        },
+
+        {
+          $sort: {
+            [metricFieldName]: -1,
+          },
+        },
+        {
+          $setWindowFields: {
+            sortBy: { [metricFieldName]: -1 },
+            output: {
+              cumulativeValue: {
+                $sum: `$${metricFieldName}`,
+                window: {
+                  documents: ['unbounded', 'current'],
+                },
+              },
+              totalValue: {
+                $sum: `$${metricFieldName}`,
+                window: {
+                  documents: ['unbounded', 'unbounded'],
+                },
+              },
+            },
+          },
+        },
+
+        {
+          $project: {
+            _id: 0,
+            productName: 1,
+            value: { $round: [`$${metricFieldName}`, 2] },
+            cumulativeValue: { $round: ['$cumulativeValue', 2] },
+            totalValue: { $round: ['$totalValue', 2] },
+            cumulativePercentage: {
+              $round: [
+                {
+                  $multiply: [{ $divide: ['$cumulativeValue', '$totalValue'] }, 100],
+                },
+                2,
+              ],
+            },
+            percentageByTotal: {
+              $round: [
+                {
+                  $multiply: [{ $divide: [`$${metricFieldName}`, '$totalValue'] }, 100],
+                },
+                2,
+              ],
+            },
+          },
+        },
+        {
+          $addFields: {
+            bucket: {
+              $switch: {
+                branches: [
+                  {
+                    case: { $lte: ['$cumulativePercentage', aThreshold] },
+                    then: 'A',
+                  },
+                  {
+                    case: { $lte: ['$cumulativePercentage', bThreshold] },
+                    then: 'B',
+                  },
+                ],
+                default: 'C',
+              },
+            },
+          },
+        },
+      ])
+      .exec();
+
+    return {
+      items,
+      summary: {
+        metric: query.metric,
+        totalValue: items[0]?.totalValue ?? 0,
+        aCount: items.filter((item) => item.bucket === 'A').length,
+        bCount: items.filter((item) => item.bucket === 'B').length,
+        cCount: items.filter((item) => item.bucket === 'C').length,
+      },
+    };
+  }
+
+  private validateAbcThresholds(aThreshold: number, bThreshold: number): void {
+    if (aThreshold <= 0 || aThreshold >= 100) {
+      throw new BadRequestException('aThreshold must be greater than 0 and less than 100');
+    }
+
+    if (bThreshold <= 0 || bThreshold > 100) {
+      throw new BadRequestException(
+        'bThreshold must be greater than 0 and less than or equal to 100',
+      );
+    }
+
+    if (aThreshold >= bThreshold) {
+      throw new BadRequestException('aThreshold must be less than bThreshold');
+    }
   }
 }

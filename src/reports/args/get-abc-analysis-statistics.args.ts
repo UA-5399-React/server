@@ -1,0 +1,41 @@
+import { ArgsType, Field, GraphQLISODateTime, ID, Int } from '@nestjs/graphql';
+import { Type } from 'class-transformer';
+import { IsDate, IsEnum, IsInt, IsOptional, Max, Min } from 'class-validator';
+
+import { AbcMetricEnum } from '@/reports/enums/abc-metric.enum';
+
+@ArgsType()
+export class GetAbcAnalysisStatisticsArgs {
+  @Field(() => AbcMetricEnum, { defaultValue: AbcMetricEnum.REVENUE })
+  @IsEnum(AbcMetricEnum)
+  metric: AbcMetricEnum;
+
+  @Field(() => GraphQLISODateTime)
+  @Type(() => Date)
+  @IsDate()
+  dateFrom: Date;
+
+  @Field(() => GraphQLISODateTime, { defaultValue: () => new Date() })
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  dateTo?: Date;
+
+  @Field(() => ID, { nullable: true })
+  @IsOptional()
+  categoryId?: string;
+
+  @Field(() => Int, { nullable: true, defaultValue: 80 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(99)
+  aThreshold?: number;
+
+  @Field(() => Int, { nullable: true, defaultValue: 95 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  bThreshold?: number;
+}
