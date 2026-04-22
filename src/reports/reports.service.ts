@@ -10,26 +10,49 @@ import { GetSalesStatisticsArgs } from '@/reports/args/get-sales-statistics.args
 import { AbcMetricEnum } from '@/reports/enums/abc-metric.enum';
 import { AbcAnalysisType } from '@/reports/types/abc-analysis.type';
 import { AbcAnalysisResponse } from '@/reports/types/abc-analysis-response.type';
-import { GroupedByCategory } from '@/reports/types/grouped-by-category.type';
-import { GroupedByDay } from '@/reports/types/grouped-by-day.type';
-import { GroupedByProduct } from '@/reports/types/grouped-by-products.type';
+import {
+  GroupedByCategory,
+  SalesReportByCategoryResponse,
+} from '@/reports/types/grouped-by-category.type';
+import { GroupedByDay, SalesReportByDayResponse } from '@/reports/types/grouped-by-day.type';
+import {
+  GroupedByProduct,
+  SalesReportByProdResponse,
+} from '@/reports/types/grouped-by-products.type';
 
 @Injectable()
 export class ReportsService {
   constructor(@InjectModel(Order.name) private readonly orderModel: Model<OrderDocument>) {}
 
-  getSalesGroupedByProduct(query: GetSalesStatisticsArgs): Promise<GroupedByProduct[]> {
+  async getSalesGroupedByProduct(
+    query: GetSalesStatisticsArgs,
+  ): Promise<SalesReportByProdResponse> {
     const matchStage = this.buildMatchStage(query);
 
-    return this.orderModel
+    const items = await this.orderModel
       .aggregate<GroupedByProduct>([
         { $match: matchStage },
         { $unwind: '$items' },
         ...this.buildCategoryFilterStages(query.categoryId),
         {
+          $lookup: {
+            from: 'products',
+            localField: 'items.product',
+            foreignField: '_id',
+            as: 'productDoc',
+          },
+        },
+        {
+          $unwind: {
+            path: '$productDoc',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
           $group: {
             _id: '$items.product',
             productName: { $first: '$items.title' },
+            productCode: { $first: '$productDoc.productCode' },
             unitsSold: {
               $sum: '$items.amount',
             },
@@ -44,6 +67,7 @@ export class ReportsService {
           $project: {
             _id: 0,
             productName: 1,
+            productCode: 1,
             unitsSold: 1,
             revenue: { $round: ['$revenue', 2] },
           },
@@ -55,12 +79,20 @@ export class ReportsService {
         },
       ])
       .exec();
+
+    return {
+      items,
+      summary: {
+        totalRevenue: Number(items.reduce((sum, item) => sum + item.revenue, 0).toFixed(2)),
+        totalUnitsSold: items.reduce((sum, item) => sum + item.unitsSold, 0),
+      },
+    };
   }
 
-  getSalesGroupedByDay(query: GetSalesStatisticsArgs): Promise<GroupedByDay[]> {
+  async getSalesGroupedByDay(query: GetSalesStatisticsArgs): Promise<SalesReportByDayResponse> {
     const matchStage = this.buildMatchStage(query);
 
-    return this.orderModel
+    const items = await this.orderModel
       .aggregate<GroupedByDay>([
         { $match: matchStage },
         {
@@ -184,12 +216,28 @@ export class ReportsService {
         { $sort: { date: 1 } },
       ])
       .exec();
+
+    const totalRevenue = Number(items.reduce((sum, item) => sum + item.revenue, 0).toFixed(2));
+    const totalUnitsSold = items.reduce((sum, item) => sum + item.unitsSold, 0);
+    const totalOrdersCount = items.reduce((sum, item) => sum + item.ordersCount, 0);
+
+    return {
+      items,
+      summary: {
+        totalRevenue,
+        totalUnitsSold,
+        totalOrdersCount,
+        averageCheck: totalOrdersCount ? Number((totalRevenue / totalOrdersCount).toFixed(2)) : 0,
+      },
+    };
   }
 
-  getSalesGroupedByCategory(query: GetSalesStatisticsArgs): Promise<GroupedByCategory[]> {
+  async getSalesGroupedByCategory(
+    query: GetSalesStatisticsArgs,
+  ): Promise<SalesReportByCategoryResponse> {
     const matchStage = this.buildMatchStage(query);
 
-    return this.orderModel
+    const items = await this.orderModel
       .aggregate<GroupedByCategory>([
         { $match: matchStage },
         { $unwind: '$items' },
@@ -257,6 +305,14 @@ export class ReportsService {
         },
       ])
       .exec();
+
+    return {
+      items,
+      summary: {
+        totalRevenue: Number(items.reduce((sum, item) => sum + item.revenue, 0).toFixed(2)),
+        totalUnitsSold: items.reduce((sum, item) => sum + item.unitsSold, 0),
+      },
+    };
   }
 
   private buildMatchStage(query: GetSalesStatisticsArgs) {
@@ -357,9 +413,24 @@ export class ReportsService {
         { $unwind: '$items' },
         ...this.buildCategoryFilterStages(query.categoryId),
         {
+          $lookup: {
+            from: 'products',
+            localField: 'items.product',
+            foreignField: '_id',
+            as: 'productDoc',
+          },
+        },
+        {
+          $unwind: {
+            path: '$productDoc',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
           $group: {
             _id: '$items.product',
             productName: { $first: '$items.title' },
+            productCode: { $first: '$productDoc.productCode' },
             [metricFieldName]: metricExpression,
           },
         },
@@ -393,6 +464,7 @@ export class ReportsService {
           $project: {
             _id: 0,
             productName: 1,
+            productCode: 1,
             value: { $round: [`$${metricFieldName}`, 2] },
             cumulativeValue: { $round: ['$cumulativeValue', 2] },
             totalValue: { $round: ['$totalValue', 2] },

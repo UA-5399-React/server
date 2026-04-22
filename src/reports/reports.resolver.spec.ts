@@ -6,9 +6,9 @@ import { AbcMetricEnum } from '@/reports/enums/abc-metric.enum';
 import { ReportsResolver } from '@/reports/reports.resolver';
 import { ReportsService } from '@/reports/reports.service';
 import { AbcAnalysisResponse } from '@/reports/types/abc-analysis-response.type';
-import { GroupedByCategory } from '@/reports/types/grouped-by-category.type';
-import { GroupedByDay } from '@/reports/types/grouped-by-day.type';
-import { GroupedByProduct } from '@/reports/types/grouped-by-products.type';
+import { SalesReportByCategoryResponse } from '@/reports/types/grouped-by-category.type';
+import { SalesReportByDayResponse } from '@/reports/types/grouped-by-day.type';
+import { SalesReportByProdResponse } from '@/reports/types/grouped-by-products.type';
 
 describe('ReportsResolver', () => {
   let resolver: ReportsResolver;
@@ -51,13 +51,20 @@ describe('ReportsResolver', () => {
         dateTo: new Date('2026-01-31T23:59:59.999Z'),
       };
 
-      const serviceResult: GroupedByProduct[] = [
-        {
-          productName: 'Product A',
-          unitsSold: 10,
-          revenue: 1200,
+      const serviceResult: SalesReportByProdResponse = {
+        items: [
+          {
+            productName: 'Product A',
+            productCode: '000001',
+            unitsSold: 10,
+            revenue: 1200,
+          },
+        ],
+        summary: {
+          totalRevenue: 1200,
+          totalUnitsSold: 10,
         },
-      ];
+      };
       const spy = jest
         .spyOn(reportsService, 'getSalesGroupedByProduct')
         .mockResolvedValue(serviceResult);
@@ -78,13 +85,19 @@ describe('ReportsResolver', () => {
         dateTo: new Date('2026-01-31T23:59:59.999Z'),
       };
 
-      const serviceResult: GroupedByCategory[] = [
-        {
-          category: 'Trousers',
-          unitsSold: 5,
-          revenue: 900,
+      const serviceResult: SalesReportByCategoryResponse = {
+        items: [
+          {
+            category: 'Trousers',
+            unitsSold: 5,
+            revenue: 900,
+          },
+        ],
+        summary: {
+          totalRevenue: 900,
+          totalUnitsSold: 5,
         },
-      ];
+      };
       const spy = jest
         .spyOn(reportsService, 'getSalesGroupedByCategory')
         .mockResolvedValue(serviceResult);
@@ -105,15 +118,23 @@ describe('ReportsResolver', () => {
         dateTo: new Date('2026-01-31T23:59:59.999Z'),
       };
 
-      const serviceResult: GroupedByDay[] = [
-        {
-          date: '2026-01-10',
-          unitsSold: 7,
-          revenue: 500,
-          ordersCount: 3,
-          averageCheck: 166.67,
+      const serviceResult: SalesReportByDayResponse = {
+        items: [
+          {
+            date: '2026-01-10',
+            unitsSold: 7,
+            revenue: 500,
+            ordersCount: 3,
+            averageCheck: 166.67,
+          },
+        ],
+        summary: {
+          totalRevenue: 900,
+          totalUnitsSold: 7,
+          totalOrdersCount: 1,
+          averageCheck: 129.34,
         },
-      ];
+      };
       const spy = jest
         .spyOn(reportsService, 'getSalesGroupedByDay')
         .mockResolvedValue(serviceResult);

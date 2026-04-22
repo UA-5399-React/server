@@ -4,8 +4,8 @@ type AbcCategory = 'A' | 'B' | 'C';
 
 @ObjectType()
 export class AbcAnalysisType {
-  // @Field(() => String)
-  // productCode: string;
+  @Field(() => String, { nullable: true })
+  productCode?: string | null;
 
   @Field(() => String)
   productName: string;

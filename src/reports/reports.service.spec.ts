@@ -63,27 +63,34 @@ describe('ReportsService', () => {
   describe('getSalesGroupedByProduct', () => {
     it('should return grouped sales by product', async () => {
       const args = createSalesArgs();
-      const aggregatedResult = [
+      const aggregatedItems = [
         {
           productName: 'Product A',
+          productCode: '000001',
           unitsSold: 10,
           revenue: 1200,
         },
       ];
 
-      execMock.mockResolvedValue(aggregatedResult);
+      execMock.mockResolvedValue(aggregatedItems);
 
       const result = await service.getSalesGroupedByProduct(args);
 
       expect(aggregateMock).toHaveBeenCalledTimes(1);
-      expect(result).toEqual(aggregatedResult);
+      expect(result).toEqual({
+        items: aggregatedItems,
+        summary: {
+          totalRevenue: 1200,
+          totalUnitsSold: 10,
+        },
+      });
     });
   });
 
   describe('getSalesGroupedByCategory', () => {
     it('should return grouped sales by category', async () => {
       const args = createSalesArgs();
-      const aggregatedResult = [
+      const aggregatedItems = [
         {
           category: 'Category A',
           unitsSold: 8,
@@ -91,19 +98,25 @@ describe('ReportsService', () => {
         },
       ];
 
-      execMock.mockResolvedValue(aggregatedResult);
+      execMock.mockResolvedValue(aggregatedItems);
 
       const result = await service.getSalesGroupedByCategory(args);
 
       expect(aggregateMock).toHaveBeenCalledTimes(1);
-      expect(result).toEqual(aggregatedResult);
+      expect(result).toEqual({
+        items: aggregatedItems,
+        summary: {
+          totalRevenue: 900,
+          totalUnitsSold: 8,
+        },
+      });
     });
   });
 
   describe('getSalesGroupedByDay', () => {
     it('should return grouped sales by day', async () => {
       const args = createSalesArgs();
-      const aggregatedResult = [
+      const aggregatedItems = [
         {
           date: '2026-01-10',
           unitsSold: 7,
@@ -113,12 +126,20 @@ describe('ReportsService', () => {
         },
       ];
 
-      execMock.mockResolvedValue(aggregatedResult);
+      execMock.mockResolvedValue(aggregatedItems);
 
       const result = await service.getSalesGroupedByDay(args);
 
       expect(aggregateMock).toHaveBeenCalledTimes(1);
-      expect(result).toEqual(aggregatedResult);
+      expect(result).toEqual({
+        items: aggregatedItems,
+        summary: {
+          totalRevenue: 500,
+          totalUnitsSold: 7,
+          totalOrdersCount: 3,
+          averageCheck: 166.67,
+        },
+      });
     });
   });
 

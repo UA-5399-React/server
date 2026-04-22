@@ -20,6 +20,7 @@ type AbcAnalysisType {
   cumulativePercentage: Float!
   cumulativeValue: Float!
   percentageByTotal: Float!
+  productCode: String
   productName: String!
   totalValue: Float!
   value: Float!
@@ -36,6 +37,11 @@ type CategoriesPageType {
   page: Int!
   total: Int!
   totalPages: Int!
+}
+
+type CategorySalesSummaryType {
+  totalRevenue: Float!
+  totalUnitsSold: Int!
 }
 
 type CategoryType {
@@ -114,6 +120,13 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 """
 scalar DateTime
 
+type DaySalesSummaryType {
+  averageCheck: Float!
+  totalOrdersCount: Int!
+  totalRevenue: Float!
+  totalUnitsSold: Int!
+}
+
 input GetSubscribersInput {
   isActive: Boolean
 }
@@ -139,6 +152,7 @@ type GroupedByDay implements SalesReportItemType {
 }
 
 type GroupedByProduct implements SalesReportItemType {
+  productCode: String
   productName: String!
   revenue: Float!
   unitsSold: Int!
@@ -291,6 +305,11 @@ enum PaymentStatus {
   REFUNDED
 }
 
+type ProductSalesSummaryType {
+  totalRevenue: Float!
+  totalUnitsSold: Int!
+}
+
 enum ProductSortField {
   createdAt
   price
@@ -353,9 +372,9 @@ type Query {
   getAbcAnalysis(aThreshold: Int = 80, bThreshold: Int = 95, categoryId: ID, dateFrom: DateTime!, dateTo: DateTime!, metric: AbcMetricEnum! = REVENUE): AbcAnalysisResponse!
   getOrder(orderId: String!): OrderType!
   getProductInOrders(productId: ID!): OrderProductStatsType!
-  getSalesByCategory(categoryId: ID, dateFrom: DateTime!, dateTo: DateTime!, groupBy: GroupByEnum! = PRODUCT): [GroupedByCategory!]!
-  getSalesByDay(categoryId: ID, dateFrom: DateTime!, dateTo: DateTime!, groupBy: GroupByEnum! = PRODUCT): [GroupedByDay!]!
-  getSalesByProduct(categoryId: ID, dateFrom: DateTime!, dateTo: DateTime!, groupBy: GroupByEnum! = PRODUCT): [GroupedByProduct!]!
+  getSalesByCategory(categoryId: ID, dateFrom: DateTime!, dateTo: DateTime!, groupBy: GroupByEnum! = PRODUCT): SalesReportByCategoryResponse!
+  getSalesByDay(categoryId: ID, dateFrom: DateTime!, dateTo: DateTime!, groupBy: GroupByEnum! = PRODUCT): SalesReportByDayResponse!
+  getSalesByProduct(categoryId: ID, dateFrom: DateTime!, dateTo: DateTime!, groupBy: GroupByEnum! = PRODUCT): SalesReportByProdResponse!
   getSubscriberStats: NewsletterStatsModel!
   getSubscribers(input: GetSubscribersInput): [SubscriberModel!]!
   order(id: ID!): OrderType!
@@ -373,6 +392,21 @@ enum Role {
   ADMIN
   CUSTOMER
   SUPER_ADMIN
+}
+
+type SalesReportByCategoryResponse {
+  items: [GroupedByCategory!]!
+  summary: CategorySalesSummaryType!
+}
+
+type SalesReportByDayResponse {
+  items: [GroupedByDay!]!
+  summary: DaySalesSummaryType!
+}
+
+type SalesReportByProdResponse {
+  items: [GroupedByProduct!]!
+  summary: ProductSalesSummaryType!
 }
 
 interface SalesReportItemType {
