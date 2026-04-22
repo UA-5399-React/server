@@ -25,6 +25,7 @@ import { CreateUserPayload } from '@/users/graphql/types/create-user-payload.typ
 import type { GraphqlLoadersContext } from '@/users/graphql/types/data-loader.type';
 import { UserType } from '@/users/graphql/types/user.type';
 import { UsersPage } from '@/users/graphql/types/users-page.type';
+import type { UserListItem } from '@/users/types/user-list-item.type';
 import { UsersService } from '@/users/users.service';
 
 import { UserRegistrationTimeseriesType } from './graphql/types/user-registration-timeseries.type';
@@ -50,7 +51,7 @@ export class UsersResolver {
   async createUser(
     @Args('input') input: CreateUserInput,
     @CurrentUser() currentUser: AuthUser,
-  ): Promise<UserType | { message: string }> {
+  ): Promise<{ user: UserListItem; tempPassword: string | null }> {
     return await this.usersService.createByAdmin(input, currentUser);
   }
 

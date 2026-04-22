@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards, Patch } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -60,5 +60,14 @@ export class FeaturedProductsController {
   @ApiResponse({ status: 404, description: 'Featured product not found' })
   remove(@Param('productId') productId: string, @Query('type') type: FeaturedProductType) {
     return this.service.remove(productId, type);
+  }
+
+  @Patch('reorder')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update featured products positions' })
+  async reorder(@Body() dto: { productId: string; position: number }[]) {
+    await this.service.updatePositions(dto);
+    return { success: true };
   }
 }
