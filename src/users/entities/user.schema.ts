@@ -6,6 +6,27 @@ import { Role } from '@/users/enums/role.enum';
 
 export type UserDocument = HydratedDocument<User>;
 
+@Schema({ _id: false })
+export class WishlistItem {
+  @ApiProperty({ example: '66124560cceb1a2a6c8f61c3' })
+  @Prop({ type: Types.ObjectId, ref: 'Product', required: true })
+  productId!: Types.ObjectId;
+
+  @ApiProperty({ example: 'Nike Air Max 90' })
+  @Prop({ required: true, trim: true })
+  title!: string;
+
+  @ApiProperty({ example: 129.99 })
+  @Prop({ required: true, min: 0 })
+  price!: number;
+
+  @ApiPropertyOptional({ example: 'https://example.com/images/nike-air-max-90.jpg' })
+  @Prop({ trim: true })
+  image?: string;
+}
+
+export const WishlistItemSchema = SchemaFactory.createForClass(WishlistItem);
+
 @Schema({ timestamps: true })
 export class User {
   @ApiProperty({ example: 'email@example.com' })
@@ -55,6 +76,10 @@ export class User {
   @ApiProperty({ example: true })
   @Prop({ default: false })
   isEmailConfirmed!: boolean;
+
+  @ApiProperty({ type: [WishlistItem], default: [] })
+  @Prop({ type: [WishlistItemSchema], default: [] })
+  wishlist!: WishlistItem[];
 
   readonly createdAt!: Date;
   readonly updatedAt!: Date;

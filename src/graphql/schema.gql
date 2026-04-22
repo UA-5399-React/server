@@ -500,6 +500,7 @@ type UserType {
   phone: String
   role: Role!
   updatedAt: DateTime!
+  wishlist: [WishlistItemType!]!
 }
 
 input UsersFilterInput {
@@ -518,4 +519,12 @@ type UsersPage {
   page: Int!
   total: Int!
   totalPages: Int!
+}
+
+"""wishlist item"""
+type WishlistItemType {
+  image: String
+  price: Float!
+  productId: ID!
+  title: String!
 }
