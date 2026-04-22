@@ -58,6 +58,7 @@ input CreateOrderUserInput {
 }
 
 input CreateProductInput {
+  additionalImages: [ProductImageInput!]
   categories: [String!]
   description: String
   imagePublicId: String
@@ -263,6 +264,16 @@ enum PaymentStatus {
   REFUNDED
 }
 
+input ProductImageInput {
+  imagePublicId: String!
+  imageUrl: String!
+}
+
+type ProductImageType {
+  imagePublicId: String!
+  imageUrl: String!
+}
+
 enum ProductSortField {
   createdAt
   price
@@ -277,10 +288,9 @@ enum ProductStatus {
   INACTIVE
 }
 
-"""
-product
-"""
+"""product"""
 type ProductType {
+  additionalImages: [ProductImageType!]
   categories: [String!]!
   createdAt: DateTime!
   description: String
@@ -296,27 +306,19 @@ type ProductType {
 }
 
 input ProductsFilterInput {
-  """
-  Exact match in tags[]
-  """
+  """Exact match in tags[]"""
   category: [String!]
 
-  """
-  by what field to sort
-  """
+  """by what field to sort"""
   dateType: String
   maxPrice: Float
   minPrice: Float
   status: ProductStatus
 
-  """
-  updatedAt >= updatedFrom
-  """
+  """updatedAt >= updatedFrom"""
   updatedFrom: DateTime
 
-  """
-  updatedAt <= updatedTo
-  """
+  """updatedAt <= updatedTo"""
   updatedTo: DateTime
 }
 
@@ -341,34 +343,13 @@ type Query {
   getSubscribers(input: GetSubscribersInput): [SubscriberModel!]!
   order(id: ID!): OrderType!
   orderStats: OrderStatsType!
-  orders(
-    filter: OrdersFilterInput
-    limit: Int! = 10
-    order: SortOrder! = desc
-    page: Int! = 1
-    search: String
-    sort: OrdersSortField! = createdAt
-  ): OrdersPage!
+  orders(filter: OrdersFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: OrdersSortField! = createdAt): OrdersPage!
   product(id: ID!): ProductType!
-  productsPage(
-    filter: ProductsFilterInput
-    limit: Int! = 10
-    order: SortOrder! = desc
-    page: Int! = 1
-    search: String
-    sort: ProductSortField! = updatedAt
-  ): ProductsPageType!
+  productsPage(filter: ProductsFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: ProductSortField! = updatedAt): ProductsPageType!
   user(id: ID!): UserType!
-  userStats(month: Int, year: Int): UserStatsType!
   userRegistrationTimeseries(dateFrom: DateTime, dateTo: DateTime): UserRegistrationTimeseriesType!
-  users(
-    filter: UsersFilterInput
-    limit: Int! = 10
-    order: SortOrder! = desc
-    page: Int! = 1
-    search: String
-    sort: UserSortField! = createdAt
-  ): UsersPage!
+  userStats(month: Int, year: Int): UserStatsType!
+  users(filter: UsersFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: UserSortField! = createdAt): UsersPage!
 }
 
 enum Role {
@@ -459,6 +440,7 @@ input UpdateOrderUserInput {
 }
 
 input UpdateProductInput {
+  additionalImages: [ProductImageInput!]
   categories: [String!]
   description: String
   imagePublicId: String
@@ -490,6 +472,7 @@ type UserRegistrationDayType {
   date: String!
   day: Int!
 }
+
 type UserRegistrationMonthType {
   count: Int!
   month: String!
@@ -515,9 +498,7 @@ type UserStatsType {
   totalUsers: Int!
 }
 
-"""
-user
-"""
+"""user"""
 type UserType {
   avatarUrl: String
   createdAt: DateTime!

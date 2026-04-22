@@ -18,6 +18,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { GetProductsQueryDto } from './dto/get-products.query.dto';
 import { ProductListItemDto } from './dto/product-list-item.dto';
 import { Product, ProductDocument } from './entities/product.schema';
+import { ProductImage } from './entities/product-image.schema';
 import { ProductStatus } from './enums/product-status.enum';
 
 @Injectable()
@@ -190,6 +191,7 @@ export class ProductsService {
 
     return this.productModel.create({
       ...createProductDto,
+      additionalImages: this.cloneAdditionalImages(createProductDto.additionalImages),
       productCode,
     });
   }
@@ -201,9 +203,15 @@ export class ProductsService {
     const product = await this.findOne(id);
 
     this.assertStatusTransitionAllowed(product.status, updateProductDto.status);
+    const updateData = {
+      ...updateProductDto,
+      ...(updateProductDto.additionalImages !== undefined
+        ? { additionalImages: this.cloneAdditionalImages(updateProductDto.additionalImages) }
+        : {}),
+    };
 
     const existingProduct = await this.productModel
-      .findByIdAndUpdate(id, updateProductDto, { new: true })
+      .findByIdAndUpdate(id, updateData, { new: true })
       .exec();
 
     if (!existingProduct) {
@@ -222,6 +230,7 @@ export class ProductsService {
     const duplicated = new this.productModel({
       imageUrl: source.imageUrl,
       imagePublicId: source.imagePublicId,
+      additionalImages: this.cloneAdditionalImages(source.additionalImages),
       title: `${source.title} (Copy)`,
       categories: [...source.categories],
       description: source.description,
@@ -265,6 +274,17 @@ export class ProductsService {
     if (next === ProductStatus.DRAFT && current !== ProductStatus.DRAFT) {
       throw new BadRequestException('Cannot revert product to draft');
     }
+  }
+
+  private cloneAdditionalImages(images?: ProductImage[]): ProductImage[] {
+    if (!images?.length) {
+      return [];
+    }
+
+    return images.map(({ imageUrl, imagePublicId }) => ({
+      imageUrl,
+      imagePublicId,
+    }));
   }
 
   private async generateCode(): Promise<string> {

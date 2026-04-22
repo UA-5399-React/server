@@ -20,6 +20,12 @@ const mockProduct = {
   id: VALID_ID,
   imageUrl: 'example.com/image.jpg',
   imagePublicId: 'products/example-image',
+  additionalImages: [
+    {
+      imageUrl: 'https://example.com/detail-1.jpg',
+      imagePublicId: 'products/example-image-detail-1',
+    },
+  ],
   status: ProductStatus.DRAFT,
   title: 'Laptop',
   categories: ['507f1f77bcf86cd799439011', '507f1f77bcf86cd799439012'],
@@ -338,10 +344,36 @@ describe('ProductsService', () => {
 
       expect(mockProductModel.create).toHaveBeenCalledWith({
         ...input,
+        additionalImages: [],
         productCode: '0000010',
       });
       expect(result).toEqual({
         ...mockProduct,
+        productCode: '0000010',
+      });
+    });
+
+    it('should persist additional images when provided', async () => {
+      mockProductModel.findOne.mockReturnValue({
+        sort: jest.fn().mockReturnValue({
+          select: jest.fn().mockResolvedValue({ productCode: '0000009' }),
+        }),
+      });
+      mockProductModel.create.mockResolvedValue({
+        ...mockProduct,
+        productCode: '0000010',
+      });
+
+      const input = {
+        title: 'Laptop',
+        price: 20000,
+        additionalImages: [...mockProduct.additionalImages],
+      };
+
+      await service.create(input);
+
+      expect(mockProductModel.create).toHaveBeenCalledWith({
+        ...input,
         productCode: '0000010',
       });
     });
@@ -367,6 +399,7 @@ describe('ProductsService', () => {
       expect(mockProductModel.findOne).toHaveBeenCalledWith({ productCode: /^\d+$/ });
       expect(mockProductModel.create).toHaveBeenCalledWith({
         ...input,
+        additionalImages: [],
         productCode: '0000001',
       });
     });
@@ -396,6 +429,36 @@ describe('ProductsService', () => {
       const result = await service.update(VALID_ID, input);
 
       expect(result).toEqual(updatedProduct);
+      expect(mockProductModel.findByIdAndUpdate).toHaveBeenCalledWith(VALID_ID, input, {
+        new: true,
+      });
+    });
+
+    it('should update additional images when they are provided', async () => {
+      const updatedProduct = {
+        ...mockProduct,
+        additionalImages: [
+          {
+            imageUrl: 'https://example.com/detail-2.jpg',
+            imagePublicId: 'products/example-image-detail-2',
+          },
+        ],
+      };
+
+      mockProductModel.findById.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockProduct),
+      });
+
+      mockProductModel.findByIdAndUpdate.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(updatedProduct),
+      });
+
+      const input = {
+        additionalImages: [...updatedProduct.additionalImages],
+      };
+
+      await service.update(VALID_ID, input);
+
       expect(mockProductModel.findByIdAndUpdate).toHaveBeenCalledWith(VALID_ID, input, {
         new: true,
       });
@@ -447,6 +510,7 @@ describe('ProductsService', () => {
       const duplicatedProduct = {
         imageUrl: mockProduct.imageUrl,
         imagePublicId: mockProduct.imagePublicId,
+        additionalImages: [...mockProduct.additionalImages],
         title: `${mockProduct.title} (Copy)`,
         categories: [...mockProduct.categories],
         description: mockProduct.description,
@@ -462,6 +526,7 @@ describe('ProductsService', () => {
       expect(mockProductModel).toHaveBeenCalledWith({
         imageUrl: mockProduct.imageUrl,
         imagePublicId: mockProduct.imagePublicId,
+        additionalImages: [...mockProduct.additionalImages],
         title: 'Laptop (Copy)',
         categories: ['507f1f77bcf86cd799439011', '507f1f77bcf86cd799439012'],
         description: mockProduct.description,
