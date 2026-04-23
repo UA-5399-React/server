@@ -13,6 +13,12 @@ export function toUserListResponseDto(user: UserListItem): UserResponseDto {
     avatarUrl: user.avatarUrl ?? undefined,
     isActive: user.isActive,
     isEmailConfirmed: user.isEmailConfirmed,
+    wishlist: (user.wishlist ?? []).map((item) => ({
+      productId: item.productId.toString(),
+      title: item.title,
+      price: item.price,
+      image: item.image,
+    })),
   };
 }
 
@@ -28,5 +34,11 @@ export function toUserResponseDto(user: UserDocument): UserResponseDto {
     isActive: user.isActive,
     isEmailConfirmed: user.isEmailConfirmed,
     isGoogleConnected: Boolean(user.googleId),
+    wishlist: (user.wishlist ?? []).map((item) => ({
+      productId: item.productId.toString(),
+      title: item.title,
+      price: item.price,
+      image: item.image,
+    })),
   };
 }
