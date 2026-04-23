@@ -285,7 +285,7 @@ describe('UsersService', () => {
         },
       );
 
-      expect(result).toEqual({ id: '1', email: 'new@test.com' });
+      expect(result).toEqual({ user: { id: '1', email: 'new@test.com' }, tempPassword: null });
     });
   });
 

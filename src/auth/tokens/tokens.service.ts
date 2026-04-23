@@ -85,6 +85,7 @@ export class TokensService {
     }
     return tokenDoc;
   }
+
   async ensureCooldownOrThrow(userId: string, type: TokenType, cooldownMs: number): Promise<void> {
     const existingToken = await this.findActiveByUserAndType(userId, type);
 
