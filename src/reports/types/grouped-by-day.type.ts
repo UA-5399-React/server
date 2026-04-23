@@ -1,5 +1,6 @@
 import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
 
+import { BaseSalesSummaryType } from '@/reports/types/base-sales-summary.type';
 import { SalesReportItemType } from '@/reports/types/sales-report-item.type';
 
 @ObjectType({ implements: SalesReportItemType })
@@ -12,4 +13,22 @@ export class GroupedByDay extends SalesReportItemType {
 
   @Field(() => Float)
   averageCheck: number;
+}
+
+@ObjectType()
+export class DaySalesSummaryType extends BaseSalesSummaryType {
+  @Field(() => Int)
+  totalOrdersCount: number;
+
+  @Field(() => Float)
+  averageCheck: number;
+}
+
+@ObjectType()
+export class SalesReportByDayResponse {
+  @Field(() => [GroupedByDay])
+  items: GroupedByDay[];
+
+  @Field(() => DaySalesSummaryType)
+  summary: DaySalesSummaryType;
 }

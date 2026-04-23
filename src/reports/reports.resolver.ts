@@ -1,26 +1,33 @@
 import { Args, Query, Resolver } from '@nestjs/graphql';
 
-import { GetSalesStatisticsArgs } from '@/reports/inputs/get-sales-statistics.args';
+import { GetAbcAnalysisStatisticsArgs } from '@/reports/args/get-abc-analysis-statistics.args';
+import { GetSalesStatisticsArgs } from '@/reports/args/get-sales-statistics.args';
 import { ReportsService } from '@/reports/reports.service';
-import { GroupedByCategory } from '@/reports/types/grouped-by-category.type';
-import { GroupedByDay } from '@/reports/types/grouped-by-day.type';
-import { GroupedByProduct } from '@/reports/types/grouped-by-products.type';
+import { AbcAnalysisResponse } from '@/reports/types/abc-analysis-response.type';
+import { SalesReportByCategoryResponse } from '@/reports/types/grouped-by-category.type';
+import { SalesReportByDayResponse } from '@/reports/types/grouped-by-day.type';
+import { SalesReportByProdResponse } from '@/reports/types/grouped-by-products.type';
 
 @Resolver()
 export class ReportsResolver {
   constructor(private readonly reportsService: ReportsService) {}
 
-  @Query(() => [GroupedByProduct])
-  getSalesByProduct(@Args() args: GetSalesStatisticsArgs): Promise<GroupedByProduct[]> {
+  @Query(() => SalesReportByProdResponse)
+  getSalesByProduct(@Args() args: GetSalesStatisticsArgs): Promise<SalesReportByProdResponse> {
     return this.reportsService.getSalesGroupedByProduct(args);
   }
-  @Query(() => [GroupedByCategory])
-  getSalesByCategory(@Args() args: GetSalesStatisticsArgs): Promise<GroupedByCategory[]> {
+  @Query(() => SalesReportByCategoryResponse)
+  getSalesByCategory(@Args() args: GetSalesStatisticsArgs): Promise<SalesReportByCategoryResponse> {
     return this.reportsService.getSalesGroupedByCategory(args);
   }
 
-  @Query(() => [GroupedByDay])
-  getSalesByDay(@Args() args: GetSalesStatisticsArgs): Promise<GroupedByDay[]> {
+  @Query(() => SalesReportByDayResponse)
+  getSalesByDay(@Args() args: GetSalesStatisticsArgs): Promise<SalesReportByDayResponse> {
     return this.reportsService.getSalesGroupedByDay(args);
+  }
+
+  @Query(() => AbcAnalysisResponse)
+  async getAbcAnalysis(@Args() args: GetAbcAnalysisStatisticsArgs): Promise<AbcAnalysisResponse> {
+    return this.reportsService.getAbcAnalysis(args);
   }
 }
