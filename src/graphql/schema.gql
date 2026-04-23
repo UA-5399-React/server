@@ -92,6 +92,7 @@ input CreateOrderUserInput {
 }
 
 input CreateProductInput {
+  additionalImages: [ProductImageInput!]
   categories: [String!]
   description: String
   imagePublicId: String
@@ -333,6 +334,7 @@ enum ProductStatus {
 
 """product"""
 type ProductType {
+  additionalImages: [ProductImageType!]
   categories: [String!]!
   createdAt: DateTime!
   description: String
@@ -520,6 +522,7 @@ input UpdateOrderUserInput {
 }
 
 input UpdateProductInput {
+  additionalImages: [ProductImageInput!]
   categories: [String!]
   description: String
   imagePublicId: String

@@ -92,6 +92,13 @@ export class ProductSeeder {
           ProductStatus.DRAFT,
         ]),
         imageUrl: faker.helpers.arrayElement(techImages),
+        additionalImages: faker.helpers.arrayElements(
+          techImages.map((imageUrl, index) => ({
+            imageUrl,
+            imagePublicId: `seed/products/${productCode}-${index + 1}`,
+          })),
+          faker.number.int({ min: 0, max: 3 }),
+        ),
         categories: categoriesForProduct,
       };
 

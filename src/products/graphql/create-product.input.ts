@@ -1,4 +1,5 @@
 import { Field, Float, InputType } from '@nestjs/graphql';
+import { Type } from 'class-transformer';
 import {
   ArrayUnique,
   IsArray,
@@ -8,10 +9,12 @@ import {
   IsString,
   IsUrl,
   Min,
+  ValidateNested,
 } from 'class-validator';
 
 import { Trim } from '@/common/decorators/trim.decorator';
 import { NormalizeStringArray } from '@/common/decorators/trim-array.decorator';
+import { ProductImageInput } from '@/products/graphql/product-image.input';
 
 @InputType()
 export class CreateProductInput {
@@ -19,7 +22,7 @@ export class CreateProductInput {
   @Trim()
   @IsString()
   @IsNotEmpty()
-  title: string;
+  title!: string;
 
   @Field({ nullable: true })
   @Trim()
@@ -45,6 +48,13 @@ export class CreateProductInput {
   @IsString()
   @IsOptional()
   imagePublicId?: string;
+
+  @Field(() => [ProductImageInput], { nullable: true })
+  @ValidateNested({ each: true })
+  @Type(() => ProductImageInput)
+  @IsArray()
+  @IsOptional()
+  additionalImages?: ProductImageInput[];
 
   @Field(() => [String], { nullable: true })
   @NormalizeStringArray()
