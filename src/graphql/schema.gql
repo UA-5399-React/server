@@ -131,6 +131,13 @@ input GetSubscribersInput {
   isActive: Boolean
 }
 
+"""Time grouping granularity for sales dynamics"""
+enum GroupBy {
+  DAY
+  MONTH
+  WEEK
+}
+
 enum GroupByEnum {
   CATEGORY
   DAY
@@ -382,6 +389,18 @@ type Query {
   orders(filter: OrdersFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: OrdersSortField! = createdAt): OrdersPage!
   product(id: ID!): ProductType!
   productsPage(filter: ProductsFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: ProductSortField! = updatedAt): ProductsPageType!
+
+  """
+  Time-series sales data for 1–2 products. Returns an array of {date, productId, value} points grouped by the requested granularity. Zero-filled so every bucket is present.
+  """
+  salesDynamics(
+    from: DateTime!
+    groupBy: GroupBy!
+
+    """One or two product IDs to compare"""
+    productIds: [ID!]!
+    to: DateTime!
+  ): [SalesDynamicsPoint!]!
   user(id: ID!): UserType!
   userRegistrationTimeseries(dateFrom: DateTime, dateTo: DateTime): UserRegistrationTimeseriesType!
   userStats(month: Int, year: Int): UserStatsType!
@@ -407,6 +426,16 @@ type SalesReportByDayResponse {
 type SalesReportByProdResponse {
   items: [GroupedByProduct!]!
   summary: ProductSalesSummaryType!
+
+}
+
+type SalesDynamicsPoint {
+  """Formatted date label (e.g. "2024-03-18", "2024-W11", "2024-03")"""
+  date: String!
+  productId: ID!
+
+  """Total units sold in this period"""
+  value: Int!
 }
 
 interface SalesReportItemType {

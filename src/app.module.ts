@@ -25,6 +25,7 @@ import { OrdersModule } from './orders/orders.module';
 import { PaymentsModule } from './payments/payments.module';
 import { ProductsModule } from './products/products.module';
 import { ShippingModule } from './shipping/shipping.module';
+import { StatisticsModule } from './statistics/statistics.module';
 import { UploadsModule } from './uploads/uploads.module';
 
 @Module({
@@ -61,6 +62,7 @@ import { UploadsModule } from './uploads/uploads.module';
     PaymentsModule,
     NewsletterModule,
     ExportModule,
+    StatisticsModule,
     FeaturedProductsModule,
     ThrottlerModule.forRoot([
       {
