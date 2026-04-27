@@ -600,11 +600,11 @@ export class OrdersService {
     }
 
     if (args.filter?.paymentStatus) {
-      filter.paymentStatus = args.filter.paymentStatus;
+      filter['payment.status'] = args.filter.paymentStatus;
     }
 
     if (args.filter?.paymentMethod) {
-      filter.paymentMethod = args.filter.paymentMethod;
+      filter['payment.method'] = args.filter.paymentMethod;
     }
 
     if (args.filter?.carrier) {
