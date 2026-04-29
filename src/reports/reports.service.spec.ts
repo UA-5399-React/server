@@ -184,6 +184,9 @@ describe('ReportsService', () => {
       expect(aggregateMock).toHaveBeenCalledTimes(1);
       expect(result).toEqual({
         items: aggregatedItems,
+        total: 3,
+        page: 1,
+        limit: 10,
         summary: {
           metric: AbcMetricEnum.REVENUE,
           totalValue: 2000,
@@ -203,6 +206,9 @@ describe('ReportsService', () => {
 
       expect(result).toEqual({
         items: [],
+        total: 0,
+        page: 1,
+        limit: 10,
         summary: {
           metric: AbcMetricEnum.REVENUE,
           totalValue: 0,
@@ -273,6 +279,9 @@ describe('ReportsService', () => {
 
       expect(result).toEqual({
         items: aggregatedItems,
+        total: 2,
+        page: 1,
+        limit: 10,
         summary: {
           metric: AbcMetricEnum.UNITS,
           totalValue: 20,
