@@ -461,42 +461,78 @@ export class ReportsService {
         },
 
         {
-          $project: {
-            _id: 0,
-            productName: 1,
-            productCode: 1,
-            value: { $round: [`$${metricFieldName}`, 2] },
-            cumulativeValue: { $round: ['$cumulativeValue', 2] },
-            totalValue: { $round: ['$totalValue', 2] },
-            cumulativePercentage: {
-              $round: [
+          $addFields: {
+            previousCumulativePercentage: {
+              $multiply: [
                 {
-                  $multiply: [{ $divide: ['$cumulativeValue', '$totalValue'] }, 100],
+                  $divide: [
+                    {
+                      $subtract: ['$cumulativeValue', `$${metricFieldName}`],
+                    },
+                    '$totalValue',
+                  ],
                 },
-                2,
-              ],
-            },
-            percentageByTotal: {
-              $round: [
-                {
-                  $multiply: [{ $divide: [`$${metricFieldName}`, '$totalValue'] }, 100],
-                },
-                2,
+                100,
               ],
             },
           },
         },
+
         {
-          $addFields: {
+          $project: {
+            _id: 0,
+            productName: 1,
+            productCode: 1,
+
+            value: {
+              $round: [`$${metricFieldName}`, 2],
+            },
+
+            cumulativeValue: {
+              $round: ['$cumulativeValue', 2],
+            },
+
+            totalValue: {
+              $round: ['$totalValue', 2],
+            },
+
+            cumulativePercentage: {
+              $round: [
+                {
+                  $multiply: [
+                    {
+                      $divide: ['$cumulativeValue', '$totalValue'],
+                    },
+                    100,
+                  ],
+                },
+                2,
+              ],
+            },
+
+            percentageByTotal: {
+              $round: [
+                {
+                  $multiply: [
+                    {
+                      $divide: [`$${metricFieldName}`, '$totalValue'],
+                    },
+                    100,
+                  ],
+                },
+                2,
+              ],
+            },
+
             bucket: {
               $switch: {
                 branches: [
                   {
-                    case: { $lte: ['$cumulativePercentage', aThreshold] },
+                    case: { $lt: ['$previousCumulativePercentage', aThreshold] },
                     then: 'A',
                   },
                   {
-                    case: { $lte: ['$cumulativePercentage', bThreshold] },
+                    case: { $lt: ['$previousCumulativePercentage', bThreshold] },
                     then: 'B',
                   },
                 ],
