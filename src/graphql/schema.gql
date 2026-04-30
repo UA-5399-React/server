@@ -238,6 +238,11 @@ enum OrderStatus {
   SHIPPING
 }
 
+type OrderStatusSegmentType {
+  count: Int!
+  status: String!
+}
+
 type OrderType {
   amount: Float!
   createdAt: DateTime!
@@ -295,6 +300,11 @@ enum OrdersSortField {
   updatedAt
 }
 
+type OrdersStatusStatsType {
+  statuses: [OrderStatusSegmentType!]!
+  total: Int!
+}
+
 type PaymentInfoType {
   method: PaymentMethod!
   status: PaymentStatus!
@@ -311,6 +321,16 @@ enum PaymentStatus {
   PAID
   PENDING
   REFUNDED
+}
+
+input ProductImageInput {
+  imagePublicId: String!
+  imageUrl: String!
+}
+
+type ProductImageType {
+  imagePublicId: String!
+  imageUrl: String!
 }
 
 type ProductSalesSummaryType {
@@ -389,6 +409,7 @@ type Query {
   order(id: ID!): OrderType!
   orderStats: OrderStatsType!
   orders(filter: OrdersFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: OrdersSortField! = createdAt): OrdersPage!
+  ordersStatusStats: OrdersStatusStatsType!
   product(id: ID!): ProductType!
   productsPage(filter: ProductsFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: ProductSortField! = updatedAt): ProductsPageType!
 
@@ -415,6 +436,15 @@ enum Role {
   SUPER_ADMIN
 }
 
+type SalesDynamicsPoint {
+  """Formatted date label (e.g. "2024-03-18", "2024-W11", "2024-03")"""
+  date: String!
+  productId: ID!
+
+  """Total units sold in this period"""
+  value: Int!
+}
+
 type SalesReportByCategoryResponse {
   items: [GroupedByCategory!]!
   summary: CategorySalesSummaryType!
@@ -428,16 +458,6 @@ type SalesReportByDayResponse {
 type SalesReportByProdResponse {
   items: [GroupedByProduct!]!
   summary: ProductSalesSummaryType!
-
-}
-
-type SalesDynamicsPoint {
-  """Formatted date label (e.g. "2024-03-18", "2024-W11", "2024-03")"""
-  date: String!
-  productId: ID!
-
-  """Total units sold in this period"""
-  value: Int!
 }
 
 interface SalesReportItemType {
