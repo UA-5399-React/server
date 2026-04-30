@@ -80,8 +80,17 @@ export class ReportsService {
       ])
       .exec();
 
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const total = items.length;
+    const offset = (page - 1) * limit;
+    const paginatedItems = items.slice(offset, offset + limit);
+
     return {
-      items,
+      items: paginatedItems,
+      total,
+      page,
+      limit,
       summary: {
         totalRevenue: Number(items.reduce((sum, item) => sum + item.revenue, 0).toFixed(2)),
         totalUnitsSold: items.reduce((sum, item) => sum + item.unitsSold, 0),
@@ -221,8 +230,17 @@ export class ReportsService {
     const totalUnitsSold = items.reduce((sum, item) => sum + item.unitsSold, 0);
     const totalOrdersCount = items.reduce((sum, item) => sum + item.ordersCount, 0);
 
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const total = items.length;
+    const offset = (page - 1) * limit;
+    const paginatedItems = items.slice(offset, offset + limit);
+
     return {
-      items,
+      items: paginatedItems,
+      total,
+      page,
+      limit,
       summary: {
         totalRevenue,
         totalUnitsSold,
@@ -306,8 +324,17 @@ export class ReportsService {
       ])
       .exec();
 
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const total = items.length;
+    const offset = (page - 1) * limit;
+    const paginatedItems = items.slice(offset, offset + limit);
+
     return {
-      items,
+      items: paginatedItems,
+      total,
+      page,
+      limit,
       summary: {
         totalRevenue: Number(items.reduce((sum, item) => sum + item.revenue, 0).toFixed(2)),
         totalUnitsSold: items.reduce((sum, item) => sum + item.unitsSold, 0),
