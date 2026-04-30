@@ -508,8 +508,17 @@ export class ReportsService {
       ])
       .exec();
 
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const total = items.length;
+    const offset = (page - 1) * limit;
+    const paginatedItems = items.slice(offset, offset + limit);
+
     return {
-      items,
+      items: paginatedItems,
+      total,
+      page,
+      limit,
       summary: {
         metric: query.metric,
         totalValue: items[0]?.totalValue ?? 0,
