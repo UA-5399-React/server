@@ -1,4 +1,4 @@
-import { Field, ObjectType } from '@nestjs/graphql';
+import { Field, Int, ObjectType } from '@nestjs/graphql';
 
 import { BaseSalesSummaryType } from '@/reports/types/base-sales-summary.type';
 import { SalesReportItemType } from '@/reports/types/sales-report-item.type';
@@ -19,6 +19,15 @@ export class ProductSalesSummaryType extends BaseSalesSummaryType {}
 export class SalesReportByProdResponse {
   @Field(() => [GroupedByProduct])
   items: GroupedByProduct[];
+
+  @Field(() => Int)
+  total: number;
+
+  @Field(() => Int)
+  page: number;
+
+  @Field(() => Int)
+  limit: number;
 
   @Field(() => ProductSalesSummaryType)
   summary: ProductSalesSummaryType;

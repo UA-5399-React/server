@@ -29,6 +29,15 @@ export class SalesReportByDayResponse {
   @Field(() => [GroupedByDay])
   items: GroupedByDay[];
 
+  @Field(() => Int)
+  total: number;
+
+  @Field(() => Int)
+  page: number;
+
+  @Field(() => Int)
+  limit: number;
+
   @Field(() => DaySalesSummaryType)
   summary: DaySalesSummaryType;
 }
