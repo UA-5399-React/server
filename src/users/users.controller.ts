@@ -133,6 +133,15 @@ export class UsersController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
+  @ApiOkResponse({ type: UserResponseDto })
+  @Delete('me/wishlist')
+  async clearWishlist(@Req() req: AuthRequest): Promise<UserResponseDto> {
+    const user = await this.usersService.clearWishlist(req.user.id);
+    return toUserResponseDto(user);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @ApiConsumes('multipart/form-data')
   @ApiBody({ type: UploadAvatarBodyDto })
   @ApiOkResponse({ type: UserResponseDto })

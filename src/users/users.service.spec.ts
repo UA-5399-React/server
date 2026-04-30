@@ -325,6 +325,30 @@ describe('UsersService', () => {
     });
   });
 
+  describe('clearWishlist', () => {
+    it('should clear wishlist and return updated user', async () => {
+      const updatedUser = { id: '123', wishlist: [] };
+      mockUserModel.findByIdAndUpdate.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(updatedUser),
+      });
+
+      await expect(service.clearWishlist('123')).resolves.toEqual(updatedUser);
+      expect(mockUserModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        '123',
+        { $set: { wishlist: [] } },
+        { new: true, runValidators: true },
+      );
+    });
+
+    it('should throw NotFoundException when user not found', async () => {
+      mockUserModel.findByIdAndUpdate.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null),
+      });
+
+      await expect(service.clearWishlist('123')).rejects.toThrow(NotFoundException);
+    });
+  });
+
   describe('getStats', () => {
     it('should return totals and one entry per day for current UTC month', async () => {
       jest.useFakeTimers({ now: new Date(Date.UTC(2026, 3, 11)) });

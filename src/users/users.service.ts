@@ -518,6 +518,18 @@ export class UsersService {
     return updatedUser;
   }
 
+  async clearWishlist(userId: string): Promise<UserDocument> {
+    const updatedUser = await this.userModel
+      .findByIdAndUpdate(userId, { $set: { wishlist: [] } }, { new: true, runValidators: true })
+      .exec();
+
+    if (!updatedUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    return updatedUser;
+  }
+
   // Google User
 
   async findByIdForAuth(id: string): Promise<UserDocument | null> {
