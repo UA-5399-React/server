@@ -1,5 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
+import { GqlAuthGuard } from '@/auth/guards/gql-auth.guard';
+import { RolesGuard } from '@/auth/guards/roles.guard';
 import { GetAbcAnalysisStatisticsArgs } from '@/reports/args/get-abc-analysis-statistics.args';
 import { GetSalesStatisticsArgs } from '@/reports/args/get-sales-statistics.args';
 import { AbcMetricEnum } from '@/reports/enums/abc-metric.enum';
@@ -30,7 +32,12 @@ describe('ReportsResolver', () => {
           useValue: reportsServiceMock,
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(GqlAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     resolver = module.get<ReportsResolver>(ReportsResolver);
     reportsService = module.get(ReportsService);
