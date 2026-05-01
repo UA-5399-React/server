@@ -1,13 +1,19 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { Field, Int, ObjectType } from '@nestjs/graphql';
 
-export class OrderStatusSegmentDto {
-  @ApiProperty() status!: string;
-  @ApiProperty() count!: number;
-  @ApiProperty() percentage!: number;
+@ObjectType()
+export class OrderStatusSegmentType {
+  @Field()
+  status!: string;
+
+  @Field(() => Int)
+  count!: number;
 }
 
-export class OrdersStatusStatsDto {
-  @ApiProperty() total!: number;
-  @ApiProperty({ type: OrderStatusSegmentDto }) largestSegment!: OrderStatusSegmentDto;
-  @ApiProperty({ type: [OrderStatusSegmentDto] }) statuses!: OrderStatusSegmentDto[];
+@ObjectType()
+export class OrdersStatusStatsType {
+  @Field(() => Int)
+  total!: number;
+
+  @Field(() => [OrderStatusSegmentType])
+  statuses!: OrderStatusSegmentType[];
 }

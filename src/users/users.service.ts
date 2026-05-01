@@ -23,6 +23,7 @@ import { CloudinaryService } from '@/uploads/cloudinary.service';
 import { CreateUserData } from '@/users/dto/create-user.type';
 import { GoogleUserUpdateData } from '@/users/dto/google-user-update-data.type';
 import { UpdateMeDto } from '@/users/dto/update-me.dto';
+import { UpsertWishlistItemDto } from '@/users/dto/upsert-wishlist-item.dto';
 import { User, UserDocument } from '@/users/entities/user.schema';
 import { Role } from '@/users/enums/role.enum';
 import { UserDateFilterField } from '@/users/enums/user-date-filter-field.enum';
@@ -447,6 +448,79 @@ export class UsersService {
   async updateById(id: string, data: Partial<User>): Promise<UserDocument> {
     const updatedUser = await this.userModel
       .findByIdAndUpdate(id, { $set: data }, { new: true, runValidators: true })
+      .exec();
+
+    if (!updatedUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    return updatedUser;
+  }
+
+  async upsertWishlistItem(userId: string, dto: UpsertWishlistItemDto): Promise<UserDocument> {
+    const productId = new Types.ObjectId(dto.productId);
+    const data = {
+      productId: productId,
+      title: dto.title.trim(),
+      price: dto.price,
+      image: dto.image?.trim(),
+    };
+
+    const existingUser = await this.userModel.findById(userId).select('_id').exec();
+    if (!existingUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    await this.userModel
+      .findByIdAndUpdate(
+        userId,
+        {
+          $pull: { wishlist: { productId: productId } },
+        },
+        { runValidators: true },
+      )
+      .exec();
+
+    const updatedUser = await this.userModel
+      .findByIdAndUpdate(
+        userId,
+        {
+          $push: { wishlist: data },
+        },
+        { new: true, runValidators: true },
+      )
+      .exec();
+
+    if (!updatedUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    return updatedUser;
+  }
+
+  async removeWishlistItem(userId: string, productId: string): Promise<UserDocument> {
+    if (!Types.ObjectId.isValid(productId)) {
+      throw new BadRequestException(`Invalid product id: "${productId}"`);
+    }
+
+    const updatedUser = await this.userModel
+      .findByIdAndUpdate(
+        userId,
+        { $pull: { wishlist: { productId: new Types.ObjectId(productId) } } },
+        { new: true, runValidators: true },
+      )
+      .exec();
+
+    if (!updatedUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    return updatedUser;
+  }
+
+  async clearWishlist(userId: string): Promise<UserDocument> {
+    const updatedUser = await this.userModel
+      .findByIdAndUpdate(userId, { $set: { wishlist: [] } }, { new: true, runValidators: true })
       .exec();
 
     if (!updatedUser) {

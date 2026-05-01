@@ -26,6 +26,15 @@ export class AbcAnalysisResponse {
   @Field(() => [AbcAnalysisType])
   items: AbcAnalysisType[];
 
+  @Field(() => Int)
+  total: number;
+
+  @Field(() => Int)
+  page: number;
+
+  @Field(() => Int)
+  limit: number;
+
   @Field(() => AbcAnalysisSummaryType)
   summary: AbcAnalysisSummaryType;
 }

@@ -3,6 +3,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { HydratedDocument, Types } from 'mongoose';
 
 import { ProductStatus } from '../enums/product-status.enum';
+import { ProductImage, ProductImageSchema } from './product-image.schema';
 
 export type ProductDocument = HydratedDocument<Product>;
 
@@ -16,17 +17,21 @@ export class Product {
   @Prop()
   imagePublicId?: string;
 
+  @ApiProperty({ type: [ProductImage], required: false })
+  @Prop({ type: [ProductImageSchema], default: [] })
+  additionalImages?: ProductImage[];
+
   @ApiProperty({ enum: ProductStatus, default: ProductStatus.DRAFT })
   @Prop({ type: String, enum: ProductStatus, default: ProductStatus.DRAFT })
-  status: ProductStatus;
+  status!: ProductStatus;
 
   @ApiProperty({ example: 'iPhone 15 Pro' })
   @Prop({ required: true })
-  title: string;
+  title!: string;
 
   @ApiProperty({ example: ['electronics', 'smartphone'], required: false })
   @Prop({ type: [Types.ObjectId], ref: 'Category', default: [] })
-  categories: Types.ObjectId[];
+  categories!: Types.ObjectId[];
 
   @ApiProperty({ example: 'Latest Apple smartphone', required: false })
   @Prop()
@@ -34,10 +39,10 @@ export class Product {
 
   @ApiProperty({ example: 999.99 })
   @Prop({ required: true, default: 0 })
-  price: number;
+  price!: number;
 
   @Prop({ required: true, unique: true, index: true })
-  productCode: string;
+  productCode!: string;
 }
 
 export const ProductSchema = SchemaFactory.createForClass(Product);

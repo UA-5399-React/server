@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import {
   IsArray,
   IsNotEmpty,
@@ -7,7 +8,10 @@ import {
   IsUrl,
   Matches,
   Min,
+  ValidateNested,
 } from 'class-validator';
+
+import { ProductImageDto } from './product-image.dto';
 
 const NO_HTML_TAGS = /^(?!.*<\/?[a-zA-Z][^<>]*>)[\s\S]*$/;
 const NO_HTML_MESSAGE = { message: '$property must not contain HTML tags' };
@@ -16,7 +20,7 @@ export class CreateProductDto {
   @IsString()
   @IsNotEmpty()
   @Matches(NO_HTML_TAGS, NO_HTML_MESSAGE)
-  title: string;
+  title!: string;
 
   @IsString()
   @IsOptional()
@@ -36,6 +40,12 @@ export class CreateProductDto {
   @IsString()
   @IsOptional()
   imagePublicId?: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ProductImageDto)
+  @IsOptional()
+  additionalImages?: ProductImageDto[];
 
   @IsArray()
   @IsString({ each: true })

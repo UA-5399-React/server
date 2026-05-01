@@ -4,7 +4,10 @@
 
 type AbcAnalysisResponse {
   items: [AbcAnalysisType!]!
+  limit: Int!
+  page: Int!
   summary: AbcAnalysisSummaryType!
+  total: Int!
 }
 
 type AbcAnalysisSummaryType {
@@ -92,6 +95,7 @@ input CreateOrderUserInput {
 }
 
 input CreateProductInput {
+  additionalImages: [ProductImageInput!]
   categories: [String!]
   description: String
   imagePublicId: String
@@ -237,6 +241,11 @@ enum OrderStatus {
   SHIPPING
 }
 
+type OrderStatusSegmentType {
+  count: Int!
+  status: String!
+}
+
 type OrderType {
   amount: Float!
   createdAt: DateTime!
@@ -294,6 +303,11 @@ enum OrdersSortField {
   updatedAt
 }
 
+type OrdersStatusStatsType {
+  statuses: [OrderStatusSegmentType!]!
+  total: Int!
+}
+
 type PaymentInfoType {
   method: PaymentMethod!
   status: PaymentStatus!
@@ -310,6 +324,16 @@ enum PaymentStatus {
   PAID
   PENDING
   REFUNDED
+}
+
+input ProductImageInput {
+  imagePublicId: String!
+  imageUrl: String!
+}
+
+type ProductImageType {
+  imagePublicId: String!
+  imageUrl: String!
 }
 
 type ProductSalesSummaryType {
@@ -333,6 +357,7 @@ enum ProductStatus {
 
 """product"""
 type ProductType {
+  additionalImages: [ProductImageType!]
   categories: [String!]!
   createdAt: DateTime!
   description: String
@@ -376,17 +401,18 @@ type Query {
   categoriesList: [CategoryType!]!
   categoriesPage(limit: Int! = 10, page: Int! = 1, search: String): CategoriesPageType!
   category(id: ID!): CategoryType!
-  getAbcAnalysis(aThreshold: Int = 80, bThreshold: Int = 95, categoryId: ID, dateFrom: DateTime!, dateTo: DateTime!, metric: AbcMetricEnum! = REVENUE): AbcAnalysisResponse!
+  getAbcAnalysis(aThreshold: Int = 80, bThreshold: Int = 95, categoryId: ID, dateFrom: DateTime!, dateTo: DateTime!, limit: Int = 10, metric: AbcMetricEnum! = REVENUE, page: Int = 1): AbcAnalysisResponse!
   getOrder(orderId: String!): OrderType!
   getProductInOrders(productId: ID!): OrderProductStatsType!
-  getSalesByCategory(categoryId: ID, dateFrom: DateTime!, dateTo: DateTime!, groupBy: GroupByEnum! = PRODUCT): SalesReportByCategoryResponse!
-  getSalesByDay(categoryId: ID, dateFrom: DateTime!, dateTo: DateTime!, groupBy: GroupByEnum! = PRODUCT): SalesReportByDayResponse!
-  getSalesByProduct(categoryId: ID, dateFrom: DateTime!, dateTo: DateTime!, groupBy: GroupByEnum! = PRODUCT): SalesReportByProdResponse!
+  getSalesByCategory(categoryId: ID, dateFrom: DateTime!, dateTo: DateTime!, groupBy: GroupByEnum! = PRODUCT, limit: Int = 10, page: Int = 1): SalesReportByCategoryResponse!
+  getSalesByDay(categoryId: ID, dateFrom: DateTime!, dateTo: DateTime!, groupBy: GroupByEnum! = PRODUCT, limit: Int = 10, page: Int = 1): SalesReportByDayResponse!
+  getSalesByProduct(categoryId: ID, dateFrom: DateTime!, dateTo: DateTime!, groupBy: GroupByEnum! = PRODUCT, limit: Int = 10, page: Int = 1): SalesReportByProdResponse!
   getSubscriberStats: NewsletterStatsModel!
   getSubscribers(input: GetSubscribersInput): [SubscriberModel!]!
   order(id: ID!): OrderType!
   orderStats: OrderStatsType!
   orders(filter: OrdersFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: OrdersSortField! = createdAt): OrdersPage!
+  ordersStatusStats: OrdersStatusStatsType!
   product(id: ID!): ProductType!
   productsPage(filter: ProductsFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: ProductSortField! = updatedAt): ProductsPageType!
 
@@ -413,22 +439,6 @@ enum Role {
   SUPER_ADMIN
 }
 
-type SalesReportByCategoryResponse {
-  items: [GroupedByCategory!]!
-  summary: CategorySalesSummaryType!
-}
-
-type SalesReportByDayResponse {
-  items: [GroupedByDay!]!
-  summary: DaySalesSummaryType!
-}
-
-type SalesReportByProdResponse {
-  items: [GroupedByProduct!]!
-  summary: ProductSalesSummaryType!
-
-}
-
 type SalesDynamicsPoint {
   """Formatted date label (e.g. "2024-03-18", "2024-W11", "2024-03")"""
   date: String!
@@ -436,6 +446,30 @@ type SalesDynamicsPoint {
 
   """Total units sold in this period"""
   value: Int!
+}
+
+type SalesReportByCategoryResponse {
+  items: [GroupedByCategory!]!
+  limit: Int!
+  page: Int!
+  summary: CategorySalesSummaryType!
+  total: Int!
+}
+
+type SalesReportByDayResponse {
+  items: [GroupedByDay!]!
+  limit: Int!
+  page: Int!
+  summary: DaySalesSummaryType!
+  total: Int!
+}
+
+type SalesReportByProdResponse {
+  items: [GroupedByProduct!]!
+  limit: Int!
+  page: Int!
+  summary: ProductSalesSummaryType!
+  total: Int!
 }
 
 interface SalesReportItemType {
@@ -520,6 +554,7 @@ input UpdateOrderUserInput {
 }
 
 input UpdateProductInput {
+  additionalImages: [ProductImageInput!]
   categories: [String!]
   description: String
   imagePublicId: String
@@ -592,6 +627,7 @@ type UserType {
   phone: String
   role: Role!
   updatedAt: DateTime!
+  wishlist: [WishlistItemType!]!
 }
 
 input UsersFilterInput {
@@ -610,4 +646,12 @@ type UsersPage {
   page: Int!
   total: Int!
   totalPages: Int!
+}
+
+"""wishlist item"""
+type WishlistItemType {
+  image: String
+  price: Float!
+  productId: ID!
+  title: String!
 }

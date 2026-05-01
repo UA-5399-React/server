@@ -38,4 +38,19 @@ export class GetAbcAnalysisStatisticsArgs {
   @Min(1)
   @Max(100)
   bThreshold?: number;
+
+  @Field(() => Int, { nullable: true, defaultValue: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number = 1;
+
+  @Field(() => Int, { nullable: true, defaultValue: 10 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number = 10;
 }

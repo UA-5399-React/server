@@ -1,6 +1,21 @@
-import { Field, GraphQLISODateTime, ID, ObjectType } from '@nestjs/graphql';
+import { Field, Float, GraphQLISODateTime, ID, ObjectType } from '@nestjs/graphql';
 
 import { Role } from '@/users/enums/role.enum';
+
+@ObjectType({ description: 'wishlist item' })
+class WishlistItemType {
+  @Field(() => ID)
+  productId: string | { toString(): string };
+
+  @Field(() => String)
+  title: string;
+
+  @Field(() => Float)
+  price: number;
+
+  @Field(() => String, { nullable: true })
+  image?: string | null;
+}
 
 @ObjectType({ description: 'user' })
 export class UserType {
@@ -42,4 +57,7 @@ export class UserType {
 
   @Field(() => GraphQLISODateTime)
   updatedAt: Date;
+
+  @Field(() => [WishlistItemType], { defaultValue: [] })
+  wishlist: WishlistItemType[];
 }

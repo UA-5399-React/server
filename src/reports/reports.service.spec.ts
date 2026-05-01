@@ -79,9 +79,49 @@ describe('ReportsService', () => {
       expect(aggregateMock).toHaveBeenCalledTimes(1);
       expect(result).toEqual({
         items: aggregatedItems,
+        total: 1,
+        page: 1,
+        limit: 10,
         summary: {
           totalRevenue: 1200,
           totalUnitsSold: 10,
+        },
+      });
+    });
+
+    it('should return paginated grouped sales by product', async () => {
+      const args = Object.assign(createSalesArgs(), {
+        page: 2,
+        limit: 1,
+      });
+
+      const aggregatedItems = [
+        {
+          productName: 'Product A',
+          productCode: '000001',
+          unitsSold: 10,
+          revenue: 1200,
+        },
+        {
+          productName: 'Product B',
+          productCode: '000002',
+          unitsSold: 5,
+          revenue: 700,
+        },
+      ];
+
+      execMock.mockResolvedValue(aggregatedItems);
+
+      const result = await service.getSalesGroupedByProduct(args);
+
+      expect(result).toEqual({
+        items: [aggregatedItems[1]],
+        total: 2,
+        page: 2,
+        limit: 1,
+        summary: {
+          totalRevenue: 1900,
+          totalUnitsSold: 15,
         },
       });
     });
@@ -105,6 +145,9 @@ describe('ReportsService', () => {
       expect(aggregateMock).toHaveBeenCalledTimes(1);
       expect(result).toEqual({
         items: aggregatedItems,
+        total: 1,
+        page: 1,
+        limit: 10,
         summary: {
           totalRevenue: 900,
           totalUnitsSold: 8,
@@ -133,6 +176,9 @@ describe('ReportsService', () => {
       expect(aggregateMock).toHaveBeenCalledTimes(1);
       expect(result).toEqual({
         items: aggregatedItems,
+        total: 1,
+        page: 1,
+        limit: 10,
         summary: {
           totalRevenue: 500,
           totalUnitsSold: 7,
@@ -184,6 +230,9 @@ describe('ReportsService', () => {
       expect(aggregateMock).toHaveBeenCalledTimes(1);
       expect(result).toEqual({
         items: aggregatedItems,
+        total: 3,
+        page: 1,
+        limit: 10,
         summary: {
           metric: AbcMetricEnum.REVENUE,
           totalValue: 2000,
@@ -203,6 +252,9 @@ describe('ReportsService', () => {
 
       expect(result).toEqual({
         items: [],
+        total: 0,
+        page: 1,
+        limit: 10,
         summary: {
           metric: AbcMetricEnum.REVENUE,
           totalValue: 0,
@@ -273,6 +325,9 @@ describe('ReportsService', () => {
 
       expect(result).toEqual({
         items: aggregatedItems,
+        total: 2,
+        page: 1,
+        limit: 10,
         summary: {
           metric: AbcMetricEnum.UNITS,
           totalValue: 20,
