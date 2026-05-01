@@ -404,9 +404,9 @@ type Query {
   getAbcAnalysis(aThreshold: Int = 80, bThreshold: Int = 95, categoryId: ID, dateFrom: DateTime!, dateTo: DateTime!, limit: Int = 10, metric: AbcMetricEnum! = REVENUE, page: Int = 1): AbcAnalysisResponse!
   getOrder(orderId: String!): OrderType!
   getProductInOrders(productId: ID!): OrderProductStatsType!
-  getSalesByCategory(categoryId: ID, dateFrom: DateTime!, dateTo: DateTime!, groupBy: GroupByEnum! = PRODUCT): SalesReportByCategoryResponse!
-  getSalesByDay(categoryId: ID, dateFrom: DateTime!, dateTo: DateTime!, groupBy: GroupByEnum! = PRODUCT): SalesReportByDayResponse!
-  getSalesByProduct(categoryId: ID, dateFrom: DateTime!, dateTo: DateTime!, groupBy: GroupByEnum! = PRODUCT): SalesReportByProdResponse!
+  getSalesByCategory(categoryId: ID, dateFrom: DateTime!, dateTo: DateTime!, groupBy: GroupByEnum! = PRODUCT, limit: Int = 10, page: Int = 1): SalesReportByCategoryResponse!
+  getSalesByDay(categoryId: ID, dateFrom: DateTime!, dateTo: DateTime!, groupBy: GroupByEnum! = PRODUCT, limit: Int = 10, page: Int = 1): SalesReportByDayResponse!
+  getSalesByProduct(categoryId: ID, dateFrom: DateTime!, dateTo: DateTime!, groupBy: GroupByEnum! = PRODUCT, limit: Int = 10, page: Int = 1): SalesReportByProdResponse!
   getSubscriberStats: NewsletterStatsModel!
   getSubscribers(input: GetSubscribersInput): [SubscriberModel!]!
   order(id: ID!): OrderType!
@@ -450,17 +450,26 @@ type SalesDynamicsPoint {
 
 type SalesReportByCategoryResponse {
   items: [GroupedByCategory!]!
+  limit: Int!
+  page: Int!
   summary: CategorySalesSummaryType!
+  total: Int!
 }
 
 type SalesReportByDayResponse {
   items: [GroupedByDay!]!
+  limit: Int!
+  page: Int!
   summary: DaySalesSummaryType!
+  total: Int!
 }
 
 type SalesReportByProdResponse {
   items: [GroupedByProduct!]!
+  limit: Int!
+  page: Int!
   summary: ProductSalesSummaryType!
+  total: Int!
 }
 
 interface SalesReportItemType {
