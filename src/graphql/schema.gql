@@ -4,7 +4,10 @@
 
 type AbcAnalysisResponse {
   items: [AbcAnalysisType!]!
+  limit: Int!
+  page: Int!
   summary: AbcAnalysisSummaryType!
+  total: Int!
 }
 
 type AbcAnalysisSummaryType {
@@ -398,7 +401,7 @@ type Query {
   categoriesList: [CategoryType!]!
   categoriesPage(limit: Int! = 10, page: Int! = 1, search: String): CategoriesPageType!
   category(id: ID!): CategoryType!
-  getAbcAnalysis(aThreshold: Int = 80, bThreshold: Int = 95, categoryId: ID, dateFrom: DateTime!, dateTo: DateTime!, metric: AbcMetricEnum! = REVENUE): AbcAnalysisResponse!
+  getAbcAnalysis(aThreshold: Int = 80, bThreshold: Int = 95, categoryId: ID, dateFrom: DateTime!, dateTo: DateTime!, limit: Int = 10, metric: AbcMetricEnum! = REVENUE, page: Int = 1): AbcAnalysisResponse!
   getOrder(orderId: String!): OrderType!
   getProductInOrders(productId: ID!): OrderProductStatsType!
   getSalesByCategory(categoryId: ID, dateFrom: DateTime!, dateTo: DateTime!, groupBy: GroupByEnum! = PRODUCT): SalesReportByCategoryResponse!
