@@ -1,6 +1,6 @@
 import { ArgsType, Field, GraphQLISODateTime, ID, Int } from '@nestjs/graphql';
 import { Type } from 'class-transformer';
-import { IsDate, IsEnum, IsInt, IsOptional, Max, Min } from 'class-validator';
+import { IsDate, IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 import { AbcMetricEnum } from '@/reports/enums/abc-metric.enum';
 
@@ -24,6 +24,11 @@ export class GetAbcAnalysisStatisticsArgs {
   @Field(() => ID, { nullable: true })
   @IsOptional()
   categoryId?: string;
+
+  @Field({ nullable: true, description: 'Substring match on product name or product code' })
+  @IsOptional()
+  @IsString()
+  search?: string;
 
   @Field(() => Int, { nullable: true, defaultValue: 80 })
   @IsOptional()

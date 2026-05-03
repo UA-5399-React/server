@@ -337,5 +337,57 @@ describe('ReportsService', () => {
         },
       });
     });
+
+    it('should filter items by search on product name or product code', async () => {
+      const args = createAbcArgs({ search: 'alpha' });
+
+      const aggregatedItems = [
+        {
+          productName: 'Widget Alpha',
+          productCode: 'X-1',
+          value: 100,
+          cumulativeValue: 100,
+          totalValue: 300,
+          cumulativePercentage: 33.33,
+          percentageByTotal: 33.33,
+          bucket: 'A',
+        },
+        {
+          productName: 'Other',
+          productCode: 'ALPHA-99',
+          value: 100,
+          cumulativeValue: 200,
+          totalValue: 300,
+          cumulativePercentage: 66.67,
+          percentageByTotal: 33.33,
+          bucket: 'B',
+        },
+        {
+          productName: 'Gamma',
+          productCode: 'G-1',
+          value: 100,
+          cumulativeValue: 300,
+          totalValue: 300,
+          cumulativePercentage: 100,
+          percentageByTotal: 33.33,
+          bucket: 'C',
+        },
+      ];
+
+      execMock.mockResolvedValue(aggregatedItems);
+
+      const result = await service.getAbcAnalysis(args);
+
+      expect(result.items).toHaveLength(2);
+      expect(result.items.map((i) => i.productName)).toEqual(['Widget Alpha', 'Other']);
+      expect(result.total).toBe(2);
+      expect(result.summary).toEqual({
+        metric: AbcMetricEnum.REVENUE,
+        totalValue: 300,
+        aCount: 1,
+        bCount: 1,
+        cCount: 1,
+      });
+    });
   });
 });

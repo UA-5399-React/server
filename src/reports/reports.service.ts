@@ -570,11 +570,22 @@ export class ReportsService {
         },
       ])
       .exec();
+
+    const trimmedSearch = query.search?.trim();
+    const filteredItems = trimmedSearch
+      ? items.filter((item) => {
+          const needle = trimmedSearch.toLowerCase();
+          const name = (item.productName ?? '').toLowerCase();
+          const code = (item.productCode ?? '').toLowerCase();
+          return name.includes(needle) || code.includes(needle);
+        })
+      : items;
+
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
-    const total = items.length;
+    const total = filteredItems.length;
     const offset = (page - 1) * limit;
-    const paginatedItems = items.slice(offset, offset + limit);
+    const paginatedItems = filteredItems.slice(offset, offset + limit);
 
     return {
       items: paginatedItems,
