@@ -1,139 +1,273 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# TechnoWorld API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+> E-commerce CRM systhem powered by NestJS and React
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+[![CI](https://github.com/UA-5399-React/server/actions/workflows/ci.yml/badge.svg)](https://github.com/UA-5399-React/server/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-%3E80%25-brightgreen)](https://github.com/UA-5399-React/server/actions/workflows/ci.yml)
 
-## Description
+## Table of Contents
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- [Prerequisites](#prerequisites)
+- [Getting Started](#getting-started)
+- [Running the Database](#running-the-database)
+- [Migrations & Seeding](#migrations--seeding)
+- [Available Scripts](#available-scripts)
+- [API Documentation](#api-documentation)
+- [Testing](#testing)
+- [Code Style & Conventions](#code-style--conventions)
 
-## 📖 Docs
+---
 
-### Git
+## Prerequisites
 
-- Create your branch from **develop**, for example, **feat/123-your-task-in-a-nutshell** (please refer [this page for more details](https://medium.com/@abhay.pixolo/naming-conventions-for-git-branches-a-cheatsheet-8549feca2534))
-- Commit format: **feat(123): your task in a nutshell and a bit more words**
-- Pull request (PR). Be sure it has: informative description, reviewers, assignees, labels, development sections (fields) filled up.
-- Reviewers: vlad-khrychov, UA-5399-React/developers, if it's really important - UA-5399-React/experts
-- Let the team know about your opened PR in official channels.
-- All comments, proposals etc. and code conflicts should be resolved before merging PR.
+Make sure the following are installed on your machine before proceeding:
 
-### Tickets
+| Tool        | Version   | Install                                        |
+| ----------- | --------- | ---------------------------------------------- |
+| **Node.js** | `>= 24.x` | https://nodejs.org                             |
+| **pnpm**    | `>= 9.x`  | `npm install -g pnpm`                          |
+| **MongoDB** | `>= 7.x`  | https://www.mongodb.com/try/download/community |
 
-- Create ticket in "Todo" column after team discussion.
-- Be sure it has: informative description, assignees, labels, development sections (fields) filled up.
-- Move ticket one column by one to the right in interrelation with code status (PR).
+> Access to a **MongoDB Atlas** cluster is optional but recommended for staging-like local development. Ask a teammate for credentials or check the shared secrets storage.
 
-### Tests
+---
 
-- If it's possible, always create unit-tests for your code.
-- Keep in mind coverage treshold is **80%**, so keep your tests above it.
+## Getting Started
 
-### Database Seeding
-
-To easily populate your local MongoDB with mock data (Products, Images, etc.) for development and testing, use the built-in seeder.
-
-**Run the seeder (adds 50 new products):**
-```bash
-pnpm run seed
-```
-
-If you want to start with a clean slate and avoid duplicates, pass the --clear flag.
-```bash
-pnpm run seed --clear
-```
-
-### Other
-
-- English should be used in code comments, PR reviews and other similar places.
-
-
-## Project setup
+### 1. Clone the repository
 
 ```bash
-$ pnpm install
+git clone git@github.com:UA-5399-React/server.git
+cd server
 ```
 
-## Compile and run the project
+### 2. Install dependencies
 
 ```bash
-# development
-$ pnpm run start
-
-# watch mode
-$ pnpm run start:dev
-
-# production mode
-$ pnpm run start:prod
+pnpm install
 ```
 
-## Run tests
+### 3. Set up environment variables
+
+**Linux / macOS:**
 
 ```bash
-# unit tests
-$ pnpm run test
-
-# e2e tests
-$ pnpm run test:e2e
-
-# test coverage
-$ pnpm run test:cov
+cp .env.example .env
 ```
 
-## Deployment
+**Windows (CMD):**
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+```cmd
+copy .env.example .env
+```
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+**Windows (PowerShell):**
+
+```powershell
+Copy-Item .env.example .env
+```
+
+### 4. Start the development server
 
 ```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
+pnpm start:dev
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+The server will start with hot-reload enabled at `http://localhost:<PORT>`.
 
-## Resources
+### 5. Start in production mode
 
-Check out a few resources that may come in handy when working with NestJS:
+```bash
+pnpm start
+```
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+---
 
-## Support
+## Running the Database
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+### Option A — MongoDB Atlas (recommended)
 
-## Stay in touch
+1. Get access to the Atlas cluster from a teammate.
+2. Copy the connection string into your `.env`:
+   ```env
+   MONGODB_URI=mongodb+srv://<user>:<password>@cluster0.mongodb.net/<dbname>?retryWrites=true&w=majority
+   ```
+3. No additional local setup required — the app connects automatically on start.
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+### Option B — Local MongoDB
 
-## License
+**Using Docker (not available yet):**
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+```bash
+docker run -d \
+  --name mongo-local \
+  -p 27017:27017 \
+  mongo:7
+```
+
+**Using a local installation:**
+
+```bash
+# macOS
+brew services start mongodb-community
+
+# Ubuntu / Debian
+sudo systemctl start mongod
+
+# Windows — start via Services or:
+net start MongoDB
+```
+
+Then set in `.env`:
+
+```env
+MONGODB_URI=mongodb://localhost:27017/<dbname>
+```
+
+---
+
+## Migrations & Seeding
+
+### Run migrations
+
+```bash
+pnpm migrate
+```
+
+Applies all pending database migrations in order.
+
+### Seed the database
+
+```bash
+pnpm seed
+```
+
+Populates the database with initial / development data.
+
+> ⚠️ Do not run `seed` against a production or shared staging database.
+
+---
+
+## Available Scripts
+
+| Command          | Description                            |
+| ---------------- | -------------------------------------- |
+| `pnpm start`     | Start in production mode               |
+| `pnpm start:dev` | Start with hot-reload (development)    |
+| `pnpm build`     | Compile TypeScript to `dist/`          |
+| `pnpm migrate`   | Run database migrations                |
+| `pnpm seed`      | Seed the database with initial data    |
+| `pnpm test`      | Run unit tests                         |
+| `pnpm test:e2e`  | Run end-to-end tests                   |
+| `pnpm test:cov`  | Run tests and generate coverage report |
+| `pnpm lint`      | Run ESLint across the codebase         |
+| `pnpm lint:fix`  | Run ESLint and auto-fix issues         |
+
+---
+
+## API Documentation
+
+### REST — Swagger UI
+
+Available at:
+
+```
+http://localhost:<PORT>/api
+```
+
+Swagger is only enabled in `development` mode. The UI provides an interactive interface to explore and test all REST endpoints.
+
+### GraphQL — Playground / Sandbox
+
+Available at:
+
+```
+http://localhost:<PORT>/graphql
+```
+
+Use the built-in sandbox to explore the schema, run queries, and test mutations interactively.
+
+---
+
+## Testing
+
+### Run all unit tests
+
+```bash
+pnpm test
+```
+
+### Run tests in watch mode
+
+```bash
+pnpm test --watch
+```
+
+### Run tests with coverage
+
+```bash
+pnpm test:cov
+```
+
+### Run end-to-end tests
+
+```bash
+pnpm test:e2e
+```
+
+> Make sure the database is running and `.env` is configured before running e2e tests.
+
+---
+
+## Code Style & Conventions
+
+The project uses **ESLint** with **TypeScript**, **Prettier**, and **simple-import-sort** to enforce consistent code style.
+
+### Running the linter
+
+```bash
+pnpm lint         # check for issues
+pnpm lint:fix     # auto-fix where possible
+```
+
+### Import order
+
+Imports are automatically sorted into the following groups (enforced by `simple-import-sort`):
+
+1. **Side-effects** — e.g. `import 'reflect-metadata'`
+2. **Node.js built-ins** — e.g. `node:fs`, `node:path`
+3. **External packages** — e.g. `@nestjs/*`, `rxjs`
+4. **Internal aliases** — paths starting with `@/`
+5. **Relative imports** — `../` before `./`
+
+### Key rules
+
+| Rule                                      | Setting | Notes                                     |
+| ----------------------------------------- | ------- | ----------------------------------------- |
+| `eqeqeq`                                  | `error` | Always use `===` instead of `==`          |
+| `@typescript-eslint/no-explicit-any`      | `off`   | Allowed, but avoid when possible          |
+| `@typescript-eslint/no-floating-promises` | `warn`  | Always `await` or `.catch()` promises     |
+| `prettier/prettier`                       | `error` | Auto-formatting is enforced               |
+| `simple-import-sort/imports`              | `error` | Imports must follow the group order above |
+
+### Prettier
+
+End-of-line is set to `auto` to support both Unix and Windows environments. Formatting is applied on save (if your editor supports it) or enforced by the linter.
+
+### Editor setup (recommended)
+
+Install the following VS Code extensions for the best experience:
+
+- [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint)
+- [Prettier – Code formatter](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
+  Add to your `.vscode/settings.json`:
+
+```json
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  }
+}
+```
