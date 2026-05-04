@@ -2,6 +2,20 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 import { Role } from '@/users/enums/role.enum';
 
+export class UserWishlistItemDto {
+  @ApiProperty()
+  productId!: string;
+
+  @ApiProperty()
+  title!: string;
+
+  @ApiProperty()
+  price!: number;
+
+  @ApiPropertyOptional()
+  image?: string;
+}
+
 export class UserResponseDto {
   @ApiProperty()
   id!: string;
@@ -35,4 +49,7 @@ export class UserResponseDto {
 
   @ApiProperty({ required: false })
   isGoogleConnected?: boolean;
+
+  @ApiProperty({ type: [UserWishlistItemDto], default: [] })
+  wishlist!: UserWishlistItemDto[];
 }

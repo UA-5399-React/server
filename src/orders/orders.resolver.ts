@@ -14,6 +14,7 @@ import { toOrderType } from '@/orders/orders.mapper';
 import { OrdersService } from '@/orders/orders.service';
 import { Role } from '@/users/enums/role.enum';
 
+import { OrdersStatusStatsType } from './dto/orders-status-stats.dto';
 import { CreateOrderInput } from './graphql/inputs/create-order.input';
 import { UpdateOrderStatusInput } from './graphql/inputs/status-update.inputs';
 import { UpdateOrderInput } from './graphql/inputs/update-order.input';
@@ -62,6 +63,11 @@ export class OrdersResolver {
   @Query(() => OrderProductStatsType)
   async getProductInOrders(@Args('productId', { type: () => ID }) productId: string) {
     return this.ordersService.findProductsInOrders(productId);
+  }
+
+  @Query(() => OrdersStatusStatsType, { name: 'ordersStatusStats' })
+  async getOrdersStatusStats(): Promise<OrdersStatusStatsType> {
+    return this.ordersService.getOrderStatusStats();
   }
 
   @Mutation(() => OrderType)

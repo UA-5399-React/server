@@ -35,6 +35,7 @@ import { Role } from '@/users/enums/role.enum';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateMeDto } from './dto/update-me.dto';
 import { UploadAvatarBodyDto } from './dto/upload-avatar-body.dto';
+import { UpsertWishlistItemDto } from './dto/upsert-wishlist-item.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { UsersListResponseDto } from './dto/users-list-response.dto';
 import { UsersQueryDto } from './dto/users-query.dto';
@@ -104,6 +105,39 @@ export class UsersController {
   @Patch('me/password')
   async changePassword(@Req() req: AuthRequest, @Body() dto: ChangePasswordDto): Promise<void> {
     await this.usersService.changePassword(req.user.id, dto);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOkResponse({ type: UserResponseDto })
+  @Patch('me/wishlist')
+  async upsertWishlistItem(
+    @Req() req: AuthRequest,
+    @Body() dto: UpsertWishlistItemDto,
+  ): Promise<UserResponseDto> {
+    const user = await this.usersService.upsertWishlistItem(req.user.id, dto);
+    return toUserResponseDto(user);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOkResponse({ type: UserResponseDto })
+  @Delete('me/wishlist/:productId')
+  async removeWishlistItem(
+    @Req() req: AuthRequest,
+    @Param('productId') productId: string,
+  ): Promise<UserResponseDto> {
+    const user = await this.usersService.removeWishlistItem(req.user.id, productId);
+    return toUserResponseDto(user);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOkResponse({ type: UserResponseDto })
+  @Delete('me/wishlist')
+  async clearWishlist(@Req() req: AuthRequest): Promise<UserResponseDto> {
+    const user = await this.usersService.clearWishlist(req.user.id);
+    return toUserResponseDto(user);
   }
 
   @ApiBearerAuth()

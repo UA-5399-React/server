@@ -3,6 +3,7 @@ import {
   Args,
   Context,
   ID,
+  Int,
   Mutation,
   Parent,
   Query,
@@ -24,8 +25,10 @@ import { CreateUserPayload } from '@/users/graphql/types/create-user-payload.typ
 import type { GraphqlLoadersContext } from '@/users/graphql/types/data-loader.type';
 import { UserType } from '@/users/graphql/types/user.type';
 import { UsersPage } from '@/users/graphql/types/users-page.type';
+import type { UserListItem } from '@/users/types/user-list-item.type';
 import { UsersService } from '@/users/users.service';
 
+import { UserRegistrationTimeseriesType } from './graphql/types/user-registration-timeseries.type';
 import { UserStatsType } from './graphql/types/user-stats.type';
 
 @UseGuards(GqlAuthGuard, RolesGuard)
@@ -48,7 +51,7 @@ export class UsersResolver {
   async createUser(
     @Args('input') input: CreateUserInput,
     @CurrentUser() currentUser: AuthUser,
-  ): Promise<UserType | { message: string }> {
+  ): Promise<{ user: UserListItem; tempPassword: string | null }> {
     return await this.usersService.createByAdmin(input, currentUser);
   }
 
@@ -80,7 +83,18 @@ export class UsersResolver {
   }
 
   @Query(() => UserStatsType)
-  async userStats() {
-    return this.usersService.getStats();
+  async userStats(
+    @Args('year', { type: () => Int, nullable: true }) year?: number,
+    @Args('month', { type: () => Int, nullable: true }) month?: number,
+  ) {
+    return this.usersService.getStats(year, month);
+  }
+
+  @Query(() => UserRegistrationTimeseriesType)
+  async userRegistrationTimeseries(
+    @Args('dateFrom', { type: () => Date, nullable: true }) dateFrom?: Date,
+    @Args('dateTo', { type: () => Date, nullable: true }) dateTo?: Date,
+  ): Promise<UserRegistrationTimeseriesType> {
+    return this.usersService.getRegistrationTimeseries(dateFrom, dateTo);
   }
 }

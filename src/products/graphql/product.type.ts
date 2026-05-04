@@ -1,17 +1,18 @@
 import { Field, Float, GraphQLISODateTime, ID, Int, ObjectType } from '@nestjs/graphql';
 
 import { ProductStatus } from '@/products/enums/product-status.enum';
+import { ProductImageType } from '@/products/graphql/product-image.type';
 
 @ObjectType({ description: 'product' })
 export class ProductType {
   @Field(() => ID)
-  id: string;
+  id!: string;
 
   @Field(() => String)
-  productCode: string;
+  productCode!: string;
 
   @Field()
-  title: string;
+  title!: string;
 
   @Field({ nullable: true })
   description?: string;
@@ -22,20 +23,23 @@ export class ProductType {
   @Field({ nullable: true })
   imagePublicId?: string;
 
+  @Field(() => [ProductImageType], { nullable: true })
+  additionalImages?: ProductImageType[];
+
   @Field(() => [String])
-  categories: string[];
+  categories!: string[];
 
   @Field(() => Float)
-  price: number;
+  price!: number;
 
   @Field(() => ProductStatus)
-  status: ProductStatus;
+  status!: ProductStatus;
 
   @Field(() => GraphQLISODateTime)
-  createdAt: Date;
+  createdAt!: Date;
 
   @Field(() => GraphQLISODateTime)
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @Field(() => Int, { nullable: true })
   purchaseCount?: number;

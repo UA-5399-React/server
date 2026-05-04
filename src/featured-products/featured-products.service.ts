@@ -111,4 +111,15 @@ export class FeaturedProductsService {
   async listAll(): Promise<FeaturedProduct[]> {
     return this.featuredModel.find().populate('productId').sort({ type: 1, position: 1 }).lean();
   }
+
+  async updatePositions(reorderDto: { productId: string; position: number }[]): Promise<void> {
+  const bulkOps = reorderDto.map((item) => ({
+    updateOne: {
+      filter: { productId: new Types.ObjectId(item.productId), type: FeaturedProductType.NEW_ARRIVAL },
+      update: { $set: { position: item.position } },
+    },
+  }));
+
+  await this.featuredModel.bulkWrite(bulkOps);
+}
 }

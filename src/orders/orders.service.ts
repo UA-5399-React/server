@@ -274,11 +274,13 @@ export class OrdersService {
   }
 
   async getOrderStats(): Promise<OrderStatsType> {
-    const results = await this.orderModel.aggregate([
+    const results = await this.orderModel.aggregate<{
+      total: { count: number }[];
+      byStatus: { _id: string; count: number }[];
+    }>([
       {
         $facet: {
           total: [{ $count: 'count' }],
-
           byStatus: [
             { $match: { status: { $in: Object.values(OrderStatus) } } },
             { $group: { _id: '$status', count: { $sum: 1 } } },
@@ -599,11 +601,11 @@ export class OrdersService {
     }
 
     if (args.filter?.paymentStatus) {
-      filter.paymentStatus = args.filter.paymentStatus;
+      filter['payment.status'] = args.filter.paymentStatus;
     }
 
     if (args.filter?.paymentMethod) {
-      filter.paymentMethod = args.filter.paymentMethod;
+      filter['payment.method'] = args.filter.paymentMethod;
     }
 
     if (args.filter?.carrier) {
@@ -631,6 +633,23 @@ export class OrdersService {
     return [OrderStatus.PROCESSING, OrderStatus.SHIPPING, OrderStatus.NEW].includes(status);
   }
 
+  async getOrderStatusStats() {
+    const allStatuses = Object.values(OrderStatus);
+
+    const aggregation = await this.orderModel.aggregate([
+      { $group: { _id: '$status', count: { $sum: 1 } } },
+    ]);
+
+    const countMap = new Map(aggregation.map((item) => [item._id, item.count]));
+    const total = [...countMap.values()].reduce((sum, c) => sum + c, 0);
+
+    const statuses = allStatuses.map((status) => ({
+      status,
+      count: countMap.get(status) ?? 0,
+    }));
+
+    return { total, statuses };
+  }
   async generateOrderPdf(orderId: string): Promise<Buffer> {
     const order = await this.findOrderById(orderId);
     const fontPath = path.join(__dirname, '..', 'assets', 'fonts', 'DejaVuSans.ttf');

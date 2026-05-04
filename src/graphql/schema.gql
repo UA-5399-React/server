@@ -2,12 +2,49 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+type AbcAnalysisResponse {
+  items: [AbcAnalysisType!]!
+  limit: Int!
+  page: Int!
+  summary: AbcAnalysisSummaryType!
+  total: Int!
+}
+
+type AbcAnalysisSummaryType {
+  aCount: Int!
+  bCount: Int!
+  cCount: Int!
+  metric: AbcMetricEnum!
+  totalValue: Float!
+}
+
+type AbcAnalysisType {
+  bucket: String!
+  cumulativePercentage: Float!
+  cumulativeValue: Float!
+  percentageByTotal: Float!
+  productCode: String
+  productName: String!
+  totalValue: Float!
+  value: Float!
+}
+
+enum AbcMetricEnum {
+  REVENUE
+  UNITS
+}
+
 type CategoriesPageType {
   items: [CategoryType!]!
   limit: Int!
   page: Int!
   total: Int!
   totalPages: Int!
+}
+
+type CategorySalesSummaryType {
+  totalRevenue: Float!
+  totalUnitsSold: Int!
 }
 
 type CategoryType {
@@ -58,6 +95,7 @@ input CreateOrderUserInput {
 }
 
 input CreateProductInput {
+  additionalImages: [ProductImageInput!]
   categories: [String!]
   description: String
   imagePublicId: String
@@ -86,8 +124,51 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 """
 scalar DateTime
 
+type DaySalesSummaryType {
+  averageCheck: Float!
+  totalOrdersCount: Int!
+  totalRevenue: Float!
+  totalUnitsSold: Int!
+}
+
 input GetSubscribersInput {
   isActive: Boolean
+}
+
+"""
+Time grouping granularity for sales dynamics
+"""
+enum GroupBy {
+  DAY
+  MONTH
+  WEEK
+}
+
+enum GroupByEnum {
+  CATEGORY
+  DAY
+  PRODUCT
+}
+
+type GroupedByCategory implements SalesReportItemType {
+  category: String!
+  revenue: Float!
+  unitsSold: Int!
+}
+
+type GroupedByDay implements SalesReportItemType {
+  averageCheck: Float!
+  date: String!
+  ordersCount: Int!
+  revenue: Float!
+  unitsSold: Int!
+}
+
+type GroupedByProduct implements SalesReportItemType {
+  productCode: String
+  productName: String!
+  revenue: Float!
+  unitsSold: Int!
 }
 
 type Mutation {
@@ -162,6 +243,11 @@ enum OrderStatus {
   SHIPPING
 }
 
+type OrderStatusSegmentType {
+  count: Int!
+  status: String!
+}
+
 type OrderType {
   amount: Float!
   createdAt: DateTime!
@@ -219,6 +305,11 @@ enum OrdersSortField {
   updatedAt
 }
 
+type OrdersStatusStatsType {
+  statuses: [OrderStatusSegmentType!]!
+  total: Int!
+}
+
 type PaymentInfoType {
   method: PaymentMethod!
   status: PaymentStatus!
@@ -237,6 +328,21 @@ enum PaymentStatus {
   REFUNDED
 }
 
+input ProductImageInput {
+  imagePublicId: String!
+  imageUrl: String!
+}
+
+type ProductImageType {
+  imagePublicId: String!
+  imageUrl: String!
+}
+
+type ProductSalesSummaryType {
+  totalRevenue: Float!
+  totalUnitsSold: Int!
+}
+
 enum ProductSortField {
   createdAt
   price
@@ -251,8 +357,11 @@ enum ProductStatus {
   INACTIVE
 }
 
-"""product"""
+"""
+product
+"""
 type ProductType {
+  additionalImages: [ProductImageType!]
   categories: [String!]!
   createdAt: DateTime!
   description: String
@@ -268,19 +377,27 @@ type ProductType {
 }
 
 input ProductsFilterInput {
-  """Exact match in tags[]"""
+  """
+  Exact match in tags[]
+  """
   category: [String!]
 
-  """by what field to sort"""
+  """
+  by what field to sort
+  """
   dateType: String
   maxPrice: Float
   minPrice: Float
   status: ProductStatus
 
-  """updatedAt >= updatedFrom"""
+  """
+  updatedAt >= updatedFrom
+  """
   updatedFrom: DateTime
 
-  """updatedAt <= updatedTo"""
+  """
+  updatedAt <= updatedTo
+  """
   updatedTo: DateTime
 }
 
@@ -296,24 +413,138 @@ type Query {
   categoriesList: [CategoryType!]!
   categoriesPage(limit: Int! = 10, page: Int! = 1, search: String): CategoriesPageType!
   category(id: ID!): CategoryType!
+  getAbcAnalysis(
+    aThreshold: Int = 80
+    bThreshold: Int = 95
+    categoryId: ID
+    dateFrom: DateTime!
+    dateTo: DateTime!
+    limit: Int = 10
+    metric: AbcMetricEnum! = REVENUE
+    page: Int = 1
+    search: String
+  ): AbcAnalysisResponse!
   getOrder(orderId: String!): OrderType!
   getProductInOrders(productId: ID!): OrderProductStatsType!
+  getSalesByCategory(
+    categoryId: ID
+    dateFrom: DateTime!
+    dateTo: DateTime!
+    groupBy: GroupByEnum! = PRODUCT
+    limit: Int = 10
+    page: Int = 1
+  ): SalesReportByCategoryResponse!
+  getSalesByDay(
+    categoryId: ID
+    dateFrom: DateTime!
+    dateTo: DateTime!
+    groupBy: GroupByEnum! = PRODUCT
+    limit: Int = 10
+    page: Int = 1
+  ): SalesReportByDayResponse!
+  getSalesByProduct(
+    categoryId: ID
+    dateFrom: DateTime!
+    dateTo: DateTime!
+    groupBy: GroupByEnum! = PRODUCT
+    limit: Int = 10
+    page: Int = 1
+  ): SalesReportByProdResponse!
   getSubscriberStats: NewsletterStatsModel!
   getSubscribers(input: GetSubscribersInput): [SubscriberModel!]!
   order(id: ID!): OrderType!
   orderStats: OrderStatsType!
-  orders(filter: OrdersFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: OrdersSortField! = createdAt): OrdersPage!
+  orders(
+    filter: OrdersFilterInput
+    limit: Int! = 10
+    order: SortOrder! = desc
+    page: Int! = 1
+    search: String
+    sort: OrdersSortField! = createdAt
+  ): OrdersPage!
+  ordersStatusStats: OrdersStatusStatsType!
   product(id: ID!): ProductType!
-  productsPage(filter: ProductsFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: ProductSortField! = updatedAt): ProductsPageType!
+  productsPage(
+    filter: ProductsFilterInput
+    limit: Int! = 10
+    order: SortOrder! = desc
+    page: Int! = 1
+    search: String
+    sort: ProductSortField! = updatedAt
+  ): ProductsPageType!
+
+  """
+  Time-series sales data for 1–2 products. Returns an array of {date, productId, value} points grouped by the requested granularity. Zero-filled so every bucket is present.
+  """
+  salesDynamics(
+    from: DateTime!
+    groupBy: GroupBy!
+
+    """
+    One or two product IDs to compare
+    """
+    productIds: [ID!]!
+    to: DateTime!
+  ): [SalesDynamicsPoint!]!
   user(id: ID!): UserType!
-  userStats: UserStatsType!
-  users(filter: UsersFilterInput, limit: Int! = 10, order: SortOrder! = desc, page: Int! = 1, search: String, sort: UserSortField! = createdAt): UsersPage!
+  userRegistrationTimeseries(dateFrom: DateTime, dateTo: DateTime): UserRegistrationTimeseriesType!
+  userStats(month: Int, year: Int): UserStatsType!
+  users(
+    filter: UsersFilterInput
+    limit: Int! = 10
+    order: SortOrder! = desc
+    page: Int! = 1
+    search: String
+    sort: UserSortField! = createdAt
+  ): UsersPage!
 }
 
 enum Role {
   ADMIN
   CUSTOMER
   SUPER_ADMIN
+}
+
+type SalesDynamicsPoint {
+  """
+  Formatted date label (e.g. "2024-03-18", "2024-W11", "2024-03")
+  """
+  date: String!
+  productId: ID!
+
+  """
+  Total units sold in this period
+  """
+  value: Int!
+}
+
+type SalesReportByCategoryResponse {
+  items: [GroupedByCategory!]!
+  limit: Int!
+  page: Int!
+  summary: CategorySalesSummaryType!
+  total: Int!
+}
+
+type SalesReportByDayResponse {
+  items: [GroupedByDay!]!
+  limit: Int!
+  page: Int!
+  summary: DaySalesSummaryType!
+  total: Int!
+}
+
+type SalesReportByProdResponse {
+  items: [GroupedByProduct!]!
+  limit: Int!
+  page: Int!
+  summary: ProductSalesSummaryType!
+  total: Int!
+}
+
+interface SalesReportItemType {
+  revenue: Float!
+  unitsSold: Int!
 }
 
 input SendNewsletterInput {
@@ -393,6 +624,7 @@ input UpdateOrderUserInput {
 }
 
 input UpdateProductInput {
+  additionalImages: [ProductImageInput!]
   categories: [String!]
   description: String
   imagePublicId: String
@@ -419,6 +651,21 @@ enum UserDateFilterField {
   updatedAt
 }
 
+type UserRegistrationDayType {
+  count: Int!
+  date: String!
+  day: Int!
+}
+
+type UserRegistrationMonthType {
+  count: Int!
+  month: String!
+}
+
+type UserRegistrationTimeseriesType {
+  data: [UserRegistrationMonthType!]!
+}
+
 enum UserSortField {
   createdAt
   email
@@ -429,10 +676,15 @@ enum UserSortField {
 type UserStatsType {
   activeUsers: Int!
   blockedUsers: Int!
+  registrationsByDay: [UserRegistrationDayType!]!
+  registrationsMonth: Int!
+  registrationsYear: Int!
   totalUsers: Int!
 }
 
-"""user"""
+"""
+user
+"""
 type UserType {
   avatarUrl: String
   createdAt: DateTime!
@@ -447,6 +699,7 @@ type UserType {
   phone: String
   role: Role!
   updatedAt: DateTime!
+  wishlist: [WishlistItemType!]!
 }
 
 input UsersFilterInput {
@@ -465,4 +718,14 @@ type UsersPage {
   page: Int!
   total: Int!
   totalPages: Int!
+}
+
+"""
+wishlist item
+"""
+type WishlistItemType {
+  image: String
+  price: Float!
+  productId: ID!
+  title: String!
 }
