@@ -1,10 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import * as ExcelJS from 'exceljs';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 
+import { buildDateFilter } from '@/common/utils/date.utils';
 import { Order, OrderDocument } from '@/orders/entities/order.schema';
 import { Product, ProductDocument } from '@/products/entities/product.schema';
+
+import { ExportOrdersQueryDto } from './dto/export-orders-query.dto';
+import { ExportProductsQueryDto } from './dto/export-products-query.dto';
 
 @Injectable()
 export class ExportService {
@@ -15,8 +19,75 @@ export class ExportService {
     private readonly orderModel: Model<OrderDocument>,
   ) {}
 
-  async exportProductsToExcel(): Promise<Buffer> {
-    const products = await this.productModel.find().lean();
+  async exportProductsToExcel(query: ExportProductsQueryDto = {}): Promise<Buffer> {
+    const filter: Record<string, unknown> = {};
+
+    // Search filter
+    const search = query.search?.trim();
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { productCode: search },
+      ];
+    }
+
+    // Status filter — apply only when explicitly provided
+    if (query.status) {
+      filter.status = query.status;
+    }
+
+    // Category filter
+    const rawCategory = query.category;
+    const categories = (Array.isArray(rawCategory) ? rawCategory : rawCategory ? [rawCategory] : [])
+      .map((c) => c.trim())
+      .filter(Boolean);
+
+    if (categories.length) {
+      const categoryObjectIds = categories
+        .filter((c) => Types.ObjectId.isValid(c))
+        .map((c) => new Types.ObjectId(c));
+
+      filter.$expr = {
+        $gt: [
+          {
+            $size: {
+              $setIntersection: [
+                {
+                  $map: {
+                    input: { $ifNull: ['$categories', []] },
+                    as: 'category',
+                    in: { $toString: '$$category' },
+                  },
+                },
+                categoryObjectIds.map((id) => id.toHexString()),
+              ],
+            },
+          },
+          0,
+        ],
+      };
+    }
+
+    // Price range filter
+    const { minPrice, maxPrice } = query;
+    if (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice) {
+      throw new BadRequestException('Invalid price range: minPrice must be <= maxPrice');
+    }
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      filter.price = {
+        ...(minPrice !== undefined ? { $gte: minPrice } : {}),
+        ...(maxPrice !== undefined ? { $lte: maxPrice } : {}),
+      };
+    }
+
+    // Date range filter
+    Object.assign(
+      filter,
+      buildDateFilter(query.updatedFrom, query.updatedTo, query.dateType, 'updatedAt'),
+    );
+
+    const products = await this.productModel.find(filter).lean();
 
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet('Products');
@@ -52,8 +123,24 @@ export class ExportService {
     return workbook.xlsx.writeBuffer() as unknown as Promise<Buffer>;
   }
 
-  async exportOrdersToExcel(): Promise<Buffer> {
-    const orders = await this.orderModel.find().lean();
+  async exportOrdersToExcel(query: ExportOrdersQueryDto = {}): Promise<Buffer> {
+    const filter: Record<string, unknown> = {};
+
+    // Status filter
+    if (query.status) {
+      filter.status = query.status;
+    }
+
+    // Search filter — match by orderId or user.email
+    const search = query.search?.trim();
+    if (search) {
+      filter.$or = [
+        { orderId: { $regex: search, $options: 'i' } },
+        { 'user.email': { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const orders = await this.orderModel.find(filter).lean();
 
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet('Orders');
