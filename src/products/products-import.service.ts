@@ -62,17 +62,20 @@ export class ProductsImportService {
     }
 
     // Pre-fetch the current max code once, then increment in-memory
-    let nextCode = await this.getNextCode();
+    const nextCode = await this.getNextCode();
 
-    for (const { rowNumber, data } of validRows) {
-      const productCode = nextCode.toString().padStart(7, '0');
-      nextCode++;
-      try {
-        await this.productModel.create({ ...data, productCode });
-        imported++;
-      } catch {
-        failed.push({ row: rowNumber, reason: 'Failed to save product to database' });
-      }
+    const docs = validRows.map(({ data }, idx) => ({
+      ...data,
+      productCode: (nextCode + idx).toString().padStart(7, '0'),
+    }));
+
+    try {
+      await this.productModel.insertMany(docs);
+      imported = docs.length;
+    } catch {
+      validRows.forEach(({ rowNumber }) =>
+        failed.push({ row: rowNumber, reason: 'Failed to save product to database' }),
+      );
     }
 
     return { imported, failed };
