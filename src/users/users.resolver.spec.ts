@@ -13,6 +13,7 @@ describe('UsersResolver', () => {
   const mockUsersService = {
     findAll: jest.fn(),
     findById: jest.fn(),
+    withActiveWishlistOnly: jest.fn(),
     createByAdmin: jest.fn(),
     updateByAdmin: jest.fn(),
     deleteByAdmin: jest.fn(),
@@ -69,11 +70,13 @@ describe('UsersResolver', () => {
     it('should return user by id', async () => {
       const user = { id: '123', email: 'test@test.com' };
       usersService.findById.mockResolvedValue(user as never);
+      usersService.withActiveWishlistOnly.mockResolvedValue(user as never);
 
       const actual = await resolver.user('123');
 
       expect(actual).toEqual(user);
       expect(usersService.findById).toHaveBeenCalledWith('123');
+      expect(usersService.withActiveWishlistOnly).toHaveBeenCalledWith(user);
     });
   });
 
@@ -94,11 +97,13 @@ describe('UsersResolver', () => {
       };
 
       usersService.createByAdmin.mockResolvedValue(serviceResult as never);
+      usersService.withActiveWishlistOnly.mockResolvedValue(serviceResult.user as never);
 
       const actual = await resolver.createUser(input as never, currentUser as never);
 
       expect(actual).toEqual(serviceResult);
       expect(usersService.createByAdmin).toHaveBeenCalledWith(input, currentUser);
+      expect(usersService.withActiveWishlistOnly).toHaveBeenCalledWith(serviceResult.user);
     });
   });
 
@@ -113,11 +118,13 @@ describe('UsersResolver', () => {
       const updatedUser = { id: '1', firstName: 'Anna' };
 
       usersService.updateByAdmin.mockResolvedValue(updatedUser as never);
+      usersService.withActiveWishlistOnly.mockResolvedValue(updatedUser as never);
 
       const actual = await resolver.updateUser(input as never, currentUser as never);
 
       expect(actual).toEqual(updatedUser);
       expect(usersService.updateByAdmin).toHaveBeenCalledWith(input, currentUser);
+      expect(usersService.withActiveWishlistOnly).toHaveBeenCalledWith(updatedUser);
     });
   });
 

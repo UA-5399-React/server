@@ -19,12 +19,14 @@ import { buildPaginatedResult, getPagination } from '@/common/utils/pagination.u
 import { buildSort } from '@/common/utils/sorting.util';
 import { AppLogger } from '@/logger/app-logger.service';
 import { MailService } from '@/mailer/mailer.service';
+import { Product } from '@/products/entities/product.schema';
+import { ProductStatus } from '@/products/enums/product-status.enum';
 import { CloudinaryService } from '@/uploads/cloudinary.service';
 import { CreateUserData } from '@/users/dto/create-user.type';
 import { GoogleUserUpdateData } from '@/users/dto/google-user-update-data.type';
 import { UpdateMeDto } from '@/users/dto/update-me.dto';
 import { UpsertWishlistItemDto } from '@/users/dto/upsert-wishlist-item.dto';
-import { User, UserDocument } from '@/users/entities/user.schema';
+import { User, UserDocument, WishlistItem } from '@/users/entities/user.schema';
 import { Role } from '@/users/enums/role.enum';
 import { UserDateFilterField } from '@/users/enums/user-date-filter-field.enum';
 import { UsersSortField } from '@/users/enums/users-sort-field.enum';
@@ -49,6 +51,8 @@ export class UsersService {
   constructor(
     @InjectModel(User.name)
     private readonly userModel: Model<User>,
+    @InjectModel(Product.name)
+    private readonly productModel: Model<Product>,
     private readonly cryptoService: CryptoService,
     private readonly logger: AppLogger,
     private readonly cloudinaryService: CloudinaryService,
@@ -216,7 +220,9 @@ export class UsersService {
       this.userModel.countDocuments(filter).exec(),
     ]);
 
-    return buildPaginatedResult(items, total, page, limit);
+    const itemsWithFilteredWishlist = await this.withActiveWishlistOnlyMany(items);
+
+    return buildPaginatedResult(itemsWithFilteredWishlist, total, page, limit);
   }
 
   private buildSearchFilter(search?: string): Record<string, unknown> {
@@ -457,13 +463,72 @@ export class UsersService {
     return updatedUser;
   }
 
+  async withActiveWishlistOnly(user: UserDocument): Promise<UserDocument> {
+    const [one] = await this.withActiveWishlistOnlyMany([user]);
+    return one;
+  }
+
+  async withActiveWishlistOnlyMany(users: UserDocument[]): Promise<UserDocument[]> {
+    if (!users.length) {
+      return users;
+    }
+
+    const allProductIds = new Set<string>();
+    for (const u of users) {
+      for (const w of u.wishlist ?? []) {
+        const pid = w.productId?.toString();
+        if (pid && Types.ObjectId.isValid(pid)) {
+          allProductIds.add(pid);
+        }
+      }
+    }
+
+    let activeProductIdSet = new Set<string>();
+    if (allProductIds.size > 0) {
+      const objectIds = [...allProductIds].map((id) => new Types.ObjectId(id));
+      const activeRows = await this.productModel
+        .find({ _id: { $in: objectIds }, status: ProductStatus.ACTIVE })
+        .select('_id')
+        .lean()
+        .exec();
+      activeProductIdSet = new Set(activeRows.map((p) => p._id.toString()));
+    }
+
+    return users.map((u) => {
+      const filteredWishlist = (u.wishlist ?? []).filter((item: WishlistItem) =>
+        activeProductIdSet.has(item.productId.toString()),
+      );
+      const plain = u.toObject({ virtuals: true });
+      plain.wishlist = filteredWishlist;
+      return plain as UserDocument;
+    });
+  }
+
   async upsertWishlistItem(userId: string, dto: UpsertWishlistItemDto): Promise<UserDocument> {
-    const productId = new Types.ObjectId(dto.productId);
+    const requestedProductId = dto.productId;
+    if (!requestedProductId || !Types.ObjectId.isValid(requestedProductId)) {
+      throw new BadRequestException('Valid productId is required');
+    }
+
+    const productId = new Types.ObjectId(requestedProductId);
+    const product = await this.productModel
+      .findById(productId)
+      .select('title price imageUrl status')
+      .exec();
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    if (product.status === ProductStatus.INACTIVE || product.status === ProductStatus.DRAFT) {
+      throw new BadRequestException('Product is not available for wishlist');
+    }
+
     const data = {
-      productId: productId,
-      title: dto.title.trim(),
-      price: dto.price,
-      image: dto.image?.trim(),
+      productId,
+      title: product.title,
+      price: product.price,
+      image: product.imageUrl,
     };
 
     const existingUser = await this.userModel.findById(userId).select('_id').exec();

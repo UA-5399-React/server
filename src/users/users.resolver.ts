@@ -43,8 +43,9 @@ export class UsersResolver {
   }
 
   @Query(() => UserType)
-  user(@Args('id', { type: () => ID }) id: string) {
-    return this.usersService.findById(id);
+  async user(@Args('id', { type: () => ID }) id: string): Promise<UserType> {
+    const user = await this.usersService.findById(id);
+    return (await this.usersService.withActiveWishlistOnly(user)) as unknown as UserType;
   }
 
   @Mutation(() => CreateUserPayload)
@@ -52,7 +53,9 @@ export class UsersResolver {
     @Args('input') input: CreateUserInput,
     @CurrentUser() currentUser: AuthUser,
   ): Promise<{ user: UserListItem; tempPassword: string | null }> {
-    return await this.usersService.createByAdmin(input, currentUser);
+    const payload = await this.usersService.createByAdmin(input, currentUser);
+    const user = await this.usersService.withActiveWishlistOnly(payload.user as UserDocument);
+    return { ...payload, user: user as unknown as UserListItem };
   }
 
   @Mutation(() => UserType)
@@ -60,7 +63,10 @@ export class UsersResolver {
     @Args('input') input: UpdateUserInput,
     @CurrentUser() currentUser: AuthUser,
   ): Promise<UserType> {
-    return await this.usersService.updateByAdmin(input, currentUser);
+    const updated = await this.usersService.updateByAdmin(input, currentUser);
+    return (await this.usersService.withActiveWishlistOnly(
+      updated as UserDocument,
+    )) as unknown as UserType;
   }
 
   @Mutation(() => Boolean)

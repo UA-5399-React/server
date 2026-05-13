@@ -39,6 +39,7 @@ import { UpsertWishlistItemDto } from './dto/upsert-wishlist-item.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { UsersListResponseDto } from './dto/users-list-response.dto';
 import { UsersQueryDto } from './dto/users-query.dto';
+import { UserDocument } from './entities/user.schema';
 import { toUserListResponseDto, toUserResponseDto } from './users.mapper';
 import { UsersService } from './users.service';
 
@@ -49,6 +50,10 @@ export class UsersController {
     private readonly usersService: UsersService,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
+
+  private async toUserResponseDtoActiveWishlist(user: UserDocument): Promise<UserResponseDto> {
+    return toUserResponseDto(await this.usersService.withActiveWishlistOnly(user));
+  }
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -86,7 +91,7 @@ export class UsersController {
   @Get('me')
   async getMe(@Req() req: AuthRequest): Promise<UserResponseDto> {
     const user = await this.usersService.findById(req.user.id);
-    return toUserResponseDto(user);
+    return this.toUserResponseDtoActiveWishlist(user);
   }
 
   @ApiBearerAuth()
@@ -95,7 +100,7 @@ export class UsersController {
   @Patch('me')
   async updateMe(@Req() req: AuthRequest, @Body() dto: UpdateMeDto): Promise<UserResponseDto> {
     const user = await this.usersService.updateMe(req.user.id, dto);
-    return toUserResponseDto(user);
+    return this.toUserResponseDtoActiveWishlist(user);
   }
 
   @ApiBearerAuth()
@@ -116,7 +121,7 @@ export class UsersController {
     @Body() dto: UpsertWishlistItemDto,
   ): Promise<UserResponseDto> {
     const user = await this.usersService.upsertWishlistItem(req.user.id, dto);
-    return toUserResponseDto(user);
+    return this.toUserResponseDtoActiveWishlist(user);
   }
 
   @ApiBearerAuth()
@@ -128,7 +133,7 @@ export class UsersController {
     @Param('productId') productId: string,
   ): Promise<UserResponseDto> {
     const user = await this.usersService.removeWishlistItem(req.user.id, productId);
-    return toUserResponseDto(user);
+    return this.toUserResponseDtoActiveWishlist(user);
   }
 
   @ApiBearerAuth()
@@ -137,7 +142,7 @@ export class UsersController {
   @Delete('me/wishlist')
   async clearWishlist(@Req() req: AuthRequest): Promise<UserResponseDto> {
     const user = await this.usersService.clearWishlist(req.user.id);
-    return toUserResponseDto(user);
+    return this.toUserResponseDtoActiveWishlist(user);
   }
 
   @ApiBearerAuth()
@@ -160,7 +165,7 @@ export class UsersController {
       uploaded.imagePublicId,
     );
 
-    return toUserResponseDto(user);
+    return this.toUserResponseDtoActiveWishlist(user);
   }
 
   @ApiBearerAuth()
