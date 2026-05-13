@@ -8,6 +8,7 @@ import { TokensService } from '@/auth/tokens/tokens.service';
 import { CartService } from '@/cart/cart.service';
 import { AppLogger } from '@/logger/app-logger.service';
 import { MailService } from '@/mailer/mailer.service';
+import { Product } from '@/products/entities/product.schema';
 import { CloudinaryService } from '@/uploads/cloudinary.service';
 import { User } from '@/users/entities/user.schema';
 import { Role } from '@/users/enums/role.enum';
@@ -27,6 +28,10 @@ describe('UsersService', () => {
     find: jest.fn(),
     countDocuments: jest.fn(),
     aggregate: jest.fn().mockReturnValue({ exec: mockAggregateExec }),
+  };
+
+  const mockProductModel = {
+    findById: jest.fn(),
   };
 
   const mockCryptoService = {
@@ -57,6 +62,10 @@ describe('UsersService', () => {
         {
           provide: getModelToken(User.name),
           useValue: mockUserModel,
+        },
+        {
+          provide: getModelToken(Product.name),
+          useValue: mockProductModel,
         },
         {
           provide: CryptoService,

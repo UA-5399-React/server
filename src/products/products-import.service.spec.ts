@@ -44,11 +44,11 @@ function buildCsv(
 
 // ─── mock model ─────────────────────────────────────────────────────────────
 
-const mockCreate = jest.fn();
+const mockInsertMany = jest.fn();
 const mockFindOne = jest.fn();
 
 const productModelMock = {
-  create: mockCreate,
+  insertMany: mockInsertMany,
   findOne: mockFindOne,
 };
 
@@ -67,18 +67,16 @@ describe('ProductsImportService', () => {
 
     service = module.get<ProductsImportService>(ProductsImportService);
 
-    mockCreate.mockReset();
+    mockInsertMany.mockReset();
     mockFindOne.mockReset();
 
-    // generateCode() stub — last product has code 0000099
+    // getNextCode() — last product has code 0000099
     mockFindOne.mockReturnValue({
       sort: jest.fn().mockReturnThis(),
       select: jest.fn().mockResolvedValue({ productCode: '0000099' }),
     });
 
-    mockCreate.mockImplementation((data: Record<string, unknown>) =>
-      Promise.resolve({ ...data, _id: 'mock-id' }),
-    );
+    mockInsertMany.mockResolvedValue([]);
   });
 
   // ── unsupported format ───────────────────────────────────────────────────
@@ -105,7 +103,8 @@ describe('ProductsImportService', () => {
 
     expect(result.imported).toBe(2);
     expect(result.failed).toHaveLength(0);
-    expect(mockCreate).toHaveBeenCalledTimes(2);
+    expect(mockInsertMany).toHaveBeenCalledTimes(1);
+    expect(mockInsertMany.mock.calls[0][0]).toHaveLength(2);
   });
 
   // ── csv happy path ───────────────────────────────────────────────────────
@@ -119,6 +118,8 @@ describe('ProductsImportService', () => {
 
     expect(result.imported).toBe(1);
     expect(result.failed).toHaveLength(0);
+    expect(mockInsertMany).toHaveBeenCalledTimes(1);
+    expect(mockInsertMany.mock.calls[0][0]).toHaveLength(1);
   });
 
   // ── validation failures ──────────────────────────────────────────────────
@@ -197,8 +198,8 @@ describe('ProductsImportService', () => {
 
   // ── db failure ───────────────────────────────────────────────────────────
 
-  it('reports a failure when database create throws', async () => {
-    mockCreate.mockRejectedValueOnce(new Error('DB error'));
+  it('reports a failure when database insertMany throws', async () => {
+    mockInsertMany.mockRejectedValueOnce(new Error('DB error'));
 
     const buffer = buildCsv([{ title: 'A', price: 10, status: 'active' }]);
     const result = await service.importFromFile({ originalname: 'p.csv', buffer });

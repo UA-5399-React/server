@@ -517,6 +517,19 @@ describe('ProductsService', () => {
     });
   });
 
+  describe('changeStatus', () => {
+    it('should update product status', async () => {
+      const updated = { ...mockProduct, status: ProductStatus.INACTIVE };
+      mockProductModel.findByIdAndUpdate.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(updated),
+      });
+
+      await expect(service.changeStatus(VALID_ID, ProductStatus.INACTIVE)).resolves.toEqual(
+        updated,
+      );
+    });
+  });
+
   describe('duplicate', () => {
     it('should duplicate product as draft', async () => {
       mockProductModel.findById.mockReturnValue({
