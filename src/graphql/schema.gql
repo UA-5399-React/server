@@ -380,7 +380,7 @@ input ProductsFilterInput {
   dateType: String
   maxPrice: Float
   minPrice: Float
-  status: ProductStatus
+  status: [ProductStatus!]
 
   """updatedAt >= updatedFrom"""
   updatedFrom: DateTime

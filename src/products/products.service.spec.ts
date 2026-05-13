@@ -192,7 +192,7 @@ describe('ProductsService', () => {
           category: ['507f1f77bcf86cd799439011', '507f1f77bcf86cd799439012'],
           minPrice: 100,
           maxPrice: 500,
-          status: ProductStatus.ACTIVE,
+          status: [ProductStatus.ACTIVE],
           updatedFrom: new Date('2026-03-01T00:00:00.000Z'),
           updatedTo: new Date('2026-03-31T23:59:59.999Z'),
         },
@@ -204,7 +204,7 @@ describe('ProductsService', () => {
       const filter = pipeline[0].$match;
 
       expect(filter.price).toEqual({ $gte: 100, $lte: 500 });
-      expect(filter.status).toBe(ProductStatus.ACTIVE);
+      expect(filter.status).toEqual({ $in: [ProductStatus.ACTIVE] });
 
       expect(filter.updatedAt).toEqual({
         $gte: new Date('2026-03-01T00:00:00.000Z'),
@@ -288,6 +288,27 @@ describe('ProductsService', () => {
       await expect(service.findAll(query)).rejects.toThrow(
         new BadRequestException('Invalid date range: updatedFrom must be <= updatedTo'),
       );
+    });
+
+    it('should not apply default status filter for GraphQL when status is not provided', async () => {
+      aggregateExecMock.mockResolvedValue([{ ...mockProduct, purchaseCount: 0 }]);
+      countExecMock.mockResolvedValue(1);
+
+      const query: ProductsQueryArgs = {
+        page: 1,
+        limit: 10,
+        filter: {
+          minPrice: 100,
+        },
+      };
+
+      await service.findAll(query);
+
+      const pipeline = mockProductModel.aggregate.mock.calls[0][0];
+      const filter = pipeline[0].$match;
+
+      expect(filter.status).toBeUndefined();
+      expect(filter.price).toEqual({ $gte: 100 });
     });
   });
 
