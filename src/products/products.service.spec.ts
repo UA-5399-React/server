@@ -204,7 +204,7 @@ describe('ProductsService', () => {
       const filter = pipeline[0].$match;
 
       expect(filter.price).toEqual({ $gte: 100, $lte: 500 });
-      expect(filter.status).toBe(ProductStatus.ACTIVE);
+      expect(filter.status).toEqual({ $in: [ProductStatus.ACTIVE] });
 
       expect(filter.updatedAt).toEqual({
         $gte: new Date('2026-03-01T00:00:00.000Z'),
