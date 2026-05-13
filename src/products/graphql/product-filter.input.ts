@@ -24,10 +24,10 @@ export class ProductsFilterInput {
   @Min(0)
   maxPrice?: number;
 
-  @Field(() => ProductStatus, { nullable: true })
+  @Field(() => [ProductStatus], { nullable: true })
   @IsOptional()
-  @IsEnum(ProductStatus)
-  status?: ProductStatus;
+  @IsEnum(ProductStatus, { each: true })
+  status?: ProductStatus[];
 
   @Field(() => GraphQLISODateTime, { nullable: true, description: 'updatedAt >= updatedFrom' })
   @IsOptional()
