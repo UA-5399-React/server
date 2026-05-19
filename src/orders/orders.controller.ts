@@ -23,6 +23,7 @@ import { Types } from 'mongoose';
 
 import { CurrentUser } from '@/auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
+import { PaginatedResult } from '@/common/types/paginated-result.type';
 import { Role } from '@/users/enums/role.enum';
 
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -66,10 +67,16 @@ export class OrdersController {
   }
 
   @Get('my')
-  @ApiOperation({ summary: 'Get all orders belonging to the current user' })
-  @ApiResponse({ status: 200, type: [Order] })
-  findMyOrders(@CurrentUser('_id') userId: Types.ObjectId): Promise<Order[]> {
-    return this.ordersService.findMyOrders(userId);
+  @ApiOperation({ summary: 'Get all orders belonging to the current user with pagination' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page' })
+  @ApiResponse({ status: 200, description: 'Paginated list of orders' })
+  findMyOrders(
+    @CurrentUser('_id') userId: Types.ObjectId,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ): Promise<PaginatedResult<Order>> {
+    return this.ordersService.findMyOrders(userId, page, limit);
   }
 
   @Get('my/:orderId')
