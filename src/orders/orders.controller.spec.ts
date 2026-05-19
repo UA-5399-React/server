@@ -56,6 +56,16 @@ const mockOrder = {
   payment: { method: PaymentMethod.STRIPE, status: 'pending' },
 };
 
+const mockPaginatedOrders = {
+  items: [mockOrder],
+  meta: { total: 1, page: 1, limit: 10, totalPages: 1 },
+};
+
+const mockEmptyPaginatedOrders = {
+  items: [],
+  meta: { total: 0, page: 1, limit: 10, totalPages: 0 },
+};
+
 // ─── Mock service ─────────────────────────────────────────────────────────────
 
 const mockOrdersService = {
@@ -123,22 +133,22 @@ describe('OrdersController', () => {
   // ─── GET /orders/my ───────────────────────────────────────────────────────
 
   describe('findMyOrders', () => {
-    it('should return the list of orders for the current user', async () => {
-      mockOrdersService.findMyOrders.mockResolvedValue([mockOrder]);
+    it('should return the paginated list of orders for the current user', async () => {
+      mockOrdersService.findMyOrders.mockResolvedValue(mockPaginatedOrders);
 
       const result = await controller.findMyOrders(userId);
 
-      expect(mockOrdersService.findMyOrders).toHaveBeenCalledWith(userId);
-      expect(result).toEqual([mockOrder]);
+      expect(mockOrdersService.findMyOrders).toHaveBeenCalledWith(userId, undefined, undefined);
+      expect(result).toEqual(mockPaginatedOrders);
     });
 
-    it('should return an empty array when the user has no orders', async () => {
-      mockOrdersService.findMyOrders.mockResolvedValue([]);
+    it('should return an empty paginated array when the user has no orders', async () => {
+      mockOrdersService.findMyOrders.mockResolvedValue(mockEmptyPaginatedOrders);
 
       const result = await controller.findMyOrders(userId);
 
-      expect(mockOrdersService.findMyOrders).toHaveBeenCalledWith(userId);
-      expect(result).toEqual([]);
+      expect(mockOrdersService.findMyOrders).toHaveBeenCalledWith(userId, undefined, undefined);
+      expect(result).toEqual(mockEmptyPaginatedOrders);
     });
   });
 
