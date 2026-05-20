@@ -199,7 +199,10 @@ describe('OrdersService', () => {
     it('should return the order when it belongs to the current user', async () => {
       const orderWithUserId = {
         ...mockOrder,
-        userId: { equals: (id: Types.ObjectId) => id.equals(USER_ID) },
+        userId: {
+          equals: (id: Types.ObjectId) => id.equals(USER_ID),
+          toString: () => USER_ID.toString(),
+        },
       };
       const chainMock = { lean: jest.fn().mockResolvedValue(orderWithUserId) };
       mockOrderModel.findOne.mockReturnValue(chainMock);
@@ -222,7 +225,10 @@ describe('OrdersService', () => {
     it('should throw ForbiddenException when the order belongs to another user', async () => {
       const orderWithOtherUser = {
         ...mockOrder,
-        userId: { equals: () => false },
+        userId: {
+          equals: () => false,
+          toString: () => 'some-random-id',
+        },
       };
       const chainMock = { lean: jest.fn().mockResolvedValue(orderWithOtherUser) };
       mockOrderModel.findOne.mockReturnValue(chainMock);
@@ -240,7 +246,10 @@ describe('OrdersService', () => {
       const doc = asSaveableDoc({
         ...mockOrder,
         status: OrderStatus.NEW,
-        userId: { equals: (id: Types.ObjectId) => id.equals(USER_ID) },
+        userId: {
+          equals: (id: Types.ObjectId) => id.equals(USER_ID),
+          toString: () => USER_ID.toString(),
+        },
       });
       mockOrderModel.findOne.mockResolvedValue(doc);
 
@@ -263,7 +272,10 @@ describe('OrdersService', () => {
       const doc = asSaveableDoc({
         ...mockOrder,
         status: OrderStatus.NEW,
-        userId: { equals: () => false },
+        userId: {
+          equals: () => false,
+          toString: () => 'some-random-id',
+        },
       });
       mockOrderModel.findOne.mockResolvedValue(doc);
 
@@ -278,7 +290,10 @@ describe('OrdersService', () => {
         const doc = asSaveableDoc({
           ...mockOrder,
           status,
-          userId: { equals: (id: Types.ObjectId) => id.equals(USER_ID) },
+          userId: {
+            equals: (id: Types.ObjectId) => id.equals(USER_ID),
+            toString: () => USER_ID.toString(),
+          },
         });
         mockOrderModel.findOne.mockResolvedValue(doc);
 
@@ -302,7 +317,10 @@ describe('OrdersService', () => {
       const doc = asSaveableDoc({
         ...mockOrder,
         status: OrderStatus.NEW,
-        userId: { equals: (id: Types.ObjectId) => id.equals(USER_ID) },
+        userId: {
+          equals: (id: Types.ObjectId) => id.equals(USER_ID),
+          toString: () => USER_ID.toString(),
+        },
       });
       mockOrderModel.findOne.mockResolvedValue(doc);
 
@@ -325,7 +343,10 @@ describe('OrdersService', () => {
       const doc = asSaveableDoc({
         ...mockOrder,
         status: OrderStatus.NEW,
-        userId: { equals: () => false },
+        userId: {
+          equals: () => false,
+          toString: () => 'some-random-id',
+        },
       });
       mockOrderModel.findOne.mockResolvedValue(doc);
 
@@ -340,7 +361,10 @@ describe('OrdersService', () => {
         const doc = asSaveableDoc({
           ...mockOrder,
           status,
-          userId: { equals: (id: Types.ObjectId) => id.equals(USER_ID) },
+          userId: {
+            equals: (id: Types.ObjectId) => id.equals(USER_ID),
+            toString: () => USER_ID.toString(),
+          },
         });
         mockOrderModel.findOne.mockResolvedValue(doc);
 
