@@ -96,8 +96,25 @@ export class OrdersService {
     return order;
   }
 
-  async findMyOrders(userId: Types.ObjectId): Promise<Order[]> {
-    return this.orderModel.find({ userId }).sort({ createdAt: -1 }).lean();
+  async findMyOrders(
+    userId: Types.ObjectId,
+    pageArg?: number,
+    limitArg?: number,
+  ): Promise<PaginatedResult<Order>> {
+    const { page, limit, skip } = getPagination(pageArg, limitArg);
+
+    const [items, total] = await Promise.all([
+      this.orderModel
+        .find({ userId })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean()
+        .exec(),
+      this.orderModel.countDocuments({ userId }).exec(),
+    ]);
+
+    return buildPaginatedResult(items, total, page, limit);
   }
 
   async findMyOrderById(orderId: string, userId: Types.ObjectId): Promise<Order> {
@@ -107,7 +124,7 @@ export class OrdersService {
       throw new NotFoundException(`Order ${orderId} not found.`);
     }
 
-    if (!order.userId.equals(userId)) {
+    if (order.userId.toString() !== userId.toString()) {
       throw new ForbiddenException('Access denied.');
     }
 
