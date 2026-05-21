@@ -97,10 +97,13 @@ export class ProductsService {
       };
     }
 
-    // Status filter
-    if (filterInput.status) {
+    // Status filter:
+    const isGraphqlRequest = 'filter' in q;
+    if (filterInput.status?.length) {
+      filter.status = { $in: filterInput.status };
+    } else if (filterInput.status) {
       filter.status = filterInput.status;
-    } else {
+    } else if (!isGraphqlRequest) {
       filter.status = ProductStatus.ACTIVE;
     }
 

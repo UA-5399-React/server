@@ -4,7 +4,7 @@ export type GqlFilters = {
   category?: string[];
   minPrice?: number;
   maxPrice?: number;
-  status?: ProductStatus;
+  status?: ProductStatus[];
   updatedFrom?: Date;
   updatedTo?: Date;
   dateType?: string;
